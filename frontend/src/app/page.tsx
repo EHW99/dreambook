@@ -233,7 +233,7 @@ export default function LandingPage() {
                     className="group bg-white rounded-3xl shadow-card overflow-hidden hover:shadow-hover transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                   >
                     {/* 더미 표지 */}
-                    <div className={`h-48 sm:h-56 bg-gradient-to-br ${book.coverColor} flex flex-col items-center justify-center gap-2`}>
+                    <div className={`h-40 sm:h-44 bg-gradient-to-br ${book.coverColor} flex flex-col items-center justify-center gap-2`}>
                       <span className="text-6xl group-hover:scale-110 transition-transform duration-300">
                         {book.emoji}
                       </span>
@@ -282,7 +282,7 @@ export default function LandingPage() {
                     className={`group ${style.bgColor} border-2 ${style.borderColor} rounded-2xl p-4 text-center hover:shadow-card transition-all duration-300 hover:-translate-y-1`}
                   >
                     {/* placeholder 이미지 영역 */}
-                    <div className={`w-full aspect-square rounded-xl bg-gradient-to-br ${style.placeholderColor} mb-3 flex flex-col items-center justify-center gap-1`}>
+                    <div className={`w-full aspect-[4/3] rounded-xl bg-gradient-to-br ${style.placeholderColor} mb-3 flex flex-col items-center justify-center gap-1`}>
                       <Palette className="w-8 h-8 text-text-lighter group-hover:text-text-light transition-colors" />
                       <span className="text-xs text-text-lighter/70 font-medium">{style.name} 스타일</span>
                     </div>

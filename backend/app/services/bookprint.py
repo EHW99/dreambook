@@ -255,9 +255,19 @@ class BookPrintService:
         return data if isinstance(data, list) else []
 
     async def get_template_detail(self, template_uid: str) -> dict:
-        """템플릿 상세 조회 — 파라미터 정의 포함"""
+        """템플릿 상세 조회 — 파라미터 정의 포함
+
+        API 응답 구조: data.parameters.definitions = {paramName: {binding, required, ...}}
+        호출자 편의를 위해 parameters.definitions를 parameters로 끌어올린다.
+        """
         result = await self._request("GET", f"/templates/{template_uid}")
-        return result.get("data", {})
+        data = result.get("data", {})
+        # parameters.definitions 언래핑: API 문서 기준 실제 파라미터 정의는
+        # data.parameters.definitions 안에 중첩되어 있음
+        params = data.get("parameters", {})
+        if isinstance(params, dict) and "definitions" in params:
+            data["parameters"] = params["definitions"]
+        return data
 
     # === Covers API ===
 

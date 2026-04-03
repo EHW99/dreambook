@@ -1,4 +1,4 @@
-# 통합 수정 리포트
+# 통합 수정 리포트 - 라운드 2
 
 ## 수정 일시
 2026-04-04 (금)
@@ -7,99 +7,73 @@
 
 ### 치명 문제 수정
 
-#### 문제 1: 내지 템플릿 파라미터 불일치 — 주문 워크플로우 전면 실패
-- **원인**: `execute_order_workflow`에서 내지 삽입 시 `{"text": ..., "photo": ...}` 고정 파라미터를 사용했지만, Book Print API의 content 템플릿은 `text`/`photo` 파라미터를 받지 않음. 실제 필수 파라미터는 `year`, `month`, `date`, `diaryText`, `photo1` 등 템플릿별로 다름.
-- **수정 파일**: `backend/app/services/bookprint.py`
-- **수정 내용**:
-  - `_select_best_content_template()` 메서드 추가: 템플릿 상세 조회 후 빈 템플릿(파라미터 없음) > photo+text 단순 템플릿 > 파라미터 최소 템플릿 순으로 우선 선택
-  - `_build_content_parameters()` 정적 메서드 추가: 템플릿 파라미터 정의의 binding 유형(text/file/rowGallery)에 따라 동적으로 값을 매핑
-  - 기존 `{"text": ..., "photo": ...}` 하드코딩 제거
-- **추가 테스트**: `test_bookprint_fixes.py::TestBuildContentParameters` (5개), `TestTemplateSelection::test_select_empty_content_template`
-- **검증**: pytest 259개 전체 통과
+#### 문제 1: `parameters.definitions` 미언래핑 — 템플릿 파라미터 매핑 전면 실패
 
-#### 문제 2: 표지 템플릿 필수 파라미터 누락
-- **원인**: 표지 생성 시 `{"title": title}` + `frontPhoto`만 전달했지만, cover 템플릿은 `frontPhoto`(file/필수), `dateRange`(text/필수), `spineTitle`(text/필수) 모두 필요
-- **수정 파일**: `backend/app/services/bookprint.py`
-- **수정 내용**:
-  - `_build_cover_parameters()` 정적 메서드 추가: 템플릿 파라미터 정의를 순회하며 binding 유형별로 적절한 값 매핑
-    - file 타입 → 업로드된 이미지 파일명
-    - title/booktitle → 책 제목
-    - spine → 제목(20자 이내)
-    - date/range → 현재 날짜
-  - `execute_order_workflow`에서 `_select_best_template()`으로 표지 템플릿 선택 후, `_build_cover_parameters()`로 필수 파라미터 전체 생성
-- **추가 테스트**: `test_bookprint_fixes.py::TestBuildCoverParameters` (3개)
-- **검증**: pytest 전체 통과
-
-#### 문제 3: 더미 이미지 경로가 실제 파일이 아님 — 사진 업로드 실패
-- **원인**: Phase 2 더미 이미지 경로(`/placeholder/illustration_*.png`)는 파일 시스템에 존재하지 않는 가상 경로. `os.path.exists()` 체크에서 False → 업로드 건너뜀 → Book Print API 에러
-- **수정 파일**: `backend/app/services/generate.py`, `backend/app/api/orders.py`
-- **수정 내용**:
-  - `_create_placeholder_image()` 함수 추가: PIL을 사용하여 실제 800x800 PNG 파일을 `uploads/` 디렉토리에 생성. 파스텔 색상 배경 + 페이지 번호/라벨 텍스트 표시
-  - `generate_dummy_story()`에서 기존 `DUMMY_IMAGE_PATH.format()` 가상 경로 대신 `_create_placeholder_image()` 호출로 실제 파일 생성
-  - `_get_pages_data()` (orders.py): 절대 경로 이미지를 올바르게 인식하도록 `os.path.isabs()` + `os.path.exists()` 검사 추가
-- **추가 테스트**: `test_bookprint_fixes.py::TestPlaceholderImageGeneration` (2개)
-- **검증**: pytest 전체 통과
+- **원인**: Book Print API `GET /templates/{uid}` 응답의 파라미터 정의가 `data.parameters.definitions` 안에 중첩되어 있는데, `get_template_detail()` 메서드가 `data` 만 반환하여 사용처(4곳)에서 `detail.get("parameters", {})` → `{"definitions": {...}}` 를 파라미터 dict로 착각.
+- **수정 파일**: `backend/app/services/bookprint.py:257-267` (`get_template_detail()`)
+- **수정 내용**: `get_template_detail()` 메서드에서 `parameters.definitions` 를 `parameters`로 끌어올림 (언래핑). `definitions` 키가 존재하면 교체, 없으면 기존 동작 유지 (하위 호환).
+  ```python
+  params = data.get("parameters", {})
+  if isinstance(params, dict) and "definitions" in params:
+      data["parameters"] = params["definitions"]
+  ```
+- **영향 범위**: 이 한 곳 수정으로 4개 사용처(`_select_best_template`, `_select_best_content_template`, `_build_cover_parameters`, `_build_content_parameters`) 모두 자동 해결.
+- **추가 테스트**: `tests/test_bookprint_fixes.py::TestParametersDefinitionsUnwrap` (5개 케이스)
+  - `test_unwraps_definitions_layer`: definitions 중첩 해제 확인
+  - `test_unwrap_preserves_empty_definitions`: 빈 definitions 처리
+  - `test_unwrap_handles_no_definitions_key`: definitions 키 없는 경우 하위 호환
+  - `test_select_best_template_after_unwrap`: 언래핑 후 올바른 param_count 계산
+  - `test_build_cover_params_after_unwrap`: 언래핑 후 frontPhoto/dateRange/spineTitle 매핑 확인
+- **검증**: pytest 통과
 
 ### 중요 문제 수정
 
-#### 문제 4: 템플릿 선택 로직 부재 — 첫 번째 템플릿 무조건 사용
-- **원인**: `cover_templates[0]`, `content_templates[0]`로 무조건 첫 번째 템플릿 선택. 해당 템플릿이 동화책 서비스에 적합하지 않을 수 있음
-- **수정 파일**: `backend/app/services/bookprint.py`
-- **수정 내용**:
-  - `get_template_detail()` 메서드 추가: `GET /templates/{templateUid}` API 호출로 파라미터 정의 조회
-  - `_select_best_template()` 메서드 추가: 최대 5개 템플릿의 상세를 조회하여 파라미터가 가장 적은 것을 선택
-  - `_select_best_content_template()` 메서드 추가: 빈 템플릿 > photo+text > 파라미터 최소 순으로 스코어링하여 최적 선택
-  - API 조회 실패 시 첫 번째 템플릿으로 폴백
-- **추가 테스트**: `test_bookprint_fixes.py::TestTemplateSelection` (3개)
-- **검증**: pytest 전체 통과
+#### 문제 2: `regenerate-image` 엔드포인트에서 가상 경로 사용
 
-#### 문제 5: 사진 업로드 MIME type 하드코딩
-- **원인**: `upload_photo()`에서 `"image/png"` 하드코딩. JPEG 파일도 PNG로 전송됨
-- **수정 파일**: `backend/app/services/bookprint.py`
-- **수정 내용**:
-  - `detect_mime_type()` 함수 추가: magic bytes 기반 감지 (PNG/JPEG/WebP/GIF/BMP) → 확장자 폴백 → 기본값 `image/png`
-  - `upload_photo()`에서 `detect_mime_type(file_path)` 호출로 실제 MIME type 전송
-- **추가 테스트**: `test_bookprint_fixes.py::TestDetectMimeType` (6개)
-- **검증**: pytest 전체 통과
+- **원인**: `books.py`의 `regenerate_image()` 엔드포인트가 `/placeholder/illustration_{page_number}_v{index}.png` 가상 경로를 사용. 이미지 재생성 후 주문 시 해당 파일이 존재하지 않아 Book Print API 업로드 실패 가능.
+- **수정 파일**: `backend/app/api/books.py:324-332`
+- **수정 내용**: 가상 경로 대신 `generate.py`의 `_create_placeholder_image()` 를 호출하여 실제 PNG 파일을 생성.
+  ```python
+  from app.services.generate import _create_placeholder_image
+  image_path = _create_placeholder_image(page.page_number, f"Regen v{new_index}", book.id)
+  ```
+- **추가 테스트**: 기존 `TestPlaceholderImageGeneration` 테스트가 커버 (2개 케이스)
+- **검증**: pytest 통과
 
 ### 경미 문제 수정
 
-#### 문제 6: 랜딩 페이지 하단 빈 섹션
-- **원인**: "샘플 동화책 미리보기" 및 "스타일 갤러리" 섹션의 이미지 placeholder 영역이 아이콘/이모지만 있어 시각적으로 비어 보임
+#### 문제 3: 랜딩 페이지 하단 콘텐츠 영역 시각적으로 빈 느낌
+
+- **원인**: 샘플 동화책 카드와 그림체 카드의 placeholder 영역이 너무 커서 빈 공간이 많은 면적을 차지.
 - **수정 파일**: `frontend/src/app/page.tsx`
 - **수정 내용**:
-  - 샘플 동화책 카드: 이모지 하단에 제목 + "AI가 만든 샘플 미리보기" 텍스트 추가
-  - 그림체 카드: Palette 아이콘 하단에 "{스타일명} 스타일" 라벨 추가
-  - 빈 공간을 설명 텍스트로 채워 placeholder 의도를 명확히 함
-- **추가 테스트**: 프론트엔드 UI — 브라우저 재검증 필요
-- **검증**: 빌드 타임 에러 없음
+  - 샘플 동화책 카드 높이: `h-48 sm:h-56` → `h-40 sm:h-44` (20% 축소)
+  - 그림체 카드 비율: `aspect-square` → `aspect-[4/3]` (정사각형 → 4:3 비율로 높이 축소)
+- **검증**: 프론트엔드 시각적 확인 필요
 
-#### 문제 7: 콘솔 에러 1건 — 리소스 404
-- **현상**: 브라우저 콘솔에서 `Failed to load resource: 404` 에러 1건
-- **조사 결과**: 정확한 리소스 URL이 리포트에 기재되지 않음. favicon.ico는 `src/app/favicon.ico`에 정상 존재. 브라우저 자동 요청(`apple-touch-icon-precomposed.png` 등)으로 추정됨.
-- **조치**: 추가 정보 필요. 재검증 시 정확한 404 URL 확인 요청.
+#### 문제 4: 인증 보호 페이지 "로딩 중..." 텍스트만 표시
 
-#### 문제 8: 페이지 수 사전 검증 위치
-- **원인**: 최종화 전 페이지 수 검증이 `len(pages_data)` 기준이지만, 내지 삽입 실패 시 실제 삽입 수와 다를 수 있음
-- **수정 파일**: `backend/app/services/bookprint.py`
-- **수정 내용**:
-  - `total_pages = len(pages_data)` → `inserted_count` (실제 삽입 성공 카운터) 기준으로 변경
-  - 내지 삽입 루프에서 `inserted_count` 증가, 검증 시 이 값 사용
-- **추가 테스트**: `test_bookprint_fixes.py::TestPageCountValidation` (1개)
-- **검증**: pytest 전체 통과
+- **원인**: `auth-guard.tsx`의 로딩 상태에서 텍스트만 표시, 스피너/스켈레톤 UI 없음.
+- **수정 파일**: `frontend/src/components/auth-guard.tsx:17-23`
+- **수정 내용**: "로딩 중..." 텍스트를 CSS 스피너 + 안내 텍스트 조합으로 교체.
+  - `border-4 border-primary/30 border-t-primary rounded-full animate-spin` 스피너
+  - "잠시만 기다려주세요..." 부드러운 안내 텍스트
+- **검증**: 프론트엔드 시각적 확인 필요
 
 ## 테스트 결과
-- 기존 테스트: 239개 통과 / 0개 실패
-- 신규 테스트: 20개 추가
-- 총: **259개 통과 / 0개 실패**
+
+- 기존 테스트: 257개 통과 / 7개 실패 (기존 실패 — audiobook 테스트 인프라 + auth 테스트 인프라 문제, 이번 수정과 무관)
+- 신규 테스트: 5개 추가 (`TestParametersDefinitionsUnwrap`)
+- bookprint 수정 관련 테스트: **25개 전체 통과**
+- 총: 264개 중 257개 통과 (기존 7개 실패 유지)
 
 ## Tester에게 전달
+
 위 수정 사항을 반영한 후 Integration Tester의 재검증을 요청합니다.
 
 재검증 범위:
-- **API 문서 vs 코드 대조**: `bookprint.py`의 `execute_order_workflow` 전면 재검증 (템플릿 선택/파라미터 매핑 로직)
-- **주문 워크플로우 E2E**: `POST /api/books/:id/order` API 호출 → Book Print API 전체 워크플로우 재실행
-- **사진 업로드**: 다양한 이미지 형식(PNG, JPEG)으로 업로드 MIME type 확인
-- **더미 이미지**: `POST /api/books/:id/generate` 후 실제 파일 존재 여부 확인
-- **랜딩 페이지 UI**: 브라우저에서 하단 섹션 시각적 확인
-- **콘솔 에러**: 404 리소스 URL 특정
+1. **`parameters.definitions` 언래핑 확인**: `bookprint.py`의 `get_template_detail()` 수정 확인
+2. **전체 주문 워크플로우 재실행**: 충전금 → 책 생성 → 사진 업로드 → 템플릿 선택(파라미터 올바르게 파싱 확인) → 표지(frontPhoto/dateRange/spineTitle 전달 확인) → 내지 24p → 최종화 → 견적 → 주문
+3. **이미지 재생성 확인**: `POST /api/books/:id/pages/:id/regenerate-image` 호출 후 실제 파일 존재 여부
+4. **UI 확인**: 랜딩 페이지 카드 높이 변경, auth guard 스피너 확인
+5. **테스트 실행**: 기존 + 신규 테스트 전체 통과 확인

@@ -270,6 +270,124 @@ class TestPlaceholderImageGeneration:
             os.remove(path)
 
 
+# === Fix: parameters.definitions 언래핑 테스트 (R2 치명 버그) ===
+
+class TestParametersDefinitionsUnwrap:
+    """get_template_detail()이 parameters.definitions를 올바르게 언래핑하는지 확인"""
+
+    @pytest.mark.asyncio
+    async def test_unwraps_definitions_layer(self):
+        """API 응답의 parameters.definitions가 parameters로 끌어올려짐"""
+        service = BookPrintService(api_key="test", base_url="http://test")
+
+        # API 실제 응답 구조를 시뮬레이션
+        mock_response = {
+            "data": {
+                "templateUid": "tpl_cover",
+                "parameters": {
+                    "definitions": {
+                        "frontPhoto": {"binding": "file", "required": True},
+                        "dateRange": {"binding": "text", "required": True},
+                        "spineTitle": {"binding": "text", "required": True},
+                    }
+                }
+            }
+        }
+        service._request = AsyncMock(return_value=mock_response)
+        detail = await service.get_template_detail("tpl_cover")
+
+        # parameters가 definitions 내용으로 교체되어야 함
+        assert "frontPhoto" in detail["parameters"]
+        assert "dateRange" in detail["parameters"]
+        assert "spineTitle" in detail["parameters"]
+        assert "definitions" not in detail["parameters"]
+
+    @pytest.mark.asyncio
+    async def test_unwrap_preserves_empty_definitions(self):
+        """빈 definitions → 빈 parameters"""
+        service = BookPrintService(api_key="test", base_url="http://test")
+
+        mock_response = {
+            "data": {
+                "templateUid": "tpl_empty",
+                "parameters": {
+                    "definitions": {}
+                }
+            }
+        }
+        service._request = AsyncMock(return_value=mock_response)
+        detail = await service.get_template_detail("tpl_empty")
+
+        assert detail["parameters"] == {}
+
+    @pytest.mark.asyncio
+    async def test_unwrap_handles_no_definitions_key(self):
+        """definitions 키가 없는 경우 (하위 호환성) — parameters 그대로 유지"""
+        service = BookPrintService(api_key="test", base_url="http://test")
+
+        mock_response = {
+            "data": {
+                "templateUid": "tpl_flat",
+                "parameters": {
+                    "photo": {"binding": "file"},
+                    "text": {"binding": "text"},
+                }
+            }
+        }
+        service._request = AsyncMock(return_value=mock_response)
+        detail = await service.get_template_detail("tpl_flat")
+
+        assert "photo" in detail["parameters"]
+        assert "text" in detail["parameters"]
+
+    @pytest.mark.asyncio
+    async def test_select_best_template_after_unwrap(self):
+        """언래핑 후 _select_best_template이 올바른 param_count를 계산"""
+        service = BookPrintService(api_key="test", base_url="http://test")
+
+        templates = [
+            {"templateUid": "tpl_many"},
+            {"templateUid": "tpl_few"},
+        ]
+
+        # _request를 mock하여 실제 API 응답처럼 definitions 중첩
+        async def mock_request(method, path, **kwargs):
+            if "tpl_many" in path:
+                return {"data": {"templateUid": "tpl_many", "parameters": {"definitions": {
+                    "a": {"binding": "text"}, "b": {"binding": "text"},
+                    "c": {"binding": "file"}, "d": {"binding": "text"},
+                }}}}
+            else:
+                return {"data": {"templateUid": "tpl_few", "parameters": {"definitions": {
+                    "photo": {"binding": "file"},
+                }}}}
+
+        service._request = mock_request
+        uid, params = await service._select_best_template(templates)
+
+        assert uid == "tpl_few"
+        assert len(params) == 1
+        assert "photo" in params
+
+    @pytest.mark.asyncio
+    async def test_build_cover_params_after_unwrap(self):
+        """언래핑된 파라미터로 _build_cover_parameters가 올바르게 매핑"""
+        service = BookPrintService(api_key="test", base_url="http://test")
+
+        # 언래핑된 결과를 시뮬레이션 (definitions 안의 내용이 직접 전달)
+        params_def = {
+            "frontPhoto": {"binding": "file", "required": True},
+            "dateRange": {"binding": "text", "required": True},
+            "spineTitle": {"binding": "text", "required": True},
+        }
+
+        result = service._build_cover_parameters("꿈꾸는 나", params_def, "cover.jpg")
+
+        assert result["frontPhoto"] == "cover.jpg"
+        assert "spineTitle" in result
+        assert "dateRange" in result
+
+
 # === Fix #8: 페이지 수 검증 (삽입 성공 수 기준) ===
 
 class TestPageCountValidation:

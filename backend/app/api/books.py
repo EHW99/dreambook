@@ -321,11 +321,15 @@ def regenerate_image(
     for img in page.images:
         img.is_selected = False
 
-    # 새 더미 이미지 추가
+    # 새 더미 이미지 추가 — 실제 PNG 파일 생성
+    from app.services.generate import _create_placeholder_image
     new_index = len(page.images)
+    image_path = _create_placeholder_image(
+        page.page_number, f"Regen v{new_index}", book.id
+    )
     new_image = PageImage(
         page_id=page.id,
-        image_path=f"/placeholder/illustration_{page.page_number}_v{new_index}.png",
+        image_path=image_path,
         generation_index=new_index,
         is_selected=True,
         created_at=now,
