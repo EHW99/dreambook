@@ -134,9 +134,9 @@ class TestBookGenerate:
         data = res.json()
         assert data["status"] == "editing"
         assert "pages" in data
-        # 페이지 수 = page_count / 2 (양면이므로 12 내지 페이지)
-        # title(1) + content(10) + ending(1) = 12
-        assert len(data["pages"]) == 12
+        # 페이지 수 = page_count (Book Print API는 1회 호출 = 1페이지)
+        # title(1) + content(22) + ending(1) = 24
+        assert len(data["pages"]) == 24
 
     def test_generate_page_has_text_and_image(self, client):
         token = _signup_and_login(client)
@@ -320,7 +320,7 @@ class TestGetPages:
         )
         assert res.status_code == 200
         pages = res.json()
-        assert len(pages) == 12
+        assert len(pages) == 24
 
     def test_get_pages_empty_before_generate(self, client):
         token = _signup_and_login(client)

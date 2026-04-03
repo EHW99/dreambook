@@ -230,27 +230,50 @@ export default function LandingPage() {
                 <FadeInSection key={book.id} delay={index * 0.15}>
                   <div
                     data-testid="sample-book-card"
-                    className="group bg-white rounded-3xl shadow-card overflow-hidden hover:shadow-hover transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                    className="group cursor-pointer"
                   >
-                    {/* 더미 표지 */}
-                    <div className={`h-40 sm:h-44 bg-gradient-to-br ${book.coverColor} flex flex-col items-center justify-center gap-2`}>
-                      <span className="text-6xl group-hover:scale-110 transition-transform duration-300">
-                        {book.emoji}
-                      </span>
-                      <span className="text-sm font-bold text-text/60 mt-2">
-                        {book.title}
-                      </span>
-                      <span className="text-xs text-text/40 px-4 text-center">
-                        AI가 만든 샘플 미리보기
-                      </span>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="text-lg font-bold text-text mb-2 group-hover:text-primary transition-colors">
-                        {book.title}
-                      </h3>
-                      <p className="text-sm text-text-light leading-relaxed">
-                        {book.description}
-                      </p>
+                    {/* 책 형태 3D 효과 */}
+                    <div className="relative mx-auto" style={{ perspective: "800px" }}>
+                      {/* 그림자 + 페이지 레이어 */}
+                      <div className="absolute inset-0 translate-x-1 translate-y-1 bg-text/5 rounded-2xl" />
+                      <div className="absolute inset-0 translate-x-0.5 translate-y-0.5 bg-white border border-gray-100 rounded-2xl" />
+                      {/* 메인 카드 */}
+                      <div className="relative bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-hover transition-all duration-300 group-hover:-translate-y-1">
+                        {/* 표지 영역 — 책 느낌 */}
+                        <div className={`relative h-52 sm:h-56 bg-gradient-to-br ${book.coverColor} flex flex-col items-center justify-center overflow-hidden`}>
+                          {/* 장식 요소 */}
+                          <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/20" />
+                          <div className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-white/15" />
+                          <div className="absolute top-1/4 right-1/4 w-5 h-5 rounded-full bg-white/10" />
+                          {/* 책등 라인 */}
+                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-black/10 rounded-l-2xl" />
+                          {/* 이모지 + 텍스트 */}
+                          <span className="text-7xl mb-3 group-hover:scale-110 transition-transform duration-300 drop-shadow-sm">
+                            {book.emoji}
+                          </span>
+                          <span className="text-base font-bold text-text/70 px-4 text-center leading-tight">
+                            {book.title}
+                          </span>
+                          {/* 하단 태그 */}
+                          <span className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/40 text-xs font-medium text-text/60">
+                            <BookOpen className="w-3 h-3" />
+                            AI 동화책
+                          </span>
+                        </div>
+                        {/* 하단 설명 */}
+                        <div className="p-5">
+                          <h3 className="text-lg font-bold text-text mb-1.5 group-hover:text-primary transition-colors">
+                            {book.title}
+                          </h3>
+                          <p className="text-sm text-text-light leading-relaxed mb-3">
+                            {book.description}
+                          </p>
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                            미리보기
+                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </FadeInSection>

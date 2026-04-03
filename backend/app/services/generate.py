@@ -92,9 +92,9 @@ def generate_dummy_story(
     job_name = book.job_name or "직업"
     page_count = book.page_count or 24
 
-    # 내지 페이지 수 계산: page_count / 2 (양면)
-    # title(1) + content(N) + ending(1)
-    total_pages = page_count // 2
+    # 내지 페이지 수 계산: Book Print API는 insert_content 1회 = 1페이지로 카운트
+    # title(1) + content(N) + ending(1) = page_count
+    total_pages = page_count
     content_pages = total_pages - 2  # title과 ending 제외
 
     # 기존 페이지 삭제 (재생성 시)
