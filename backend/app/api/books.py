@@ -14,6 +14,7 @@ from app.schemas.book import (
     PageTextUpdateRequest, RegenerateStoryResponse, RegenerateImageResponse,
     ImageSelectResponse,
 )
+from app.schemas.audiobook import AudioBookData, AudioPageData
 from app.services.book import create_book, get_book_by_id, get_books_by_user, update_book, delete_book
 from app.services.generate import generate_dummy_story
 from app.services.voucher import get_voucher_by_id, use_voucher
@@ -391,3 +392,37 @@ def select_page_image(
     db.refresh(target_image)
 
     return ImageSelectResponse(id=target_image.id, is_selected=True)
+
+
+@router.get("/{book_id}/audio-data", response_model=AudioBookData)
+def get_audio_data(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """오디오북용 페이지별 텍스트 + 이미지 URL 반환"""
+    book = _get_book_or_403(db, book_id, user)
+
+    pages = db.query(Page).filter(Page.book_id == book_id).order_by(Page.page_number).all()
+
+    audio_pages = []
+    for page in pages:
+        # 선택된 이미지의 경로를 찾음
+        selected_image = None
+        for img in page.images:
+            if img.is_selected:
+                selected_image = img.image_path
+                break
+
+        audio_pages.append(AudioPageData(
+            page_number=page.page_number,
+            text_content=page.text_content,
+            image_url=selected_image,
+        ))
+
+    return AudioBookData(
+        book_title=book.title,
+        child_name=book.child_name,
+        total_pages=len(audio_pages),
+        pages=audio_pages,
+    )

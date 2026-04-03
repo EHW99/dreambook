@@ -360,6 +360,16 @@ class ApiClient {
     );
   }
 
+  // === Audiobook API ===
+
+  async getAudioData(bookId: number) {
+    return this.request<AudioBookData>(
+      `/api/books/${bookId}/audio-data`,
+      {},
+      true
+    );
+  }
+
   // === Order API ===
 
   async getEstimate(bookId: number) {
@@ -508,6 +518,19 @@ export interface RegenerateImageResult {
   page_id: number;
   image_regen_count: number;
   images: PageImageItem[];
+}
+
+export interface AudioPageData {
+  page_number: number;
+  text_content: string | null;
+  image_url: string | null;
+}
+
+export interface AudioBookData {
+  book_title: string | null;
+  child_name: string;
+  total_pages: number;
+  pages: AudioPageData[];
 }
 
 export interface CharacterSheetItem {

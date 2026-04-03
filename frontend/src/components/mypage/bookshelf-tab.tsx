@@ -13,6 +13,7 @@ import {
   PlayIcon,
   AlertTriangleIcon,
   EditIcon,
+  HeadphonesIcon,
 } from "@/components/icons";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -97,6 +98,10 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
 
   const handleOrder = (book: BookListItem) => {
     router.push(`/create/order?bookId=${book.id}`);
+  };
+
+  const handleListen = (book: BookListItem) => {
+    router.push(`/books/${book.id}/listen`);
   };
 
   const handleCreateNew = () => {
@@ -238,6 +243,15 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
                       </Button>
                       <Button
                         size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleListen(book)}
+                      >
+                        <HeadphonesIcon className="w-3.5 h-3.5 mr-1" />
+                        듣기
+                      </Button>
+                      <Button
+                        size="sm"
                         className="flex-1"
                         onClick={() => handleOrder(book)}
                       >
@@ -248,15 +262,26 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
                   )}
 
                   {isCompleted && isBookOrdered && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleView(book)}
-                    >
-                      <EyeIcon className="w-3.5 h-3.5 mr-1" />
-                      보기
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleView(book)}
+                      >
+                        <EyeIcon className="w-3.5 h-3.5 mr-1" />
+                        보기
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleListen(book)}
+                      >
+                        <HeadphonesIcon className="w-3.5 h-3.5 mr-1" />
+                        듣기
+                      </Button>
+                    </>
                   )}
 
                   {canDelete && (
