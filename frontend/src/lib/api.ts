@@ -138,6 +138,30 @@ class ApiClient {
     }>("/api/auth/me", {}, true);
   }
 
+  // === Users API ===
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    return this.request<{ message: string }>(
+      "/api/users/password",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      },
+      true
+    );
+  }
+
+  async deleteAccount() {
+    return this.request<{ message: string }>(
+      "/api/users/me",
+      { method: "DELETE" },
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }

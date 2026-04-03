@@ -7,6 +7,7 @@ from app.config import get_settings
 from app.database import engine, Base
 from app.api.health import router as health_router
 from app.api.auth import router as auth_router
+from app.api.users import router as users_router
 
 settings = get_settings()
 
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     # 라우터 등록
     app.include_router(health_router, prefix="/api", tags=["health"])
     app.include_router(auth_router, tags=["auth"])
+    app.include_router(users_router, tags=["users"])
 
     return app
 
