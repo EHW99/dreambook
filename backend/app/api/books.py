@@ -110,6 +110,19 @@ def update(
                 detail="사진을 찾을 수 없습니다",
             )
 
+    # step 5→6 전환 시 캐릭터 선택 여부 서버 측 검증
+    if req.current_step is not None and req.current_step >= 6 and book.current_step <= 5:
+        from app.models.character_sheet import CharacterSheet
+        selected = db.query(CharacterSheet).filter(
+            CharacterSheet.book_id == book.id,
+            CharacterSheet.is_selected == True,
+        ).first()
+        if not selected:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="캐릭터를 선택해주세요",
+            )
+
     update_data = req.model_dump(exclude_unset=True)
     book = update_book(db, book, **update_data)
     return book

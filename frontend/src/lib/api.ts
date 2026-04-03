@@ -273,6 +273,32 @@ class ApiClient {
     );
   }
 
+  // === Character API ===
+
+  async createCharacter(bookId: number) {
+    return this.request<CharacterSheetItem>(
+      `/api/books/${bookId}/character`,
+      { method: "POST" },
+      true
+    );
+  }
+
+  async getCharacters(bookId: number) {
+    return this.request<CharacterSheetItem[]>(
+      `/api/books/${bookId}/characters`,
+      {},
+      true
+    );
+  }
+
+  async selectCharacter(bookId: number, charId: number) {
+    return this.request<CharacterSheetItem>(
+      `/api/books/${bookId}/character/${charId}/select`,
+      { method: "PATCH" },
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }
@@ -326,7 +352,19 @@ export interface BookUpdateData {
   photo_id?: number;
   job_category?: string;
   job_name?: string;
+  story_style?: string;
+  art_style?: string;
   current_step?: number;
+  status?: string;
+}
+
+export interface CharacterSheetItem {
+  id: number;
+  book_id: number;
+  image_path: string;
+  generation_index: number;
+  is_selected: boolean;
+  created_at: string;
 }
 
 export interface PhotoItem {

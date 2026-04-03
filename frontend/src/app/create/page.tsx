@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { WizardProgress } from "@/components/create/wizard-progress";
 import { StepInfoInput, validateInfoInput } from "@/components/create/step-info-input";
 import { StepJobSelect, validateJobSelect } from "@/components/create/step-job-select";
+import { StepStoryStyle, validateStoryStyle } from "@/components/create/step-story-style";
+import { StepArtStyle, validateArtStyle } from "@/components/create/step-art-style";
+import { StepCharacterPreview } from "@/components/create/step-character-preview";
 import { apiClient, BookItem, VoucherItem } from "@/lib/api";
 
 function CreateWizardContent() {
@@ -33,6 +36,14 @@ function CreateWizardContent() {
   const [jobCategory, setJobCategory] = useState("");
   const [jobName, setJobName] = useState("");
   const [jobError, setJobError] = useState<string | null>(null);
+
+  // 동화 스타일 + 그림체 상태
+  const [storyStyle, setStoryStyle] = useState("");
+  const [artStyle, setArtStyle] = useState("");
+  const [styleError, setStyleError] = useState<string | null>(null);
+
+  // 캐릭터 미리보기 상태
+  const [characterConfirmed, setCharacterConfirmed] = useState(false);
 
   // 임시 데이터 ref (StepInfoInput에서 업데이트)
   const pendingUpdate = useRef<{ child_name?: string; child_birth_date?: string; photo_id?: number }>({});
@@ -111,6 +122,10 @@ function CreateWizardContent() {
     setPhotoId(bookData.photo_id);
     setJobCategory(bookData.job_category || "");
     setJobName(bookData.job_name || "");
+    setStoryStyle(bookData.story_style || "");
+    setArtStyle(bookData.art_style || "");
+    // 캐릭터 확정 상태는 status로 판단
+    setCharacterConfirmed(bookData.status === "character_confirmed" || bookData.current_step > 5);
   }
 
   // 다음 버튼 핸들러
@@ -176,8 +191,75 @@ function CreateWizardContent() {
       if (result.data) {
         loadBookState(result.data);
         setCurrentStep(3);
-        // 태스크 7 영역 — 이후 단계는 아직 미구현
-        setError("다음 단계는 아직 준비 중입니다. (태스크 7에서 구현)");
+      } else {
+        setError(result.error || "저장에 실패했습니다");
+      }
+    } else if (currentStep === 3) {
+      // 동화 스타일 유효성 검사
+      const validation = validateStoryStyle(storyStyle);
+      if (!validation.valid) {
+        setStyleError(validation.error || null);
+        return;
+      }
+      setStyleError(null);
+
+      // 서버 저장
+      setSaving(true);
+      const result = await apiClient.updateBook(book.id, {
+        story_style: storyStyle,
+        current_step: 4,
+      });
+      setSaving(false);
+
+      if (result.data) {
+        loadBookState(result.data);
+        setCurrentStep(4);
+      } else {
+        setError(result.error || "저장에 실패했습니다");
+      }
+    } else if (currentStep === 4) {
+      // 그림체 유효성 검사
+      const validation = validateArtStyle(artStyle);
+      if (!validation.valid) {
+        setStyleError(validation.error || null);
+        return;
+      }
+      setStyleError(null);
+
+      // 서버 저장
+      setSaving(true);
+      const result = await apiClient.updateBook(book.id, {
+        art_style: artStyle,
+        current_step: 5,
+      });
+      setSaving(false);
+
+      if (result.data) {
+        loadBookState(result.data);
+        setCurrentStep(5);
+      } else {
+        setError(result.error || "저장에 실패했습니다");
+      }
+    } else if (currentStep === 5) {
+      // 캐릭터 미리보기 — 확정 필요
+      if (!characterConfirmed) {
+        setError("캐릭터를 확정해주세요");
+        return;
+      }
+
+      // 서버 저장 (status도 character_confirmed로 보장)
+      setSaving(true);
+      const result = await apiClient.updateBook(book.id, {
+        current_step: 6,
+        status: "character_confirmed",
+      });
+      setSaving(false);
+
+      if (result.data) {
+        loadBookState(result.data);
+        setCurrentStep(6);
+        // 태스크 8 영역 — 이후 단계는 아직 미구현
+        setError("다음 단계는 아직 준비 중입니다. (태스크 8에서 구현)");
       } else {
         setError(result.error || "저장에 실패했습니다");
       }
@@ -277,6 +359,46 @@ function CreateWizardContent() {
               onSelect={handleJobSelect}
             />
           )}
+          {currentStep === 3 && (
+            <StepStoryStyle
+              key="step-3"
+              selected={storyStyle}
+              onSelect={(style) => {
+                setStoryStyle(style);
+                setStyleError(null);
+              }}
+            />
+          )}
+          {currentStep === 4 && (
+            <StepArtStyle
+              key="step-4"
+              selected={artStyle}
+              onSelect={(style) => {
+                setArtStyle(style);
+                setStyleError(null);
+              }}
+            />
+          )}
+          {currentStep === 5 && book && (
+            <StepCharacterPreview
+              key="step-5"
+              bookId={book.id}
+              characterRegenCount={book.character_regen_count}
+              onConfirm={async () => {
+                // 서버에서 최신 book 상태 로드 (캐릭터 선택 시 status가 character_confirmed로 변경됨)
+                const result = await apiClient.getBook(book.id);
+                if (result.data) {
+                  loadBookState(result.data);
+                }
+                setCharacterConfirmed(true);
+              }}
+              onRegenCountUpdate={(count) => {
+                if (book) {
+                  setBook({ ...book, character_regen_count: count });
+                }
+              }}
+            />
+          )}
         </AnimatePresence>
 
         {/* 유효성 검사 에러 표시 */}
@@ -310,6 +432,18 @@ function CreateWizardContent() {
             </p>
           </motion.div>
         )}
+
+        {(currentStep === 3 || currentStep === 4) && styleError && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4 p-3 bg-error/10 border border-error/20 rounded-xl"
+          >
+            <p className="text-sm text-error-dark flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" /> {styleError}
+            </p>
+          </motion.div>
+        )}
       </div>
 
       {/* 하단 네비게이션 */}
@@ -320,7 +454,11 @@ function CreateWizardContent() {
             {currentStep === 1 ? "취소" : "이전"}
           </Button>
 
-          <Button onClick={handleNext} disabled={saving} className="gap-2">
+          <Button
+            onClick={handleNext}
+            disabled={saving || (currentStep === 5 && !characterConfirmed)}
+            className="gap-2"
+          >
             {saving ? (
               <>
                 <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
