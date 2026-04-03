@@ -14,6 +14,7 @@ from app.api.vouchers import router as vouchers_router
 from app.api.books import router as books_router
 from app.api.characters import router as characters_router
 from app.api.orders import router as orders_router
+from app.api.webhooks import router as webhooks_router
 from app.services.photo import ensure_upload_dir, UPLOAD_DIR
 
 settings = get_settings()
@@ -25,6 +26,27 @@ async def lifespan(app: FastAPI):
     # startup
     import app.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
+
+    # 웹훅 자동 등록 (WEBHOOK_URL 설정 시)
+    if settings.WEBHOOK_URL and settings.BOOKPRINT_API_KEY:
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            from app.services.bookprint import BookPrintService
+            service = BookPrintService()
+            result = await service.register_webhook(settings.WEBHOOK_URL)
+            secret_key = result.get("data", {}).get("secretKey", "")
+            if secret_key:
+                # 최초 등록 시 secretKey를 WEBHOOK_SECRET에 반영
+                from app.api import webhooks
+                webhooks.WEBHOOK_SECRET = secret_key
+                logger.info(f"웹훅 등록 완료: {settings.WEBHOOK_URL}")
+            else:
+                logger.info("웹훅 설정 확인 완료 (기존 등록)")
+            await service.close()
+        except Exception as e:
+            logger.warning(f"웹훅 자동 등록 실패 (서비스 시작에 영향 없음): {e}")
+
     yield
     # shutdown (필요 시 정리 작업)
 
@@ -55,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(books_router, tags=["books"])
     app.include_router(characters_router, tags=["characters"])
     app.include_router(orders_router, tags=["orders"])
+    app.include_router(webhooks_router, tags=["webhooks"])
 
     # 정적 파일 서빙 (업로드된 사진 접근용)
     ensure_upload_dir()

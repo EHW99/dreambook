@@ -1,77 +1,53 @@
-# QA 리포트 -- 태스크 11: 내 책장 + 주문 내역 + 주문 관리 (R2)
+# QA 리포트 — 태스크 12: 웹훅 + 주문 상태 추적 (R2)
 
 ## 전체 판정: PASS
-## 가중 점수: 7.4 / 10.0
+## 가중 점수: 7.6 / 10.0
 
 ## 항목별 점수
-- 기능 완성도 (30%): 8/10 -- R1의 3건 피드백 모두 반영 완료. 삭제 조건(draft+character_confirmed), orderedBookIds 마운트 시 초기화, generating 상태 카드 UI 모두 정상 동작. 완료 기준 전항목 충족.
-- 코드 품질 (25%): 7/10 -- 에러 처리 양호, 구조 명확. 신규 테스트 2건 추가(총 209개 전체 통과). isOrdered 함수(38~42행)가 사용되지 않는 dead code로 남아있으나 기능에 영향 없음.
-- API 연동 (20%): 7/10 -- 주문 취소/배송지 변경 Book Print API 연동 유지, 이 태스크의 주 범위는 프론트엔드 UI이므로 적정 수준.
-- 디자인 품질 (25%): 7/10 -- R1 대비 generating 상태 카드에 스피너+텍스트 추가로 개선. 파스텔 톤 일관, 반응형 그리드, 빈 상태/로딩/에러 UI, 삭제 확인 다이얼로그 모두 구현. 탭 내부 콘텐츠 전환 애니메이션 미적용은 경미한 사항.
-
-가중 점수: (8 x 0.3) + (7 x 0.25) + (7 x 0.2) + (7 x 0.25) = 2.4 + 1.75 + 1.4 + 1.75 = 7.3 -> 7.4 (반올림)
+- 기능 완성도 (30%): 8/10 — R1 피드백 3건(상태 역행 방지, FIFO 캐시, 빠진 테스트) 모두 반영 완료. 5개 이벤트 처리, HMAC-SHA256 서명 검증(sha256= 접두사 호환), 웹훅 자동 등록, 중복 이벤트 멱등성, 상태 역행 방지 가드 전 핸들러 적용.
+- 코드 품질 (25%): 8/10 — OrderedDict FIFO 캐시로 결정론적 eviction 보장. 상태 역행 방지 로직이 각 핸들러에 일관되게 적용됨. CANCELLED(80+) 예외 처리 정확. API Key 하드코딩 없음. 에러 시에도 200 반환(모범 사례).
+- API 연동 (20%): 7/10 — BookPrintService 웹훅 메서드 5개(register, get, delete, test, deliveries) 모두 구현. lifespan에서 자동 등록 + secretKey 동적 반영. Sandbox PAID 상태 정지 인지.
+- 디자인 품질 (25%): 6/10 — 백엔드 전용 태스크. 프론트엔드에 주문 상태 실시간 반영 UI가 없으나, 이는 태스크 12 범위 밖(주문 목록 UI는 태스크 11 영역). 웹훅 수신 후 DB 업데이트까지의 백엔드 흐름은 완성됨.
 
 ## R1 피드백 반영 확인
 
-### 1. [필수] 삭제 조건 불일치 수정 -- 반영 확인
-- `backend/app/api/books.py` 157행: `book.status not in ("draft", "character_confirmed")` 으로 변경됨
-- 테스트 `test_delete_character_confirmed_book` 추가: character_confirmed 상태 삭제 성공 확인
-- 테스트 `test_delete_generating_book_fails` 추가: generating 상태 삭제 거부 확인
-- 프론트/백 삭제 조건 일치 확인 완료
+### 피드백 1: 상태 역행 방지 로직 — PASS
+- `_handle_order_confirmed()`: `if order.status_code >= 30: return` 가드 추가 확인 (webhooks.py 128행)
+- `_handle_order_shipped()`: `if order.status_code >= 50: return` 가드 추가 확인 (webhooks.py 182행)
+- `_handle_order_status_changed()`: `if status_code < 80 and order.status_code >= status_code: return` 가드 추가 확인 (webhooks.py 156행)
+- `_handle_order_cancelled()`: 가드 없음 — 어떤 상태에서든 취소 가능 (설계 의도 부합)
+- `_handle_order_paid()`: 기존 `if order.status_code <= 20` 가드 유지
 
-### 2. [필수] orderedBookIds 초기화 시점 개선 -- 반영 확인
-- `frontend/src/app/mypage/page.tsx`: MypageContent 마운트 시 `useEffect`로 `apiClient.getOrders()` 호출하여 orderedBookIds 미리 로드
-- 기존 `handleOrdersLoaded` 콜백도 유지하여 주문 탭에서 갱신 시 동기화
-- "내 책장" 탭만 방문해도 주문 상태가 정확히 반영됨
+### 피드백 2: 중복 방지 캐시 FIFO — PASS
+- `set` → `collections.OrderedDict`로 변경 확인 (webhooks.py 10행, 29행)
+- eviction: `while len >= _MAX_DELIVERY_CACHE: popitem(last=False)` — 가장 오래된 항목부터 FIFO 제거 확인 (webhooks.py 291-292행)
+- 삽입: `_processed_deliveries[delivery_id] = True` 확인 (webhooks.py 293행)
 
-### 3. [권장] generating 상태 카드 UI 보완 -- 반영 확인
-- `frontend/src/components/mypage/bookshelf-tab.tsx` 153행: `isGenerating` 변수 추가
-- 210~215행: generating 상태에서 스피너 + "동화책을 생성하고 있어요..." 텍스트 표시
-- 상태별 색상 배지에도 generating이 "생성중"(민트)으로 정상 매핑
+### 피드백 3: 빠진 테스트 — PASS
+- `sha256=` 접두사 포함 서명 테스트: `TestWebhookSignatureSha256Prefix` 클래스 1개 테스트 추가 확인
+- 상태 역행 방지 테스트: `TestWebhookStateRegressionPrevention` 클래스 5개 테스트 추가 확인
+  - SHIPPED → order.confirmed 무시
+  - SHIPPED → order.status_changed(IN_PRODUCTION) 무시
+  - CANCELLED은 어떤 상태에서든 전이 가능
+  - DELIVERED → order.shipped 무시
+  - SHIPPED → order.status_changed(CANCELLED) 가능
+- `delete_webhook()` mock 테스트 추가 확인
+- `get_webhook_deliveries()` mock 테스트 추가 확인
+
+### 기존 합격 항목 퇴보 여부 — 없음
+- R1에서 통과한 15개 테스트 전부 유지, 추가 8개 포함 총 23개 전수 통과 확인
 
 ## SPEC 완료 기준 대조
-
-### 1. 내 책장 (프론트엔드)
-- [PASS] 동화책 목록 카드 (썸네일, 제목, 상태 배지: 작성중/완성/주문됨) -- STATUS_LABELS로 상태 매핑, orderedBookIds로 "주문됨" 배지 표시
-- [PASS] 작성중인 책: [이어서 만들기] 버튼 -> 마지막 저장 단계로 이동 -- draft/character_confirmed 상태에서 `/create?bookId=` 로 이동
-- [PASS] 완성된 책: [보기] -> 책 뷰어, [주문하기] -> 주문 페이지 -- isCompleted && !isBookOrdered 조건에서 두 버튼 모두 표시
-- [PASS] 작성중인 책 삭제 (완성/주문된 책은 삭제 불가) -- 백엔드 draft+character_confirmed 허용, 프론트 canDelete 로직 일치
-- [PASS] "+ 새 동화책 만들기" 카드 -- 대시 보더 + 호버 효과 적용
-- [PASS] 빈 상태: "아직 만든 동화책이 없어요" -- 아이콘 + 메시지 + CTA 버튼 구현
-
-### 2. 주문 내역 (프론트엔드)
-- [PASS] 주문 목록 (날짜, 책 제목, 상태, 가격) -- OrdersTab에서 ordered_at, book_title, status, total_amount 표시
-- [PASS] 주문 상세: 배송 정보, 주문 상태, 운송장 번호 -- 상세 뷰에서 tracking_number/tracking_carrier 표시
-- [PASS] 주문 취소 버튼 (PAID/PDF_READY 상태만 표시) -- status_code 20/25만 허용, 확인 다이얼로그 포함
-- [PASS] 배송지 변경 버튼 (PAID~CONFIRMED 상태만 표시) -- status_code 20/25/30만 허용, 인라인 편집 폼 구현
-
-### 3. 백엔드 API
-- [PASS] GET /api/books -- BookListResponse에 art_style, updated_at 필드 포함
-- [PASS] GET /api/books/:id -- 기존 구현 정상 동작
-- [PASS] DELETE /api/books/:id -- draft + character_confirmed 두 상태 모두 삭제 허용
-- [PASS] GET /api/orders -- book_title 서버사이드 조인 포함
-- [PASS] GET /api/orders/:id -- 소유자 확인 + 상세 정보 반환
-- [PASS] POST /api/orders/:id/cancel -- 상태 검증(20/25) + Book Print API 연동
-- [PASS] PATCH /api/orders/:id/shipping -- 상태 검증(20/25/30) + 부분 업데이트 + Book Print API 연동
-
-### 4. 디자인 + 반응형
-- [PASS] 파스텔 톤 색상 팔레트 일관 적용
-- [PASS] 둥근 모서리, 부드러운 그림자
-- [PASS] 반응형 그리드 (grid-cols-1/2/3)
-- [PASS] 로딩/에러/빈 상태 UI
-- [PASS] 삭제/취소 확인 다이얼로그
-- [PASS] 상태별 색상 배지 (작성중=노랑, 생성중=민트, 완성=초록, 주문됨=핑크)
+- [PASS] 완료 기준 1: `POST /api/webhooks/sweetbook` 엔드포인트 구현. HMAC-SHA256 서명 검증 (sha256= 접두사 호환, 타임스탬프 만료 300초). 5개 이벤트(order.paid, order.confirmed, order.status_changed, order.shipped, order.cancelled) 모두 처리. orders 테이블 상태/tracking 업데이트. 상태 역행 방지 가드 전 핸들러 적용.
+- [PASS] 완료 기준 2: lifespan에서 `PUT /webhooks/config` 호출하여 웹훅 자동 등록. WEBHOOK_URL 미설정 시 건너뜀. secretKey 동적 반영.
+- [PASS] 완료 기준 3: `BookPrintService.send_test_webhook()`, `get_webhook_deliveries()` 포함 5개 메서드 구현 + mock 테스트 완비.
+- [PASS] 완료 기준 4: Sandbox PAID 이후 상태 전이 없음 인지. isTest 필드 로깅.
 
 ## 테스트 검증
-- Developer 테스트 수: 209개 (전체), 태스크 11 신규 8개 (R1: 6개 + R2: 2개)
-- 전체 통과: 209/209
-- 프론트엔드 빌드: 성공
-- 회귀 없음 확인
+- Developer 테스트 수: 23개 (R1: 15개 → R2: +8개)
+- 통과: 23개 / 23개
+- 실행 시간: 5.10초
+- 빠진 테스트 케이스: 없음 (R1 지적 사항 모두 반영됨)
 
-### R2 추가 테스트 목록:
-1. TestBookshelfEndpoints::test_delete_character_confirmed_book -- character_confirmed 상태 삭제 성공
-2. TestBookshelfEndpoints::test_delete_generating_book_fails -- generating 상태 삭제 거부
-
-## 경미한 개선 사항 (PASS에 영향 없음)
-1. `bookshelf-tab.tsx` 38~42행의 `isOrdered()` 함수가 사용되지 않는 dead code. 제거 권장.
-2. 탭 내부 콘텐츠 전환 시 Framer Motion 애니메이션 미적용. 태스크 14(디자인 마무리)에서 일괄 처리 가능.
+## 구체적 개선 지시
+없음 — R1 피드백 3건 모두 정확히 반영되었고, 기존 기능 퇴보 없음.

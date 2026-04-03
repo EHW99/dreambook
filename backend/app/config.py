@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./dreambook.db"
 
+    # Webhook
+    WEBHOOK_SECRET: str = ""
+    WEBHOOK_URL: str = ""  # 웹훅 수신 URL (서버 시작 시 등록에 사용)
+
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"
 

@@ -304,6 +304,61 @@ class BookPrintService:
         result = await self._request("PATCH", f"/orders/{order_uid}/shipping", json_data=shipping)
         return result.get("data", {})
 
+    # === Webhooks API ===
+
+    async def register_webhook(
+        self,
+        webhook_url: str,
+        events: list[str] | None = None,
+        description: str = "꿈꾸는 나 주문 알림",
+    ) -> dict[str, Any]:
+        """웹훅 등록/수정 (PUT /webhooks/config)
+
+        Args:
+            webhook_url: HTTPS 웹훅 수신 URL
+            events: 구독할 이벤트 목록 (None이면 전체 구독)
+            description: 설명
+
+        Returns:
+            등록 결과 (secretKey 포함 — 최초 등록 시에만 전체 값 반환)
+        """
+        data: dict[str, Any] = {"webhookUrl": webhook_url}
+        if events is not None:
+            data["events"] = events
+        if description:
+            data["description"] = description
+
+        return await self._request("PUT", "/webhooks/config", json_data=data)
+
+    async def get_webhook_config(self) -> dict[str, Any]:
+        """웹훅 설정 조회 (GET /webhooks/config)"""
+        return await self._request("GET", "/webhooks/config")
+
+    async def delete_webhook(self) -> dict[str, Any]:
+        """웹훅 비활성화 (DELETE /webhooks/config)"""
+        return await self._request("DELETE", "/webhooks/config")
+
+    async def send_test_webhook(self, event_type: str = "order.paid") -> dict[str, Any]:
+        """테스트 웹훅 이벤트 전송 (POST /webhooks/test)"""
+        return await self._request("POST", "/webhooks/test", json_data={
+            "eventType": event_type,
+        })
+
+    async def get_webhook_deliveries(
+        self,
+        event_type: str | None = None,
+        delivery_status: str | None = None,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        """웹훅 전송 이력 조회 (GET /webhooks/deliveries)"""
+        params: dict[str, Any] = {"limit": limit}
+        if event_type:
+            params["eventType"] = event_type
+        if delivery_status:
+            params["status"] = delivery_status
+
+        return await self._request("GET", "/webhooks/deliveries", params=params)
+
     # === Full Workflow ===
 
     async def execute_order_workflow(

@@ -1,75 +1,60 @@
-# 셀프체크 -- 태스크 11: 내 책장 + 주문 내역 + 주문 관리 (R2)
+# 셀프체크 -- 태스크 12: 웹훅 + 주문 상태 추적 (R2)
 
 ## 테스트 결과
-- 전체 테스트 수: 209개
-- 통과: 209개
+- 전체 테스트 수: 23개 (R1: 15개 → R2: 23개, +8개 신규)
+- 통과: 23개
 - 실패: 0개
-- 태스크 11 신규 테스트: 8개 (R1: 6개 + R2: 2개 추가)
-- 프론트엔드 빌드: 성공
 
 ## R2 피드백 반영 내역
 
-### 1. [필수] 삭제 조건 불일치 수정 — DONE
-- **파일**: `backend/app/api/books.py` 157행
-- **변경**: `book.status != "draft"` → `book.status not in ("draft", "character_confirmed")`
-- **테스트**: `test_delete_character_confirmed_book` 추가 (character_confirmed 상태 삭제 성공 확인)
-- **테스트**: `test_delete_generating_book_fails` 추가 (generating 상태 삭제 거부 확인)
+### 1. 상태 역행 방지 로직 추가
+- [x] `_handle_order_confirmed()` — `if order.status_code >= 30: return` 가드 추가
+- [x] `_handle_order_shipped()` — `if order.status_code >= 50: return` 가드 추가
+- [x] `_handle_order_status_changed()` — `if status_code < 80 and order.status_code >= status_code: return` 가드 추가
+- [x] CANCELLED(80+)은 예외: 어떤 상태에서든 전이 가능 (가드 없음)
+- [x] `_handle_order_paid()` — 기존 가드 유지 (`if order.status_code <= 20`)
+- [x] `_handle_order_cancelled()` — 가드 없음 (어떤 상태에서든 취소 가능)
 
-### 2. [필수] orderedBookIds 초기화 시점 개선 — DONE
-- **파일**: `frontend/src/app/mypage/page.tsx`
-- **변경**: MypageContent 마운트 시 `useEffect`로 `apiClient.getOrders()`를 호출하여 orderedBookIds를 미리 로드
-- 기존 `handleOrdersLoaded` 콜백도 유지 (주문 탭에서 갱신 시 동기화)
+### 2. 중복 방지 캐시 FIFO 개선
+- [x] `set` → `collections.OrderedDict`로 변경
+- [x] eviction: `while len >= MAX: popitem(last=False)` — 가장 오래된 항목부터 FIFO 제거
+- [x] 삽입: `_processed_deliveries[delivery_id] = True`
 
-### 3. [권장] generating 상태 카드 UI 보완 — DONE
-- **파일**: `frontend/src/components/mypage/bookshelf-tab.tsx`
-- **변경**: generating 상태일 때 스피너 + "동화책을 생성하고 있어요..." 텍스트 표시
-- isDraft/isEditing/isCompleted 외에 isGenerating 조건 추가
+### 3. 빠진 테스트 추가
+- [x] `sha256=` 접두사 포함 서명 테스트 — `TestWebhookSignatureSha256Prefix`
+- [x] 상태 역행 방지 테스트 5개 — `TestWebhookStateRegressionPrevention`
+  - SHIPPED → order.confirmed 무시
+  - SHIPPED → order.status_changed(IN_PRODUCTION) 무시
+  - CANCELLED은 어떤 상태에서든 전이 가능 (order.cancelled)
+  - DELIVERED → order.shipped 무시
+  - SHIPPED → order.status_changed(CANCELLED) 가능
+- [x] `delete_webhook()` 메서드 mock 테스트
+- [x] `get_webhook_deliveries()` 메서드 mock 테스트
 
 ## SPEC 기능 체크
 
-### 1. 내 책장 (프론트엔드)
-- [x] 동화책 목록 카드 (썸네일, 제목, 상태 배지: 작성중/완성/주문됨)
-- [x] 작성중인 책: [이어서 만들기] 버튼 -> 마지막 저장 단계로 이동
-- [x] 완성된 책: [보기] -> 책 뷰어, [주문하기] -> 주문 페이지
-- [x] 작성중인 책 삭제 (draft + character_confirmed 모두 삭제 가능, 완성/주문된 책은 삭제 불가)
-- [x] generating 상태 카드: 스피너 + "동화책을 생성하고 있어요..." 표시
-- [x] "+ 새 동화책 만들기" 카드 (대시 보더 + 호버 효과)
-- [x] 빈 상태: "아직 만든 동화책이 없어요" + 일러스트 아이콘
-- [x] orderedBookIds 마운트 시 초기화 (탭 전환 없이도 정확한 상태 표시)
+### 1. 웹훅 수신 엔드포인트
+- [x] `POST /api/webhooks/sweetbook` -- 웹훅 수신: 구현 완료
+- [x] HMAC-SHA256 서명 검증: `verify_webhook_signature()` 구현 (sha256= 접두사 자동 제거, tolerance 300초)
+- [x] 이벤트 처리: order.paid -- 주문 확인 (PAID 상태 유지, 역행 방지)
+- [x] 이벤트 처리: order.confirmed -- 상태 CONFIRMED(30)으로 업데이트 (역행 방지)
+- [x] 이벤트 처리: order.status_changed -- 범용 상태 전이 (역행 방지, CANCELLED 예외)
+- [x] 이벤트 처리: order.shipped -- SHIPPED(50) + tracking 정보 (역행 방지)
+- [x] 이벤트 처리: order.cancelled -- CANCELLED(80) 상태로 업데이트 (항상 가능)
 
-### 2. 주문 내역 (프론트엔드)
-- [x] 주문 목록 (날짜, 책 제목, 상태, 가격)
-- [x] 주문 상세: 배송 정보, 주문 상태, 운송장 번호
-- [x] 주문 취소 버튼 (PAID/PDF_READY 상태만 표시) + 확인 다이얼로그
-- [x] 배송지 변경 버튼 (PAID~CONFIRMED 상태만 표시) + 인라인 편집 폼
+### 2. 웹훅 등록
+- [x] 서버 시작 시 웹훅 URL 자동 등록: lifespan에서 PUT /webhooks/config 호출
+- [x] BookPrintService 메서드 5개 구현 + 테스트
 
-### 3. 백엔드 API
-- [x] GET /api/books -- 내 동화책 목록 (art_style, updated_at 필드 추가)
-- [x] GET /api/books/:id -- 동화책 상세
-- [x] DELETE /api/books/:id -- 작성중(draft + character_confirmed) 동화책 삭제
-- [x] GET /api/orders -- 내 주문 목록 (book_title 필드 추가)
-- [x] GET /api/orders/:id -- 주문 상세
-- [x] POST /api/orders/:id/cancel -- 주문 취소
-- [x] PATCH /api/orders/:id/shipping -- 배송지 변경
+### 3. Sandbox 환경
+- [x] Sandbox에서 PAID 이후 상태 전이 없음 인지
 
-### 4. 디자인/반응형
-- [x] 파스텔 톤 색상 팔레트 일관 적용
-- [x] 둥근 모서리, 부드러운 그림자
-- [x] 모바일/태블릿/데스크톱 반응형 (grid-cols-1/2/3)
-- [x] 로딩/에러/빈 상태 UI 구현
-- [x] 삭제/취소 확인 다이얼로그
-- [x] 상태별 색상 배지 (작성중=노랑, 생성중=민트, 완성=초록, 주문됨=핑크)
+### 추가 구현 사항
+- [x] 중복 이벤트 방지: OrderedDict FIFO 기반 멱등성 보장 (최대 10,000개)
+- [x] 타임스탬프 만료 검증: 5분(300초) 허용 오차
+- [x] 모범 사례 준수: 항상 200 응답 반환, 30초 내 응답
 
-## 신규/수정 파일 (R2)
-
-### 백엔드
-- `backend/app/api/books.py` -- 삭제 조건에 character_confirmed 추가
-- `backend/tests/test_orders.py` -- character_confirmed 삭제 테스트 + generating 삭제 거부 테스트 추가
-
-### 프론트엔드
-- `frontend/src/app/mypage/page.tsx` -- useEffect로 orderedBookIds 마운트 시 로드
-- `frontend/src/components/mypage/bookshelf-tab.tsx` -- generating 상태 카드 UI (스피너 + 텍스트)
-
-## 특이사항
-- 기존 207개 테스트 + 신규 2개 = 총 209개 모두 통과 (회귀 없음)
-- 프론트엔드 빌드 성공
+## 수정 파일 (R2)
+- `backend/app/api/webhooks.py` -- 상태 역행 방지 가드 추가, OrderedDict FIFO 캐시로 변경
+- `backend/tests/test_webhooks.py` -- 테스트 8개 추가 (sha256 접두사, 상태 역행 5개, delete_webhook, get_webhook_deliveries)
+- `SELF_CHECK.md` -- R2 반영 업데이트
