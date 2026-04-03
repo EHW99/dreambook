@@ -216,9 +216,117 @@ class ApiClient {
     );
   }
 
+  // === Vouchers API ===
+
+  async getVouchers() {
+    return this.request<VoucherItem[]>("/api/vouchers", {}, true);
+  }
+
+  async purchaseVoucher(voucherType: string) {
+    return this.request<VoucherItem>(
+      "/api/vouchers/purchase",
+      {
+        method: "POST",
+        body: JSON.stringify({ voucher_type: voucherType }),
+      },
+      true
+    );
+  }
+
+  // === Books API ===
+
+  async getBooks() {
+    return this.request<BookListItem[]>("/api/books", {}, true);
+  }
+
+  async createBook(voucherId: number) {
+    return this.request<BookItem>(
+      "/api/books",
+      {
+        method: "POST",
+        body: JSON.stringify({ voucher_id: voucherId }),
+      },
+      true
+    );
+  }
+
+  async getBook(bookId: number) {
+    return this.request<BookItem>(`/api/books/${bookId}`, {}, true);
+  }
+
+  async updateBook(bookId: number, data: BookUpdateData) {
+    return this.request<BookItem>(
+      `/api/books/${bookId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      },
+      true
+    );
+  }
+
+  async deleteBook(bookId: number) {
+    return this.request<{ message: string }>(
+      `/api/books/${bookId}`,
+      { method: "DELETE" },
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }
+}
+
+export interface VoucherItem {
+  id: number;
+  voucher_type: string;
+  price: number;
+  status: string;
+  book_id: number | null;
+  purchased_at: string;
+  used_at: string | null;
+}
+
+export interface BookItem {
+  id: number;
+  voucher_id: number | null;
+  child_name: string;
+  child_birth_date: string | null;
+  photo_id: number | null;
+  job_category: string | null;
+  job_name: string | null;
+  story_style: string | null;
+  art_style: string | null;
+  page_count: number;
+  book_spec_uid: string;
+  plot_input: string | null;
+  status: string;
+  current_step: number;
+  title: string | null;
+  story_regen_count: number;
+  character_regen_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BookListItem {
+  id: number;
+  child_name: string;
+  job_name: string | null;
+  status: string;
+  current_step: number;
+  title: string | null;
+  created_at: string;
+}
+
+export interface BookUpdateData {
+  child_name?: string;
+  child_birth_date?: string;
+  photo_id?: number;
+  job_category?: string;
+  job_name?: string;
+  current_step?: number;
 }
 
 export interface PhotoItem {
