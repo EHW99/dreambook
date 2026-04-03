@@ -173,3 +173,30 @@ class GenerateResponse(BaseModel):
     pages: list[PageResponse]
 
     model_config = {"from_attributes": True}
+
+
+class PageTextUpdateRequest(BaseModel):
+    text_content: str
+
+
+class RegenerateStoryResponse(BaseModel):
+    status: str
+    story_regen_count: int
+    pages: list[PageResponse]
+
+    model_config = {"from_attributes": True}
+
+
+class RegenerateImageResponse(BaseModel):
+    page_id: int
+    image_regen_count: int
+    images: list[PageImageResponse]
+
+    model_config = {"from_attributes": True}
+
+
+class ImageSelectResponse(BaseModel):
+    id: int
+    is_selected: bool
+
+    model_config = {"from_attributes": True}

@@ -317,6 +317,49 @@ class ApiClient {
     );
   }
 
+  async updatePageText(bookId: number, pageId: number, textContent: string) {
+    return this.request<PageItem>(
+      `/api/books/${bookId}/pages/${pageId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ text_content: textContent }),
+      },
+      true
+    );
+  }
+
+  async regenerateStory(bookId: number) {
+    return this.request<RegenerateStoryResult>(
+      `/api/books/${bookId}/regenerate-story`,
+      { method: "POST" },
+      true
+    );
+  }
+
+  async regenerateImage(bookId: number, pageId: number) {
+    return this.request<RegenerateImageResult>(
+      `/api/books/${bookId}/pages/${pageId}/regenerate-image`,
+      { method: "POST" },
+      true
+    );
+  }
+
+  async getPageImages(bookId: number, pageId: number) {
+    return this.request<PageImageItem[]>(
+      `/api/books/${bookId}/pages/${pageId}/images`,
+      {},
+      true
+    );
+  }
+
+  async selectPageImage(bookId: number, pageId: number, imageId: number) {
+    return this.request<{ id: number; is_selected: boolean }>(
+      `/api/books/${bookId}/pages/${pageId}/images/${imageId}/select`,
+      { method: "PATCH" },
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }
@@ -403,6 +446,18 @@ export interface PageItem {
 export interface GenerateResult {
   status: string;
   pages: PageItem[];
+}
+
+export interface RegenerateStoryResult {
+  status: string;
+  story_regen_count: number;
+  pages: PageItem[];
+}
+
+export interface RegenerateImageResult {
+  page_id: number;
+  image_regen_count: number;
+  images: PageImageItem[];
 }
 
 export interface CharacterSheetItem {

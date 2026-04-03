@@ -1,73 +1,67 @@
-# 셀프체크 — 태스크 8: 동화책 만들기 위자드 — 옵션 + 줄거리 + 생성 (R2)
+# 셀프체크 — 태스크 9: 편집 / 미리보기 + 책 뷰어
 
 ## 테스트 결과
-- 전체 테스트 수: 139개 (기존 111개 + 태스크 8 신규 28개)
-- 통과: 139개
+- 전체 테스트 수: 157개 (기존 139 + 신규 18)
+- 통과: 157개
 - 실패: 0개
 - 프론트엔드 빌드: 성공
 
-## R2 피드백 반영 내역
-
-### 1. 판형별 페이지 수 범위 분리 (백엔드 + 프론트엔드)
-- [x] 백엔드: `BOOK_SPEC_PAGE_RANGES` 딕셔너리 추가 (SQUAREBOOK_HC: 24~130, PHOTOBOOK_A4_SC: 24~130, PHOTOBOOK_A5_SC: 50~200)
-- [x] 백엔드: `@model_validator(mode="after")`로 page_count + book_spec_uid 교차 검증
-- [x] 프론트엔드: BOOK_SPECS에 minPages/maxPages 필드 추가
-- [x] 프론트엔드: 슬라이더 min/max를 판형에 따라 동적 변경
-- [x] 프론트엔드: 판형 변경 시 pageCount가 새 범위 밖이면 자동 보정
-- [x] 프론트엔드: validateOptions에서 판형별 범위 검증
-
-### 2. plot_input 길이 제한
-- [x] 백엔드: `@field_validator("plot_input")` 추가 — 최대 1000자, 초과 시 에러 반환
-
-### 3. generate 재호출 방어
-- [x] 백엔드: `book.status not in ("draft", "character_confirmed")` 체크 추가
-- [x] 이미 editing/completed 상태인 책에 generate 호출 시 422 반환
-
-### 4. 테스트 케이스 추가 (11개 신규, 총 28개)
-- [x] test_page_count_exceeds_130_rejected — SQUAREBOOK_HC 130 초과 거부
-- [x] test_a5_below_50_rejected — PHOTOBOOK_A5_SC 24p 거부
-- [x] test_a5_50_accepted — PHOTOBOOK_A5_SC 50p 허용
-- [x] test_a5_200_accepted — PHOTOBOOK_A5_SC 200p 허용
-- [x] test_a5_above_200_rejected — PHOTOBOOK_A5_SC 202p 거부
-- [x] test_squarebook_130_accepted — SQUAREBOOK_HC 130p 허용
-- [x] test_plot_input_over_1000_rejected — 1001자 거부
-- [x] test_plot_input_exactly_1000_accepted — 1000자 허용
-- [x] test_generate_twice_rejected — editing 상태 재호출 거부
-- [x] test_generate_completed_rejected — completed 상태 재호출 거부
-- [x] test_page_types_title_content_ending — page_type 구성 검증
-
 ## SPEC 기능 체크
 
-### 옵션 선택 (Step 6)
-- [x] 페이지 수 선택 (판형별 동적 범위, 2p 단위 증가, 슬라이더 + 버튼)
-- [x] 판형 선택 (SQUAREBOOK_HC 기본, PHOTOBOOK_A4_SC, PHOTOBOOK_A5_SC)
-- [x] 예상 가격 실시간 표시 (판형 + 페이지 수 기반 계산)
-- [x] 유효성 검증 (판형별 page_count 범위, 짝수 / book_spec_uid: 3종만 허용)
+### 편집 화면
+- [x] 페이지 목록 (썸네일 사이드바 — 데스크톱 좌측, 모바일 상단 수평 스크롤)
+- [x] 선택된 페이지: 일러스트 + 텍스트 좌우 배치 (md: flex-row)
+- [x] 텍스트 인라인 편집 (편집 버튼 → textarea → 저장/취소)
+- [x] 스토리 재생성 버튼 (남은 횟수 표시, 최대 3회)
+  - [x] Phase 2: 재생성 시 동일 더미 반환, 횟수만 카운트
+  - [x] 재생성 시 연쇄 처리: 기존 페이지/이미지 삭제 + 새로 생성 + image_regen_count 리셋
+- [x] 페이지별 이미지 재생성 버튼 (남은 횟수 표시, 최대 4회, 갤러리 방식)
+- [x] "재생성 횟수를 모두 사용했습니다" 비활성화 + 경고 메시지
 
-### 줄거리 작성 (Step 7)
-- [x] 스토리 테마 선택 UI (직업별 테마 카드 3개 + "직접 쓸래요")
-- [x] "직접 쓸래요"만 활성화, 나머지는 "준비 중" 배지
-- [x] "준비 중" 카드 클릭 시 토스트 "곧 제공될 예정입니다"
-- [x] "직접 쓸래요" 선택 시 textarea (최대 1000자, 글자 수 표시)
+### 전체 미리보기 (책 뷰어)
+- [x] 페이지 플립 애니메이션 (rotateY 기반 책 넘기기 효과)
+- [x] 좌우 페이지 표시 (표지: 단독, 내용: 2장씩 스프레드)
+- [x] 전체화면 모드 (Fullscreen API)
+- [x] 페이지 네비게이션 (이전/다음 버튼 + 키보드 화살표/스페이스)
+- [x] 페이지 인디케이터 (하단 도트)
+- [x] 독립 책 뷰어 페이지 (/books/[id]/view)
 
-### 생성 중 (Step 8)
-- [x] 더미 스토리 + 더미 이미지로 즉시 페이지 데이터 생성
-- [x] 원형 진행률 UI (SVG 기반 + 애니메이션)
-- [x] 생성 중 상태에서 뒤로가기 차단 (popstate + 버튼 숨김)
-- [x] 생성 완료 시 자동으로 편집 화면(`/create/edit?book_id=...`)으로 이동
+### 백엔드 API
+- [x] `GET /api/books/:id/pages` — 전체 페이지 조회 (기존)
+- [x] `PATCH /api/books/:id/pages/:pageId` — 텍스트 수정
+- [x] `POST /api/books/:id/regenerate-story` — 스토리 재생성 (더미, 횟수 체크)
+- [x] `POST /api/books/:id/pages/:pageId/regenerate-image` — 이미지 재생성 (더미, 횟수)
+- [x] `GET /api/books/:id/pages/:pageId/images` — 이미지 갤러리
+- [x] `PATCH /api/books/:id/pages/:pageId/images/:imgId/select` — 이미지 선택
 
-### 백엔드
-- [x] `PATCH /api/books/:id` — page_count, book_spec_uid, plot_input 저장 + 판형별 범위 검증 + plot_input 1000자 제한
-- [x] `POST /api/books/:id/generate` — 더미 스토리+이미지 생성 + 재호출 방어
-- [x] `GET /api/books/:id/pages` — 페이지 목록 조회
+### 디자인, 반응형
+- [x] 파스텔 톤 색상 팔레트 일관 적용
+- [x] 반응형 레이아웃 (모바일/태블릿/데스크톱)
+- [x] Framer Motion 애니메이션 (페이지 전환, 모달, 토스트)
+- [x] 둥근 모서리 (rounded-2xl, rounded-3xl)
+- [x] 따뜻한 동화책 느낌 (ivory 배경, soft 그림자)
 
-### 디자인/반응형
-- [x] 파스텔 톤 색상 팔레트 적용
-- [x] Framer Motion 애니메이션 (페이지 전환, 카드 호버, 진행률)
-- [x] 반응형 레이아웃 (max-w, grid, padding)
-- [x] 둥근 모서리 (rounded-2xl, rounded-xl)
+## 신규 테스트 목록 (18개)
+1. TestPatchPageText::test_update_page_text
+2. TestPatchPageText::test_update_page_text_persists
+3. TestPatchPageText::test_update_page_text_other_user_forbidden
+4. TestPatchPageText::test_update_nonexistent_page
+5. TestPatchPageText::test_update_page_empty_text_allowed
+6. TestRegenerateStory::test_regenerate_story_success
+7. TestRegenerateStory::test_regenerate_story_increments_count
+8. TestRegenerateStory::test_regenerate_story_max_3_times
+9. TestRegenerateStory::test_regenerate_story_resets_image_regen_counts
+10. TestRegenerateStory::test_regenerate_story_other_user_forbidden
+11. TestRegenerateImage::test_regenerate_image_success
+12. TestRegenerateImage::test_regenerate_image_increments_count
+13. TestRegenerateImage::test_regenerate_image_max_4_times
+14. TestRegenerateImage::test_regenerate_image_new_selected
+15. TestImageGallery::test_get_images
+16. TestImageGallery::test_get_images_after_regenerate
+17. TestImageSelect::test_select_image
+18. TestImageSelect::test_select_nonexistent_image
 
 ## 특이사항
-- Phase 2이므로 AI 호출 없이 더미 데이터 사용 (templates 기반 텍스트 치환)
-- 편집 페이지(`/create/edit`)는 기본 레이아웃만 구현 (태스크 9 범위)
-- Lottie 애니메이션 대신 SVG 기반 원형 프로그레스 구현 (외부 라이브러리 의존성 최소화)
+- Phase 2이므로 이미지는 placeholder 경로만 저장 (실제 이미지 파일 없음). Phase 3에서 AI 생성으로 교체 예정.
+- 스토리 재생성 시 generate_dummy_story를 재사용하여 기존 페이지를 삭제 후 새로 생성. story_regen_count는 API 레이어에서 관리.
+- 이미지 갤러리 모달 및 이미지 선택 기능은 Phase 3의 AI 이미지 재생성과 호환되도록 설계.
