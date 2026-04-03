@@ -26,3 +26,13 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Database
+*.db
+
+# Uploads
+backend/uploads/
+
+# Test
+.pytest_cache/
+test_dreambook.db
