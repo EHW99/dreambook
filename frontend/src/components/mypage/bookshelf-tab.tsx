@@ -88,8 +88,13 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
   };
 
   const handleContinue = (book: BookListItem) => {
-    // 마지막 저장 단계로 이동
-    router.push(`/create?bookId=${book.id}`);
+    if (book.status === "editing" || book.status === "completed") {
+      // 편집/완성 상태면 편집 페이지로 이동
+      router.push(`/create/edit?book_id=${book.id}`);
+    } else {
+      // draft/character_confirmed 등은 위자드로 이동
+      router.push(`/create?book_id=${book.id}`);
+    }
   };
 
   const handleView = (book: BookListItem) => {

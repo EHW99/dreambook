@@ -217,7 +217,7 @@ class BookPrintService:
         result = await self._request("GET", "/templates", params=params)
         data = result.get("data", {})
         if isinstance(data, dict):
-            return data.get("items", [])
+            return data.get("templates", data.get("items", []))
         return data if isinstance(data, list) else []
 
     # === Covers API ===
@@ -237,7 +237,9 @@ class BookPrintService:
         import json
         form_data["parameters"] = json.dumps(cover_params)
 
-        result = await self._request("POST", f"/books/{book_uid}/cover", data=form_data)
+        # API는 multipart/form-data를 기대 — files 형식으로 전달
+        multipart_fields = {k: (None, v) for k, v in form_data.items()}
+        result = await self._request("POST", f"/books/{book_uid}/cover", files=multipart_fields)
         return result.get("data", {})
 
     # === Contents API ===
@@ -250,10 +252,12 @@ class BookPrintService:
             "parameters": json.dumps(parameters),
         }
 
+        # API는 multipart/form-data를 기대 — files 형식으로 전달
+        multipart_fields = {k: (None, v) for k, v in form_data.items()}
         result = await self._request(
             "POST",
             f"/books/{book_uid}/contents",
-            data=form_data,
+            files=multipart_fields,
             params={"breakBefore": break_before},
         )
         return result.get("data", {})

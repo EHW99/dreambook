@@ -2,13 +2,21 @@
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { BookOpen, User, LogIn, UserPlus, Menu, X } from "lucide-react";
+import { BookOpen, User, LogIn, UserPlus, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Header() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileMenuOpen(false);
+    router.push("/");
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-secondary/50">
@@ -27,13 +35,22 @@ export function Header() {
             {!loading && (
               <>
                 {user ? (
-                  <Link
-                    href="/mypage"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-white font-medium shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200"
-                  >
-                    <User className="w-4 h-4" />
-                    마이페이지
-                  </Link>
+                  <>
+                    <Link
+                      href="/mypage"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-white font-medium shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200"
+                    >
+                      <User className="w-4 h-4" />
+                      마이페이지
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-secondary text-text/70 font-medium hover:bg-secondary/50 transition-all duration-200"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      로그아웃
+                    </button>
+                  </>
                 ) : (
                   <>
                     <Link
@@ -79,14 +96,23 @@ export function Header() {
                 {!loading && (
                   <>
                     {user ? (
-                      <Link
-                        href="/mypage"
-                        className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-primary text-white font-medium"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <User className="w-4 h-4" />
-                        마이페이지
-                      </Link>
+                      <>
+                        <Link
+                          href="/mypage"
+                          className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-primary text-white font-medium"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <User className="w-4 h-4" />
+                          마이페이지
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-secondary text-text/70 font-medium w-full"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          로그아웃
+                        </button>
+                      </>
                     ) : (
                       <>
                         <Link
