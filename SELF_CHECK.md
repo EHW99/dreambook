@@ -1,67 +1,71 @@
-# 셀프체크 — 태스크 9: 편집 / 미리보기 + 책 뷰어
+# 셀프체크 — 태스크 10: Book Print API 연동 + 주문 (R2)
 
 ## 테스트 결과
-- 전체 테스트 수: 157개 (기존 139 + 신규 18)
-- 통과: 157개
+- 전체 테스트 수: 201개
+- 통과: 201개
 - 실패: 0개
-- 프론트엔드 빌드: 성공
+- 태스크 10 테스트: 44개 (기존 28 + 신규 16)
 
-## SPEC 기능 체크
+## QA 피드백 반영 (5건)
 
-### 편집 화면
-- [x] 페이지 목록 (썸네일 사이드바 — 데스크톱 좌측, 모바일 상단 수평 스크롤)
-- [x] 선택된 페이지: 일러스트 + 텍스트 좌우 배치 (md: flex-row)
-- [x] 텍스트 인라인 편집 (편집 버튼 → textarea → 저장/취소)
-- [x] 스토리 재생성 버튼 (남은 횟수 표시, 최대 3회)
-  - [x] Phase 2: 재생성 시 동일 더미 반환, 횟수만 카운트
-  - [x] 재생성 시 연쇄 처리: 기존 페이지/이미지 삭제 + 새로 생성 + image_regen_count 리셋
-- [x] 페이지별 이미지 재생성 버튼 (남은 횟수 표시, 최대 4회, 갤러리 방식)
-- [x] "재생성 횟수를 모두 사용했습니다" 비활성화 + 경고 메시지
+### 1. 배송지 변경 스키마 분리
+- [x] `ShippingUpdateRequest` 스키마 신규 생성 (모든 필드 Optional)
+- [x] `PATCH /orders/:id/shipping` 엔드포인트가 `ShippingUpdateRequest`를 사용하도록 변경
+- [x] `model_dump(exclude_unset=True)`로 전달된 필드만 추출 → 부분 업데이트 구현
+- [x] Book Print API에도 변경된 필드만 전달 (snake_case → camelCase 매핑)
 
-### 전체 미리보기 (책 뷰어)
-- [x] 페이지 플립 애니메이션 (rotateY 기반 책 넘기기 효과)
-- [x] 좌우 페이지 표시 (표지: 단독, 내용: 2장씩 스프레드)
-- [x] 전체화면 모드 (Fullscreen API)
-- [x] 페이지 네비게이션 (이전/다음 버튼 + 키보드 화살표/스페이스)
-- [x] 페이지 인디케이터 (하단 도트)
-- [x] 독립 책 뷰어 페이지 (/books/[id]/view)
+### 2. 배송지 변경 테스트 추가
+- [x] `test_update_shipping_success` — 정상 배송지 변경 (전체 필드)
+- [x] `test_update_shipping_partial` — 부분 변경 (이름만), 기존 값 유지 확인
+- [x] `test_update_shipping_wrong_status` — IN_PRODUCTION(40) 상태 → 400
+- [x] `test_update_shipping_other_user` — 타인 주문 변경 → 403
+- [x] `test_update_shipping_no_auth` — 인증 없음 → 401/403
+- [x] `ShippingUpdateRequest` 스키마 단위 테스트 5건 (부분 업데이트, 검증)
 
-### 백엔드 API
-- [x] `GET /api/books/:id/pages` — 전체 페이지 조회 (기존)
-- [x] `PATCH /api/books/:id/pages/:pageId` — 텍스트 수정
-- [x] `POST /api/books/:id/regenerate-story` — 스토리 재생성 (더미, 횟수 체크)
-- [x] `POST /api/books/:id/pages/:pageId/regenerate-image` — 이미지 재생성 (더미, 횟수)
-- [x] `GET /api/books/:id/pages/:pageId/images` — 이미지 갤러리
-- [x] `PATCH /api/books/:id/pages/:pageId/images/:imgId/select` — 이미지 선택
+### 3. 페이지 수 사전 검증
+- [x] `execute_order_workflow`에서 최종화 전 판형별 `page_min`~`page_max` 범위 체크
+- [x] 범위 밖이면 `BookPrintAPIError` 발생, 최종화 호출 방지
+- [x] `test_page_count_out_of_range` 테스트 추가
 
-### 디자인, 반응형
-- [x] 파스텔 톤 색상 팔레트 일관 적용
-- [x] 반응형 레이아웃 (모바일/태블릿/데스크톱)
-- [x] Framer Motion 애니메이션 (페이지 전환, 모달, 토스트)
-- [x] 둥근 모서리 (rounded-2xl, rounded-3xl)
-- [x] 따뜻한 동화책 느낌 (ivory 배경, soft 그림자)
+### 4. Rate Limit(429) 재시도
+- [x] `_request` 메서드에 429 응답 시 `Retry-After` 헤더 기반 재시도 로직 (최대 2회)
+- [x] 안전 상한 30초, asyncio.sleep 사용
+- [x] `test_429_retries_with_retry_after` — 재시도 후 성공 확인
+- [x] `test_429_max_retries_exceeded` — 최대 재시도 초과 시 에러
 
-## 신규 테스트 목록 (18개)
-1. TestPatchPageText::test_update_page_text
-2. TestPatchPageText::test_update_page_text_persists
-3. TestPatchPageText::test_update_page_text_other_user_forbidden
-4. TestPatchPageText::test_update_nonexistent_page
-5. TestPatchPageText::test_update_page_empty_text_allowed
-6. TestRegenerateStory::test_regenerate_story_success
-7. TestRegenerateStory::test_regenerate_story_increments_count
-8. TestRegenerateStory::test_regenerate_story_max_3_times
-9. TestRegenerateStory::test_regenerate_story_resets_image_regen_counts
-10. TestRegenerateStory::test_regenerate_story_other_user_forbidden
-11. TestRegenerateImage::test_regenerate_image_success
-12. TestRegenerateImage::test_regenerate_image_increments_count
-13. TestRegenerateImage::test_regenerate_image_max_4_times
-14. TestRegenerateImage::test_regenerate_image_new_selected
-15. TestImageGallery::test_get_images
-16. TestImageGallery::test_get_images_after_regenerate
-17. TestImageSelect::test_select_image
-18. TestImageSelect::test_select_nonexistent_image
+### 5. 워크플로우 중간 실패 시 중단
+- [x] 내지 삽입 실패 시 즉시 `BookPrintAPIError` 발생 → 워크플로우 중단
+- [x] 불완전한 책의 최종화 방지
+- [x] `test_content_insert_failure_aborts_workflow` — finalize_book 미호출 확인
+
+### 추가 테스트
+- [x] `test_cancel_in_production_fails` — IN_PRODUCTION 상태 취소 → 400
+- [x] `test_cancel_other_user_order_fails` — 타인 주문 취소 → 403
+
+## SPEC 기능 체크 (R1에서 이미 완료)
+
+### 1. 백엔드 — Book Print API 연동 서비스
+- [x] Sandbox 충전금 확인 + 부족 시 자동 충전
+- [x] 책 생성, 사진 업로드, 템플릿 조회, 표지 생성, 내지 삽입, 최종화, 견적 조회, 주문 생성
+
+### 2. 주문 페이지 (프론트엔드)
+- [x] 배송지 입력 폼 + 검증 + 견적 표시 + 워크플로우 실행 + 로딩 + 완료 화면
+
+### 3. 에러 처리
+- [x] 충전금 부족 → 자동 충전, API 오류 → 사용자 안내, 타임아웃 처리
+
+### 4. 백엔드 API
+- [x] estimate, order, orders 목록/상세, cancel, shipping 변경
+
+### 5. Sandbox PAID 상태 정지 인지
+- [x] Sandbox 안내 메시지 표시
+
+## 수정 파일
+- `backend/app/schemas/order.py` — `ShippingUpdateRequest` 스키마 추가
+- `backend/app/api/orders.py` — 배송지 변경 엔드포인트 `ShippingUpdateRequest` 적용 + 부분 업데이트
+- `backend/app/services/bookprint.py` — Rate Limit 재시도, 페이지 수 검증, 내지 삽입 실패 중단
+- `backend/tests/test_orders.py` — 테스트 16건 추가
 
 ## 특이사항
-- Phase 2이므로 이미지는 placeholder 경로만 저장 (실제 이미지 파일 없음). Phase 3에서 AI 생성으로 교체 예정.
-- 스토리 재생성 시 generate_dummy_story를 재사용하여 기존 페이지를 삭제 후 새로 생성. story_regen_count는 API 레이어에서 관리.
-- 이미지 갤러리 모달 및 이미지 선택 기능은 Phase 3의 AI 이미지 재생성과 호환되도록 설계.
+- 기존 28개 테스트 모두 통과 유지 (회귀 없음)
+- 전체 프로젝트 201개 테스트 모두 통과

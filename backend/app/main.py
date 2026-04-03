@@ -13,6 +13,7 @@ from app.api.photos import router as photos_router
 from app.api.vouchers import router as vouchers_router
 from app.api.books import router as books_router
 from app.api.characters import router as characters_router
+from app.api.orders import router as orders_router
 from app.services.photo import ensure_upload_dir, UPLOAD_DIR
 
 settings = get_settings()
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(vouchers_router, tags=["vouchers"])
     app.include_router(books_router, tags=["books"])
     app.include_router(characters_router, tags=["characters"])
+    app.include_router(orders_router, tags=["orders"])
 
     # 정적 파일 서빙 (업로드된 사진 접근용)
     ensure_upload_dir()

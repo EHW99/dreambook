@@ -360,6 +360,43 @@ class ApiClient {
     );
   }
 
+  // === Order API ===
+
+  async getEstimate(bookId: number) {
+    return this.request<EstimateResult>(
+      `/api/books/${bookId}/estimate`,
+      { method: "POST" },
+      true
+    );
+  }
+
+  async createOrder(bookId: number, shipping: ShippingData) {
+    return this.request<OrderResult>(
+      `/api/books/${bookId}/order`,
+      {
+        method: "POST",
+        body: JSON.stringify({ shipping }),
+      },
+      true
+    );
+  }
+
+  async getOrders() {
+    return this.request<OrderListItem[]>("/api/orders", {}, true);
+  }
+
+  async getOrder(orderId: number) {
+    return this.request<OrderDetailResult>(`/api/orders/${orderId}`, {}, true);
+  }
+
+  async cancelOrder(orderId: number) {
+    return this.request<{ message: string }>(
+      `/api/orders/${orderId}/cancel`,
+      { method: "POST" },
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }
@@ -477,6 +514,71 @@ export interface PhotoItem {
   height: number;
   file_size: number;
   created_at: string;
+}
+
+export interface ShippingData {
+  recipient_name: string;
+  recipient_phone: string;
+  postal_code: string;
+  address1: string;
+  address2?: string;
+  shipping_memo?: string;
+}
+
+export interface EstimateResult {
+  product_amount: number;
+  shipping_fee: number;
+  packaging_fee: number;
+  total_amount: number;
+  paid_credit_amount: number;
+  credit_balance: number;
+  credit_sufficient: boolean;
+}
+
+export interface OrderResult {
+  id: number;
+  book_id: number;
+  bookprint_order_uid: string | null;
+  status: string;
+  status_code: number;
+  recipient_name: string;
+  recipient_phone: string;
+  postal_code: string;
+  address1: string;
+  address2: string | null;
+  shipping_memo: string | null;
+  total_amount: number;
+  ordered_at: string;
+  updated_at: string;
+}
+
+export interface OrderListItem {
+  id: number;
+  book_id: number;
+  status: string;
+  status_code: number;
+  recipient_name: string;
+  total_amount: number;
+  ordered_at: string;
+}
+
+export interface OrderDetailResult {
+  id: number;
+  book_id: number;
+  bookprint_order_uid: string | null;
+  status: string;
+  status_code: number;
+  recipient_name: string;
+  recipient_phone: string;
+  postal_code: string;
+  address1: string;
+  address2: string | null;
+  shipping_memo: string | null;
+  total_amount: number;
+  tracking_number: string | null;
+  tracking_carrier: string | null;
+  ordered_at: string;
+  updated_at: string;
 }
 
 export const apiClient = new ApiClient();

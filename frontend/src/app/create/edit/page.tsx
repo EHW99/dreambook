@@ -268,6 +268,15 @@ function EditContent() {
               <Eye className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">미리보기</span>
             </Button>
+            {/* 주문하기 */}
+            <Button
+              size="sm"
+              onClick={() => router.push(`/create/order?book_id=${bookId}`)}
+              className="gap-1.5 bg-primary hover:bg-primary/90 text-white"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>주문하기</span>
+            </Button>
           </div>
         </div>
       </div>
