@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { apiClient, PhotoItem } from "@/lib/api";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 interface StepInfoInputProps {
   childName: string;
   childBirthDate: string;
@@ -185,7 +187,7 @@ export function StepInfoInput({
                 }`}
               >
                 <img
-                  src={photo.thumbnail_url}
+                  src={`${API_BASE}${photo.thumbnail_url}`}
                   alt={photo.original_name}
                   className="w-full h-full object-cover"
                 />
