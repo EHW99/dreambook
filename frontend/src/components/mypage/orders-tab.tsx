@@ -205,7 +205,7 @@ export function OrdersTab({ onOrdersLoaded }: OrdersTabProps) {
         <div className="w-20 h-20 rounded-full bg-secondary/50 flex items-center justify-center mb-6">
           <ShoppingBagIcon className="w-10 h-10 text-primary" />
         </div>
-        <p className="text-lg font-medium text-text mb-2">주문 내역이 없어요</p>
+        <p className="text-lg font-medium text-text mb-2">아직 주문 내역이 없어요</p>
         <p className="text-sm text-text-light">
           동화책을 완성하면 실물 책으로 주문할 수 있어요
         </p>
