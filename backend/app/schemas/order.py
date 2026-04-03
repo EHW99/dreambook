@@ -199,6 +199,7 @@ class OrderListResponse(BaseModel):
     """주문 목록 항목"""
     id: int
     book_id: int
+    book_title: Optional[str] = None
     status: str
     status_code: int
     recipient_name: str

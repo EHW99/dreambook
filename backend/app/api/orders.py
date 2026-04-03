@@ -261,7 +261,13 @@ def list_orders(
 ):
     """내 주문 목록 조회"""
     orders = db.query(Order).filter(Order.user_id == user.id).order_by(Order.ordered_at.desc()).all()
-    return orders
+    result = []
+    for order in orders:
+        data = OrderListResponse.model_validate(order)
+        if order.book:
+            data.book_title = order.book.title or f"{order.book.child_name}의 동화책"
+        result.append(data)
+    return result
 
 
 @router.get("/orders/{order_id}", response_model=OrderDetailResponse)

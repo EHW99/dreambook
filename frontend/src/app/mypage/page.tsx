@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { AuthGuard } from "@/components/auth-guard";
 import { PageTransition } from "@/components/page-transition";
 import { useAuth } from "@/lib/auth-context";
 import { ProfileTab } from "@/components/mypage/profile-tab";
 import { PhotosTab } from "@/components/mypage/photos-tab";
+import { BookshelfTab } from "@/components/mypage/bookshelf-tab";
+import { OrdersTab } from "@/components/mypage/orders-tab";
 import {
   UserIcon,
   CameraIcon,
   BookOpenIcon,
   ShoppingBagIcon,
 } from "@/components/icons";
+import { apiClient } from "@/lib/api";
 
 const TABS = [
   { id: "profile", label: "회원 정보", icon: UserIcon },
@@ -23,18 +26,25 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-function PlaceholderTab({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-text-light">
-      <p className="text-lg font-medium">{label}</p>
-      <p className="mt-2 text-sm">준비 중입니다</p>
-    </div>
-  );
-}
-
 function MypageContent() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const [orderedBookIds, setOrderedBookIds] = useState<Set<number>>(new Set());
+
+  const handleOrdersLoaded = useCallback((bookIds: Set<number>) => {
+    setOrderedBookIds(bookIds);
+  }, []);
+
+  // 마운트 시 주문 목록을 미리 로드하여 orderedBookIds 초기화
+  useEffect(() => {
+    async function loadOrderedBookIds() {
+      const result = await apiClient.getOrders();
+      if (result.data) {
+        setOrderedBookIds(new Set(result.data.map((o) => o.book_id)));
+      }
+    }
+    loadOrderedBookIds();
+  }, []);
 
   return (
     <PageTransition>
@@ -86,10 +96,10 @@ function MypageContent() {
               {activeTab === "profile" && <ProfileTab />}
               {activeTab === "photos" && <PhotosTab />}
               {activeTab === "bookshelf" && (
-                <PlaceholderTab label="내 책장" />
+                <BookshelfTab orderedBookIds={orderedBookIds} />
               )}
               {activeTab === "orders" && (
-                <PlaceholderTab label="주문 내역" />
+                <OrdersTab onOrdersLoaded={handleOrdersLoaded} />
               )}
             </div>
           </div>

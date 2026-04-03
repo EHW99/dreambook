@@ -397,6 +397,17 @@ class ApiClient {
     );
   }
 
+  async updateShipping(orderId: number, data: Partial<ShippingData>) {
+    return this.request<OrderDetailResult>(
+      `/api/orders/${orderId}/shipping`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      },
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }
@@ -438,10 +449,12 @@ export interface BookListItem {
   id: number;
   child_name: string;
   job_name: string | null;
+  art_style: string | null;
   status: string;
   current_step: number;
   title: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface BookUpdateData {
@@ -555,6 +568,7 @@ export interface OrderResult {
 export interface OrderListItem {
   id: number;
   book_id: number;
+  book_title: string | null;
   status: string;
   status_code: number;
   recipient_name: string;

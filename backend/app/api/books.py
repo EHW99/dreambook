@@ -142,7 +142,7 @@ def delete(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """동화책 삭제 (draft 상태만)"""
+    """동화책 삭제 (작성중 상태만: draft, character_confirmed)"""
     book = get_book_by_id(db, book_id)
     if not book:
         raise HTTPException(
@@ -154,7 +154,7 @@ def delete(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="본인의 동화책만 삭제할 수 있습니다",
         )
-    if book.status != "draft":
+    if book.status not in ("draft", "character_confirmed"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="작성 중인 동화책만 삭제할 수 있습니다",

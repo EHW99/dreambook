@@ -135,10 +135,12 @@ class BookListResponse(BaseModel):
     id: int
     child_name: str
     job_name: Optional[str] = None
+    art_style: Optional[str] = None
     status: str
     current_step: int
     title: Optional[str] = None
     created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 

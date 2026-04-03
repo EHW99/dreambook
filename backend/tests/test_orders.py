@@ -1038,3 +1038,221 @@ class TestCancelEdgeCases:
 
         res = client.post(f"/api/orders/{order_id}/cancel", headers=other_headers)
         assert res.status_code == 403
+
+
+# === 태스크 11: 내 책장 + 주문 내역 관련 추가 테스트 ===
+
+class TestBookshelfEndpoints:
+    """태스크 11: 내 책장 API 테스트"""
+
+    def _create_test_user(self, client):
+        client.post("/api/auth/signup", json={
+            "email": "bookshelf@test.com",
+            "password": "test1234",
+        })
+        res = client.post("/api/auth/login", json={
+            "email": "bookshelf@test.com",
+            "password": "test1234",
+        })
+        return {"Authorization": f"Bearer {res.json()['access_token']}"}
+
+    def test_books_list_returns_art_style(self, client, db_session):
+        """GET /api/books — art_style 필드 포함 확인"""
+        headers = self._create_test_user(client)
+
+        # 이용권 구매 + 동화책 생성
+        client.post("/api/vouchers/purchase", json={"voucher_type": "story_and_print"}, headers=headers)
+        vouchers_res = client.get("/api/vouchers", headers=headers)
+        voucher_id = vouchers_res.json()[0]["id"]
+        book_res = client.post("/api/books", json={"voucher_id": voucher_id}, headers=headers)
+        book_id = book_res.json()["id"]
+
+        # art_style 설정
+        client.patch(f"/api/books/{book_id}", json={
+            "child_name": "민지",
+            "art_style": "watercolor",
+        }, headers=headers)
+
+        # 목록 조회
+        res = client.get("/api/books", headers=headers)
+        assert res.status_code == 200
+        books = res.json()
+        assert len(books) == 1
+        assert books[0]["art_style"] == "watercolor"
+        assert "updated_at" in books[0]
+
+    def test_books_list_returns_updated_at(self, client, db_session):
+        """GET /api/books — updated_at 필드 포함 확인"""
+        headers = self._create_test_user(client)
+
+        client.post("/api/vouchers/purchase", json={"voucher_type": "story_and_print"}, headers=headers)
+        vouchers_res = client.get("/api/vouchers", headers=headers)
+        voucher_id = vouchers_res.json()[0]["id"]
+        client.post("/api/books", json={"voucher_id": voucher_id}, headers=headers)
+
+        res = client.get("/api/books", headers=headers)
+        assert res.status_code == 200
+        books = res.json()
+        assert len(books) == 1
+        assert "updated_at" in books[0]
+        assert books[0]["updated_at"] is not None
+
+    def test_delete_draft_book(self, client, db_session):
+        """작성중 동화책 삭제 가능"""
+        headers = self._create_test_user(client)
+
+        client.post("/api/vouchers/purchase", json={"voucher_type": "story_and_print"}, headers=headers)
+        vouchers_res = client.get("/api/vouchers", headers=headers)
+        voucher_id = vouchers_res.json()[0]["id"]
+        book_res = client.post("/api/books", json={"voucher_id": voucher_id}, headers=headers)
+        book_id = book_res.json()["id"]
+
+        res = client.delete(f"/api/books/{book_id}", headers=headers)
+        assert res.status_code == 200
+
+        # 목록에서 제거됨
+        res = client.get("/api/books", headers=headers)
+        assert len(res.json()) == 0
+
+    def test_delete_completed_book_fails(self, client, db_session):
+        """완성된 동화책은 삭제 불가"""
+        headers = self._create_test_user(client)
+
+        client.post("/api/vouchers/purchase", json={"voucher_type": "story_and_print"}, headers=headers)
+        vouchers_res = client.get("/api/vouchers", headers=headers)
+        voucher_id = vouchers_res.json()[0]["id"]
+        book_res = client.post("/api/books", json={"voucher_id": voucher_id}, headers=headers)
+        book_id = book_res.json()["id"]
+
+        # 상태를 completed로 변경
+        client.patch(f"/api/books/{book_id}", json={
+            "child_name": "민지",
+            "status": "completed",
+        }, headers=headers)
+
+        res = client.delete(f"/api/books/{book_id}", headers=headers)
+        assert res.status_code == 400
+
+    def test_delete_character_confirmed_book(self, client, db_session):
+        """character_confirmed 상태 동화책도 삭제 가능 (작성중에 해당)"""
+        headers = self._create_test_user(client)
+
+        client.post("/api/vouchers/purchase", json={"voucher_type": "story_and_print"}, headers=headers)
+        vouchers_res = client.get("/api/vouchers", headers=headers)
+        voucher_id = vouchers_res.json()[0]["id"]
+        book_res = client.post("/api/books", json={"voucher_id": voucher_id}, headers=headers)
+        book_id = book_res.json()["id"]
+
+        # 상태를 character_confirmed로 변경
+        client.patch(f"/api/books/{book_id}", json={
+            "child_name": "민지",
+            "status": "character_confirmed",
+        }, headers=headers)
+
+        res = client.delete(f"/api/books/{book_id}", headers=headers)
+        assert res.status_code == 200
+
+        # 목록에서 제거됨
+        res = client.get("/api/books", headers=headers)
+        assert len(res.json()) == 0
+
+    def test_delete_generating_book_fails(self, client, db_session):
+        """generating 상태 동화책은 삭제 불가"""
+        headers = self._create_test_user(client)
+
+        client.post("/api/vouchers/purchase", json={"voucher_type": "story_and_print"}, headers=headers)
+        vouchers_res = client.get("/api/vouchers", headers=headers)
+        voucher_id = vouchers_res.json()[0]["id"]
+        book_res = client.post("/api/books", json={"voucher_id": voucher_id}, headers=headers)
+        book_id = book_res.json()["id"]
+
+        # 상태를 generating으로 변경
+        client.patch(f"/api/books/{book_id}", json={
+            "child_name": "민지",
+            "status": "generating",
+        }, headers=headers)
+
+        res = client.delete(f"/api/books/{book_id}", headers=headers)
+        assert res.status_code == 400
+
+    def test_empty_bookshelf(self, client, db_session):
+        """빈 책장 목록"""
+        headers = self._create_test_user(client)
+        res = client.get("/api/books", headers=headers)
+        assert res.status_code == 200
+        assert res.json() == []
+
+
+class TestOrderListBookTitle:
+    """태스크 11: 주문 목록에 book_title 포함 테스트"""
+
+    def _create_test_user(self, client):
+        client.post("/api/auth/signup", json={
+            "email": "ordertitle@test.com",
+            "password": "test1234",
+        })
+        res = client.post("/api/auth/login", json={
+            "email": "ordertitle@test.com",
+            "password": "test1234",
+        })
+        return {"Authorization": f"Bearer {res.json()['access_token']}"}
+
+    @patch("app.api.orders.BookPrintService")
+    def test_order_list_includes_book_title(self, MockService, client, db_session):
+        """GET /api/orders — book_title 필드 포함"""
+        headers = self._create_test_user(client)
+
+        # 동화책 생성 (풀 워크플로우)
+        client.post("/api/vouchers/purchase", json={"voucher_type": "story_and_print"}, headers=headers)
+        vouchers_res = client.get("/api/vouchers", headers=headers)
+        voucher_id = vouchers_res.json()[0]["id"]
+        book_res = client.post("/api/books", json={"voucher_id": voucher_id}, headers=headers)
+        book_id = book_res.json()["id"]
+
+        client.patch(f"/api/books/{book_id}", json={
+            "child_name": "테스트아이",
+            "job_name": "소방관",
+            "job_category": "안전",
+            "story_style": "dreaming_today",
+            "art_style": "watercolor",
+            "page_count": 24,
+            "title": "용감한 소방관 테스트아이",
+        }, headers=headers)
+
+        char_res = client.post(f"/api/books/{book_id}/character", headers=headers)
+        char_id = char_res.json()["id"]
+        client.patch(f"/api/books/{book_id}/character/{char_id}/select", headers=headers)
+        client.patch(f"/api/books/{book_id}", json={
+            "status": "character_confirmed", "current_step": 6,
+        }, headers=headers)
+        client.post(f"/api/books/{book_id}/generate", headers=headers)
+        client.patch(f"/api/books/{book_id}", json={"status": "editing"}, headers=headers)
+
+        # 주문 생성
+        mock_instance = AsyncMock()
+        MockService.return_value = mock_instance
+        mock_instance.execute_order_workflow = AsyncMock(return_value={
+            "book_uid": "bk_title1", "order_uid": "or_title1", "order_status": 20,
+            "order_status_display": "결제완료", "total_amount": 10000,
+            "paid_credit_amount": 11000, "estimate": {}, "order_data": {},
+        })
+        mock_instance.close = AsyncMock()
+
+        client.post(f"/api/books/{book_id}/order", json={
+            "shipping": {
+                "recipient_name": "홍길동",
+                "recipient_phone": "010-1234-5678",
+                "postal_code": "06101",
+                "address1": "서울시 강남구",
+            }
+        }, headers=headers)
+
+        # 주문 목록에 book_title 포함 확인
+        res = client.get("/api/orders", headers=headers)
+        assert res.status_code == 200
+        orders = res.json()
+        assert len(orders) == 1
+        assert "book_title" in orders[0]
+        # generate에서 자동 생성된 제목이 들어감
+        assert orders[0]["book_title"] is not None
+        assert len(orders[0]["book_title"]) > 0
