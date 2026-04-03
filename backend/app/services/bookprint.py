@@ -271,20 +271,17 @@ class BookPrintService:
 
     # === Covers API ===
 
-    async def create_cover(self, book_uid: str, template_uid: str, parameters: dict, uploaded_file_name: str | None = None) -> dict:
-        """표지 생성"""
+    async def create_cover(self, book_uid: str, template_uid: str, parameters: dict) -> dict:
+        """표지 생성
+
+        parameters는 _build_cover_parameters()에서 이미 템플릿 정의에 맞게
+        동적으로 매핑된 상태여야 한다 (coverPhoto/frontPhoto 등 포함).
+        """
+        import json
         form_data: dict[str, Any] = {
             "templateUid": template_uid,
+            "parameters": json.dumps(parameters),
         }
-
-        # parameters에서 이미지 파라미터를 업로드된 파일명으로 대체
-        cover_params = dict(parameters)
-        if uploaded_file_name:
-            # frontPhoto를 업로드된 파일명으로 설정
-            cover_params["frontPhoto"] = uploaded_file_name
-
-        import json
-        form_data["parameters"] = json.dumps(cover_params)
 
         # API는 multipart/form-data를 기대 — files 형식으로 전달
         multipart_fields = {k: (None, v) for k, v in form_data.items()}
@@ -679,7 +676,6 @@ class BookPrintService:
             book_uid,
             cover_template_uid,
             cover_params,
-            uploaded_file_name=cover_file,
         )
         logger.info("표지 생성 완료")
 
