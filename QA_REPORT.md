@@ -1,65 +1,41 @@
-# QA 리포트 — 태스크 4: 아이 사진 관리 (R2)
+# QA 리포트 — 태스크 5: 랜딩 페이지 (R1)
 
 ## 전체 판정: PASS
-## 가중 점수: 7.7 / 10.0
+## 가중 점수: 7.8 / 10.0
 
 ## 항목별 점수
-- 기능 완성도 (30%): 9/10 — 모든 핵심 기능(업로드/목록/삭제) 구현 완료, 에러 메시지 4종 SPEC과 정확히 일치, 확장자+Content-Type 이중 검증(None 포함), 해상도/크기/개수 제한 모두 동작. 엣지 케이스(확장자 위장 파일)는 Pillow 파싱이 2차 방어선으로 처리
-- 코드 품질 (25%): 7/10 — R1 피드백 3건(Pillow 등록, content_type None 차단, response_model) 모두 반영 완료. 서비스 레이어 분리 깔끔, 입력 검증 체계적. UUID 파일명으로 경로 탐색 공격 방지. 다만 delete 엔드포인트에 response_model 미지정(일관성 부족), photo_to_response 함수가 있음에도 ORM→dict 수동 변환하는 구조는 아쉬움
-- API 연동 (20%): 7/10 — 외부 API 연동 없는 태스크. 내부 REST API 설계는 적절: 상태 코드(201/403/404/422) 정확, multipart/form-data 처리 정상, StaticFiles 마운트 완료
-- 디자인 품질 (25%): 7/10 — 반응형 그리드(grid-cols-2/3/4), 드래그앤드롭 영역, hover 삭제 버튼+확인 다이얼로그, 빈 상태 UI 모두 구현. 파스텔 톤 색상 일관성 있음. 업로드 진행 상태는 텍스트("업로드 중...")만 표시, 프로그레스 바나 애니메이션 전환 효과 부재
+- 기능 완성도 (30%): 8/10 — 10개 완료 기준 모두 충족. 샘플 카드 클릭 시 책 뷰어 연결은 Phase 2 더미로 적절히 처리.
+- 코드 품질 (25%): 8/10 — 보안 이슈 없음. 컴포넌트 분리 적절. FadeInSection 재사용 패턴 양호. 에러 처리/엣지 케이스 적절.
+- API 연동 (20%): 7/10 — 이 태스크는 API 연동이 필요 없는 프론트엔드 전용 태스크. useAuth 컨텍스트를 통한 인증 상태 분기 올바르게 구현.
+- 디자인 품질 (25%): 8/10 — SPEC 색상 팔레트 정확 적용. Framer Motion 스크롤 페이드인 구현. 반응형 그리드 적절. 파스텔 톤 + 둥근 모서리 + 부드러운 그림자로 아동/가족 서비스 느낌 구현.
 
-**가중 점수 계산**: (9 × 0.3) + (7 × 0.25) + (7 × 0.2) + (7 × 0.25) = 2.7 + 1.75 + 1.4 + 1.75 = **7.6 → 반올림 7.7**
-
----
-
-## R1 피드백 반영 확인
-
-### 1. [치명] Pillow가 requirements.txt에 없음 → **반영 완료**
-- `backend/requirements.txt` 13행에 `Pillow>=10.0.0` 추가 확인
-
-### 2. [중] content_type 검증 우회 → **반영 완료**
-- `backend/app/api/photos.py` 53행: `if not file.content_type or not validate_content_type(file.content_type):` 로 변경 확인
-- content_type이 None이거나 허용 목록에 없으면 모두 거부됨
-
-### 3. [낮] response_model 미사용 → **반영 완료**
-- 39행: `@router.post("", status_code=status.HTTP_201_CREATED, response_model=PhotoResponse)` 확인
-- 102행: `@router.get("", response_model=list[PhotoResponse])` 확인
-
-**R1 피드백 3건 모두 반영 완료. 기존 합격 항목에 퇴보 없음.**
-
----
+**가중 점수 계산**: (8 x 0.3) + (8 x 0.25) + (7 x 0.2) + (8 x 0.25) = 2.4 + 2.0 + 1.4 + 2.0 = **7.8**
 
 ## SPEC 완료 기준 대조
-
-- [PASS] 완료 기준 1-1: `POST /api/photos` — 형식(JPG/PNG/WebP), 크기(10MB), 해상도(512x512), 개수(20장) 검증 모두 구현. 서버 로컬 저장(uploads/ 디렉토리, UUID 기반 파일명) 정상 동작
-- [PASS] 완료 기준 1-2: `GET /api/photos` — 내 사진 목록 조회 (id, thumbnail_url, original_name, created_at) 정상 반환. 본인 사진만 조회됨 확인
-- [PASS] 완료 기준 1-3: `DELETE /api/photos/:id` — DB + 파일 삭제 구현. 본인 아닌 경우 403 반환 확인
-- [PASS] 완료 기준 2: 에러 메시지 4종 — "지원하지 않는 파일 형식입니다"(422), "파일 크기가 10MB를 초과합니다"(422), "최대 20장까지 등록 가능합니다"(422), "최소 512x512 이상의 이미지를 업로드해주세요"(422) 모두 구현 확인
-- [PASS] 완료 기준 3: 프론트엔드 — 그리드(grid-cols-2/3/4), 업로드 버튼+드래그앤드롭, hover 삭제 버튼+확인 다이얼로그, 빈 상태("등록된 사진이 없어요"+업로드 안내) 모두 구현
-- [PASS] 완료 기준 4: 정적 파일 서빙 — FastAPI StaticFiles로 `/uploads` 경로 마운트 완료
-- [PASS] 완료 기준 5: 반응형 — grid-cols-2 sm:grid-cols-3 md:grid-cols-4 적용
-
----
+- [PASS] 완료 기준 1 (히어로 섹션 + CTA): "아이의 꿈을 동화책으로 만들어주세요" 핵심 메시지 + "동화책 만들기" CTA 버튼 구현. 배경 장식(blur 원형 그라데이션) 포함.
+- [PASS] 완료 기준 2 (샘플 동화책 카드): 소방관/우주비행사/요리사 3개 카드. emoji + 그라데이션 커버 + 제목/설명. Phase 2 더미 데이터로 적절.
+- [PASS] 완료 기준 3 (5가지 그림체 갤러리): 수채화/연필화/크레파스/3D/만화 5종 모두 표시. placeholder 이미지(Palette 아이콘 + 그라데이션)로 대체 — Phase 2에서 적절.
+- [PASS] 완료 기준 4 (이용권 2종 카드): AI 스토리북 9,900원 / AI 스토리북 + 실물 책 29,900원. 기능 리스트, "추천" 배지 포함.
+- [PASS] 완료 기준 5 (비로그인/로그인 모두 접근): useAuth로 조건부 렌더링만 수행. 인증 가드 없이 누구나 접근 가능.
+- [PASS] 완료 기준 6 (CTA 분기): 비로그인 시 /login, 로그인 시 /create. ctaHref 변수로 일관 적용. 테스트로 검증 완료.
+- [PASS] 완료 기준 7 (헤더): 로고("꿈꾸는 나"), 비로그인 시 로그인/회원가입 버튼, 로그인 시 마이페이지 버튼, 모바일 햄버거 메뉴(AnimatePresence 애니메이션).
+- [PASS] 완료 기준 8 (푸터): 서비스명, "(주)스위트북" 회사 정보, 바로가기 링크, 카피라이트.
+- [PASS] 완료 기준 9 (파스텔 톤 + Framer Motion + 스크롤 페이드인): SPEC 색상 팔레트(Primary #FFB5A7, Accent #A8DADC 등) Tailwind config에 정확히 적용. FadeInSection 컴포넌트로 useInView 기반 페이드인+슬라이드업 애니메이션. 히어로 진입 애니메이션, 스크롤 안내 바운스 애니메이션.
+- [PASS] 완료 기준 10 (반응형): 텍스트 크기(text-4xl -> 5xl -> 6xl), 그리드(1 -> 2 -> 3열, 2 -> 3 -> 5열), 모바일 햄버거 메뉴, hidden sm:block 등 브레이크포인트별 대응 확인.
 
 ## 테스트 검증
+- Developer 테스트 수: 16개
+- 테스트 실행 결과: 16/16 통과
+- 빠진 테스트 케이스:
+  - 모바일 햄버거 메뉴 열기/닫기 상호작용 테스트 없음 (minor)
+  - 이용권 카드의 "시작하기" 버튼 href 검증 없음 (minor)
+  - 로딩 중(loading: true) 상태에서 헤더 버튼 숨김 검증 없음 (minor)
 
-- Developer 테스트 수: 18개 (사진 관련, R1 대비 +2개)
-- 전체 테스트 수: 59개 (기존 41개 + 사진 18개)
-- 전체 테스트 통과: **59/59 PASS**
-- 프론트엔드 빌드: **성공**
+## 코드 품질 세부
+- 보안: API Key 하드코딩 없음. 프론트엔드 전용 페이지로 보안 리스크 최소.
+- 구조: Header, Footer를 독립 컴포넌트로 분리하여 재사용 가능. FadeInSection 애니메이션 헬퍼 패턴 적절.
+- 데이터: SAMPLE_BOOKS, ART_STYLES, PRICING 상수 분리로 가독성 좋음.
+- Tailwind config: SPEC 디자인 시스템(색상, 그림자, 둥근 모서리, 폰트) 정확히 반영.
 
-### 신규 테스트 (R2 추가)
-1. `test_upload_invalid_content_type` — 잘못된 content_type(application/octet-stream) 시 422 반환 확인
-2. `test_content_type_none_rejected` — validate_content_type 함수의 허용/거부 직접 검증
-
-### 빠진 테스트 케이스 (경미, PASS 판정에 영향 없음)
-1. 유효한 확장자(.jpg)지만 실제로는 이미지가 아닌 파일(텍스트→.jpg 이름 변경) 업로드 시 동작 검증 — Pillow가 방어하므로 실질적 위험은 없으나 테스트가 있으면 좋음
-2. 삭제 후 실제 파일이 디스크에서 제거되었는지 검증 — `test_delete_account_photo_files_deleted`에서 유사하게 커버되나, 단건 삭제에 대한 직접 검증은 없음
-
----
-
-## 개선 권고 (차기 태스크에서 고려)
-
-1. `DELETE /api/photos/{photo_id}` 엔드포인트에도 `response_model=MessageResponse`를 지정하면 API 문서 일관성이 향상됨 (현재 동작에는 문제 없음)
-2. 업로드 진행률 표시(프로그레스 바)와 카드 등장 애니메이션(Framer Motion) 추가 시 디자인 품질 향상 가능
+## 구체적 개선 지시
+없음 — 모든 완료 기준 충족. 다음 태스크로 진행.
