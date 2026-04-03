@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { PageTransition } from "@/components/page-transition";
 import { useAuth } from "@/lib/auth-context";
 import { ProfileTab } from "@/components/mypage/profile-tab";
+import { PhotosTab } from "@/components/mypage/photos-tab";
 import {
   UserIcon,
   CameraIcon,
@@ -83,9 +84,7 @@ function MypageContent() {
             {/* 탭 콘텐츠 */}
             <div className="p-6 sm:p-8">
               {activeTab === "profile" && <ProfileTab />}
-              {activeTab === "photos" && (
-                <PlaceholderTab label="아이 사진 관리" />
-              )}
+              {activeTab === "photos" && <PhotosTab />}
               {activeTab === "bookshelf" && (
                 <PlaceholderTab label="내 책장" />
               )}

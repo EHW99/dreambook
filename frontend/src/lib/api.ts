@@ -162,9 +162,73 @@ class ApiClient {
     );
   }
 
+  // === Photos API ===
+
+  async uploadPhoto(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const token = this.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    let res = await fetch(`${API_BASE}/api/photos`, {
+      method: "POST",
+      headers,
+      body: formData,
+      credentials: "include",
+    });
+
+    // 401이면 토큰 갱신 시도
+    if (res.status === 401) {
+      const newToken = await this.refreshAccessToken();
+      if (newToken) {
+        headers["Authorization"] = `Bearer ${newToken}`;
+        res = await fetch(`${API_BASE}/api/photos`, {
+          method: "POST",
+          headers,
+          body: formData,
+          credentials: "include",
+        });
+      }
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ detail: "알 수 없는 오류가 발생했습니다" }));
+      return { error: (body as ApiError).detail || "오류가 발생했습니다", status: res.status };
+    }
+
+    const data = await res.json();
+    return { data: data as PhotoItem, status: res.status };
+  }
+
+  async getPhotos() {
+    return this.request<PhotoItem[]>("/api/photos", {}, true);
+  }
+
+  async deletePhoto(photoId: number) {
+    return this.request<{ message: string }>(
+      `/api/photos/${photoId}`,
+      { method: "DELETE" },
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }
+}
+
+export interface PhotoItem {
+  id: number;
+  original_name: string;
+  thumbnail_url: string;
+  width: number;
+  height: number;
+  file_size: number;
+  created_at: string;
 }
 
 export const apiClient = new ApiClient();

@@ -2,12 +2,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import engine, Base
 from app.api.health import router as health_router
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
+from app.api.photos import router as photos_router
+from app.services.photo import ensure_upload_dir, UPLOAD_DIR
 
 settings = get_settings()
 
@@ -43,6 +46,11 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api", tags=["health"])
     app.include_router(auth_router, tags=["auth"])
     app.include_router(users_router, tags=["users"])
+    app.include_router(photos_router, tags=["photos"])
+
+    # 정적 파일 서빙 (업로드된 사진 접근용)
+    ensure_upload_dir()
+    app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
     return app
 

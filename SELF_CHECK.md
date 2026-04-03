@@ -1,44 +1,58 @@
-# 셀프체크 — 태스크 3: 마이페이지 — 회원 정보 + 탈퇴
+# 셀프체크 -- 태스크 4: 아이 사진 관리 (R2)
+
+## QA 피드백 반영 내역
+
+### 1. [치명] Pillow가 requirements.txt에 없음 → 반영 완료
+- `backend/requirements.txt`에 `Pillow>=10.0.0` 추가
+
+### 2. [중] content_type 검증 우회 → 반영 완료
+- `backend/app/api/photos.py` 53행: `if file.content_type and not ...` → `if not file.content_type or not ...` 로 변경
+- content_type이 None이거나 허용 목록에 없으면 모두 거부
+
+### 3. [낮] response_model 미사용 → 반영 완료
+- `@router.post("", status_code=201, response_model=PhotoResponse)` 추가
+- `@router.get("", response_model=list[PhotoResponse])` 추가
 
 ## 테스트 결과
-- 전체 테스트 수: 41개 (기존 31개 + 신규 10개)
-- 통과: 41개
+- 전체 테스트 수: 59개 (기존 57개 + 신규 2개)
+- 통과: 59개
 - 실패: 0개
+
+### 신규 테스트
+1. `test_upload_invalid_content_type` — 잘못된 content_type(application/octet-stream)이면 422 반환 확인
+2. `test_content_type_none_rejected` — validate_content_type 함수의 허용/거부 동작 직접 검증
 
 ## SPEC 기능 체크
 
 ### 백엔드 API
-- [x] `PATCH /api/users/password` — 현재 비밀번호 확인 + 새 비밀번호 검증(8자 이상) + 변경
-- [x] `DELETE /api/users/me` — 회원 탈퇴 (CASCADE: 사용자의 모든 데이터 즉시 삭제 — 사진 파일, DB 레코드)
+- [x] `POST /api/photos` -- 파일 업로드 (multipart/form-data): 구현 완료
+- [x] 형식 검증: JPG, PNG, WebP만 허용 (확장자 + Content-Type 이중 검증, None 차단)
+- [x] 크기 검증: 10MB 이하
+- [x] 해상도 검증: 512x512 이상 (Pillow로 실제 이미지 파싱)
+- [x] 개수 검증: 사용자당 최대 20장
+- [x] 서버 로컬 저장 (uploads/ 디렉토리, UUID 파일명)
+- [x] `GET /api/photos` -- 내 사진 목록 (id, thumbnail_url, original_name, created_at)
+- [x] `DELETE /api/photos/:id` -- 사진 삭제 (DB + 파일 즉시 삭제)
+- [x] 본인 사진만 삭제 가능 (403)
+- [x] response_model 지정 (PhotoResponse, list[PhotoResponse])
 
 ### 에러 메시지
-- [x] "현재 비밀번호가 틀렸습니다" (401)
-- [x] "새 비밀번호는 8자 이상이어야 합니다" (422)
+- [x] "지원하지 않는 파일 형식입니다" (422)
+- [x] "파일 크기가 10MB를 초과합니다" (422)
+- [x] "최대 20장까지 등록 가능합니다" (422)
+- [x] "최소 512x512 이상의 이미지를 업로드해주세요" (422)
 
 ### 프론트엔드
-- [x] 마이페이지 레이아웃 (탭 UI: 회원 정보 / 아이 사진 / 내 책장 / 주문 내역)
-- [x] 회원 정보 탭: 이메일(비활성), 비밀번호 변경 폼
-- [x] 회원 탈퇴: 확인 다이얼로그 ("정말 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다")
-- [x] 탈퇴 성공 → 토큰 삭제 → 랜딩 페이지 이동
+- [x] 사진 목록 그리드 (썸네일 + 파일명 + 날짜)
+- [x] 업로드 버튼 + 드래그앤드롭 지원
+- [x] 삭제 버튼 (hover 시 표시) + 확인 다이얼로그
+- [x] 빈 상태: "등록된 사진이 없어요" + 업로드 안내
 
-### 디자인
-- [x] 마이페이지 일관된 레이아웃 (파스텔 톤, 둥근 모서리, shadow-card)
-- [x] 반응형 (모바일에서 탭 아이콘만 표시, 데스크톱에서 아이콘+레이블)
-
-## 신규 파일
-- `backend/app/api/users.py` — Users API 라우터
-- `backend/app/schemas/user.py` — 사용자 관련 Pydantic 스키마
-- `backend/app/services/user.py` — 비밀번호 변경, 회원 탈퇴 서비스
-- `backend/tests/test_users.py` — 10개 테스트
-- `frontend/src/app/mypage/page.tsx` — 마이페이지 (탭 UI)
-- `frontend/src/components/mypage/profile-tab.tsx` — 회원 정보 탭
-- `frontend/src/components/icons.tsx` — SVG 아이콘 컴포넌트
-
-## 수정 파일
-- `backend/app/main.py` — users 라우터 등록
-- `frontend/src/lib/api.ts` — changePassword, deleteAccount 메서드 추가
+### 기타
+- [x] 정적 파일 서빙 (FastAPI StaticFiles로 /uploads 경로 마운트)
+- [x] 반응형 (grid-cols-2 sm:grid-cols-3 md:grid-cols-4)
+- [x] Pillow가 requirements.txt에 등록됨
+- [x] 기존 테스트 전부 통과 (59/59)
 
 ## 특이사항
-- 아이 사진 / 내 책장 / 주문 내역 탭은 "준비 중" 플레이스홀더로 구현 (태스크 4 이후에서 구현 예정)
-- 비밀번호 변경 폼에 "새 비밀번호 확인" 필드 추가 (프론트엔드 UX 개선)
-- 회원 탈퇴 시 사진 파일 삭제는 os.remove()로 처리, 실패해도 DB 삭제는 진행 (데이터 정합성 우선)
+- TestClient에서 `content_type=None` 전달 시 httpx가 확장자 기반으로 자동 추론하므로 API 레벨에서 None 테스트가 불가. 대신 서비스 함수 직접 테스트 + 잘못된 content_type 전달 테스트로 커버
