@@ -1,7 +1,7 @@
 """동화책 관련 Pydantic 스키마"""
 from datetime import date, datetime
 from typing import Optional
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class BookCreateRequest(BaseModel):
@@ -11,6 +11,14 @@ class BookCreateRequest(BaseModel):
 VALID_STORY_STYLES = {"dreaming_today", "future_me"}
 VALID_ART_STYLES = {"watercolor", "pencil", "crayon", "3d", "cartoon"}
 VALID_STATUSES = {"draft", "character_confirmed", "generating", "editing", "completed"}
+VALID_BOOK_SPEC_UIDS = {"SQUAREBOOK_HC", "PHOTOBOOK_A4_SC", "PHOTOBOOK_A5_SC"}
+
+# 판형별 페이지 수 범위
+BOOK_SPEC_PAGE_RANGES = {
+    "SQUAREBOOK_HC": (24, 130),
+    "PHOTOBOOK_A4_SC": (24, 130),
+    "PHOTOBOOK_A5_SC": (50, 200),
+}
 
 
 class BookUpdateRequest(BaseModel):
@@ -21,6 +29,9 @@ class BookUpdateRequest(BaseModel):
     job_name: Optional[str] = None
     story_style: Optional[str] = None
     art_style: Optional[str] = None
+    page_count: Optional[int] = None
+    book_spec_uid: Optional[str] = None
+    plot_input: Optional[str] = None
     current_step: Optional[int] = None
     status: Optional[str] = None
 
@@ -48,6 +59,45 @@ class BookUpdateRequest(BaseModel):
         if v is not None and v not in VALID_ART_STYLES:
             raise ValueError(f"유효하지 않은 그림체입니다. 가능한 값: {', '.join(VALID_ART_STYLES)}")
         return v
+
+    @field_validator("page_count")
+    @classmethod
+    def validate_page_count(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None:
+            if v % 2 != 0:
+                raise ValueError("페이지 수는 2의 배수여야 합니다")
+            if v < 24:
+                raise ValueError("페이지 수는 최소 24페이지 이상이어야 합니다")
+            if v > 200:
+                raise ValueError("페이지 수는 최대 200페이지까지 가능합니다")
+        return v
+
+    @field_validator("book_spec_uid")
+    @classmethod
+    def validate_book_spec_uid(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in VALID_BOOK_SPEC_UIDS:
+            raise ValueError(f"유효하지 않은 판형입니다. 가능한 값: {', '.join(VALID_BOOK_SPEC_UIDS)}")
+        return v
+
+    @field_validator("plot_input")
+    @classmethod
+    def validate_plot_input(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) > 1000:
+            raise ValueError("줄거리는 최대 1000자까지 입력 가능합니다")
+        return v
+
+    @model_validator(mode="after")
+    def validate_page_count_for_spec(self):
+        """판형별 페이지 수 범위 교차 검증"""
+        if self.page_count is not None and self.book_spec_uid is not None:
+            spec_uid = self.book_spec_uid
+            if spec_uid in BOOK_SPEC_PAGE_RANGES:
+                min_pages, max_pages = BOOK_SPEC_PAGE_RANGES[spec_uid]
+                if self.page_count < min_pages or self.page_count > max_pages:
+                    raise ValueError(
+                        f"{spec_uid} 판형의 페이지 수는 {min_pages}~{max_pages}페이지여야 합니다"
+                    )
+        return self
 
     @field_validator("status")
     @classmethod
@@ -89,5 +139,37 @@ class BookListResponse(BaseModel):
     current_step: int
     title: Optional[str] = None
     created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PageImageResponse(BaseModel):
+    id: int
+    image_path: str
+    generation_index: int
+    is_selected: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PageResponse(BaseModel):
+    id: int
+    book_id: int
+    page_number: int
+    page_type: str
+    scene_description: Optional[str] = None
+    text_content: Optional[str] = None
+    image_regen_count: int
+    images: list[PageImageResponse] = []
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class GenerateResponse(BaseModel):
+    status: str
+    pages: list[PageResponse]
 
     model_config = {"from_attributes": True}

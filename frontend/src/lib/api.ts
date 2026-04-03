@@ -299,6 +299,24 @@ class ApiClient {
     );
   }
 
+  // === Generate API ===
+
+  async generateBook(bookId: number) {
+    return this.request<GenerateResult>(
+      `/api/books/${bookId}/generate`,
+      { method: "POST" },
+      true
+    );
+  }
+
+  async getPages(bookId: number) {
+    return this.request<PageItem[]>(
+      `/api/books/${bookId}/pages`,
+      {},
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }
@@ -354,8 +372,37 @@ export interface BookUpdateData {
   job_name?: string;
   story_style?: string;
   art_style?: string;
+  page_count?: number;
+  book_spec_uid?: string;
+  plot_input?: string;
   current_step?: number;
   status?: string;
+}
+
+export interface PageImageItem {
+  id: number;
+  image_path: string;
+  generation_index: number;
+  is_selected: boolean;
+  created_at: string;
+}
+
+export interface PageItem {
+  id: number;
+  book_id: number;
+  page_number: number;
+  page_type: string;
+  scene_description: string | null;
+  text_content: string | null;
+  image_regen_count: number;
+  images: PageImageItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GenerateResult {
+  status: string;
+  pages: PageItem[];
 }
 
 export interface CharacterSheetItem {

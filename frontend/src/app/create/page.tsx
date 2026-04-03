@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
 import { WizardProgress } from "@/components/create/wizard-progress";
@@ -12,6 +12,9 @@ import { StepJobSelect, validateJobSelect } from "@/components/create/step-job-s
 import { StepStoryStyle, validateStoryStyle } from "@/components/create/step-story-style";
 import { StepArtStyle, validateArtStyle } from "@/components/create/step-art-style";
 import { StepCharacterPreview } from "@/components/create/step-character-preview";
+import { StepOptions, validateOptions } from "@/components/create/step-options";
+import { StepPlot, validatePlot } from "@/components/create/step-plot";
+import { StepGenerating } from "@/components/create/step-generating";
 import { apiClient, BookItem, VoucherItem } from "@/lib/api";
 
 function CreateWizardContent() {
@@ -44,6 +47,16 @@ function CreateWizardContent() {
 
   // 캐릭터 미리보기 상태
   const [characterConfirmed, setCharacterConfirmed] = useState(false);
+
+  // 옵션 상태
+  const [pageCount, setPageCount] = useState(24);
+  const [bookSpecUid, setBookSpecUid] = useState("SQUAREBOOK_HC");
+
+  // 줄거리 상태
+  const [plotInput, setPlotInput] = useState("");
+
+  // 생성 상태
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // 임시 데이터 ref (StepInfoInput에서 업데이트)
   const pendingUpdate = useRef<{ child_name?: string; child_birth_date?: string; photo_id?: number }>({});
@@ -124,8 +137,13 @@ function CreateWizardContent() {
     setJobName(bookData.job_name || "");
     setStoryStyle(bookData.story_style || "");
     setArtStyle(bookData.art_style || "");
+    setPageCount(bookData.page_count || 24);
+    setBookSpecUid(bookData.book_spec_uid || "SQUAREBOOK_HC");
+    setPlotInput(bookData.plot_input || "");
     // 캐릭터 확정 상태는 status로 판단
     setCharacterConfirmed(bookData.status === "character_confirmed" || bookData.current_step > 5);
+    // 생성 중 상태 복원
+    setIsGenerating(bookData.status === "generating");
   }
 
   // 다음 버튼 핸들러
@@ -258,8 +276,52 @@ function CreateWizardContent() {
       if (result.data) {
         loadBookState(result.data);
         setCurrentStep(6);
-        // 태스크 8 영역 — 이후 단계는 아직 미구현
-        setError("다음 단계는 아직 준비 중입니다. (태스크 8에서 구현)");
+      } else {
+        setError(result.error || "저장에 실패했습니다");
+      }
+    } else if (currentStep === 6) {
+      // 옵션 선택 유효성 검사
+      const validation = validateOptions(pageCount, bookSpecUid);
+      if (!validation.valid) {
+        setError(validation.error);
+        return;
+      }
+
+      // 서버 저장
+      setSaving(true);
+      const result = await apiClient.updateBook(book.id, {
+        page_count: pageCount,
+        book_spec_uid: bookSpecUid,
+        current_step: 7,
+      });
+      setSaving(false);
+
+      if (result.data) {
+        loadBookState(result.data);
+        setCurrentStep(7);
+      } else {
+        setError(result.error || "저장에 실패했습니다");
+      }
+    } else if (currentStep === 7) {
+      // 줄거리 유효성 검사
+      const validation = validatePlot(plotInput);
+      if (!validation.valid) {
+        setError(validation.error);
+        return;
+      }
+
+      // 줄거리 저장
+      setSaving(true);
+      const result = await apiClient.updateBook(book.id, {
+        plot_input: plotInput.trim(),
+        current_step: 8,
+      });
+      setSaving(false);
+
+      if (result.data) {
+        loadBookState(result.data);
+        setCurrentStep(8);
+        setIsGenerating(true);
       } else {
         setError(result.error || "저장에 실패했습니다");
       }
@@ -268,6 +330,10 @@ function CreateWizardContent() {
 
   // 뒤로가기
   function handleBack() {
+    if (currentStep === 8 && isGenerating) {
+      // 생성 중에는 뒤로가기 차단
+      return;
+    }
     setError(null);
     if (currentStep === 1) {
       router.push("/mypage");
@@ -399,6 +465,39 @@ function CreateWizardContent() {
               }}
             />
           )}
+          {currentStep === 6 && (
+            <StepOptions
+              key="step-6"
+              pageCount={pageCount}
+              bookSpecUid={bookSpecUid}
+              onPageCountChange={setPageCount}
+              onBookSpecChange={setBookSpecUid}
+            />
+          )}
+          {currentStep === 7 && (
+            <StepPlot
+              key="step-7"
+              plotInput={plotInput}
+              jobName={book?.job_name || null}
+              onPlotChange={setPlotInput}
+            />
+          )}
+          {currentStep === 8 && book && isGenerating && (
+            <StepGenerating
+              key="step-8"
+              bookId={book.id}
+              onComplete={async () => {
+                setIsGenerating(false);
+                // 편집 화면으로 이동
+                router.push(`/create/edit?book_id=${book.id}`);
+              }}
+              onError={(msg) => {
+                setIsGenerating(false);
+                setError(msg);
+                setCurrentStep(7); // 줄거리로 복귀
+              }}
+            />
+          )}
         </AnimatePresence>
 
         {/* 유효성 검사 에러 표시 */}
@@ -446,33 +545,40 @@ function CreateWizardContent() {
         )}
       </div>
 
-      {/* 하단 네비게이션 */}
-      <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm border-t border-secondary/30">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Button variant="ghost" onClick={handleBack} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            {currentStep === 1 ? "취소" : "이전"}
-          </Button>
+      {/* 하단 네비게이션 — 생성 중에는 숨김 */}
+      {!(currentStep === 8 && isGenerating) && (
+        <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm border-t border-secondary/30">
+          <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+            <Button variant="ghost" onClick={handleBack} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              {currentStep === 1 ? "취소" : "이전"}
+            </Button>
 
-          <Button
-            onClick={handleNext}
-            disabled={saving || (currentStep === 5 && !characterConfirmed)}
-            className="gap-2"
-          >
-            {saving ? (
-              <>
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                저장 중...
-              </>
-            ) : (
-              <>
-                다음
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
+            <Button
+              onClick={handleNext}
+              disabled={saving || (currentStep === 5 && !characterConfirmed)}
+              className="gap-2"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  저장 중...
+                </>
+              ) : currentStep === 7 ? (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  동화책 생성하기
+                </>
+              ) : (
+                <>
+                  다음
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
