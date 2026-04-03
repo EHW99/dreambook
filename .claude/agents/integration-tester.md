@@ -117,9 +117,39 @@ Python 스크립트(`test/integration_test.py`)를 작성하여 순차 실행:
 **Playwright를 사용하여 실제 브라우저에서 전체 사용자 플로우를 테스트한다.**
 
 #### 사전 준비
-- 백엔드 서버 실행 (`uvicorn app.main:app --port 8000`)
-- 프론트엔드 서버 실행 (`npm run dev` — port 3000)
-- Playwright 설치 (`pip install playwright && playwright install chromium`)
+
+**백엔드 서버 실행:**
+```bash
+cd C:/Real/Projects/sweetbook/app/backend
+
+# 방법 1: 가상환경 사용 (권장 — 이미 .venv에 패키지 설치됨)
+source .venv/Scripts/activate && uvicorn app.main:app --port 8000 &
+
+# 방법 2: 가상환경이 안 되면 글로벌에서 직접 실행
+pip install -r requirements.txt && uvicorn app.main:app --port 8000 &
+```
+
+**프론트엔드 서버 실행:**
+```bash
+cd C:/Real/Projects/sweetbook/app/frontend
+npm run dev &
+# port 3000에서 실행됨
+```
+
+**Playwright 설치:**
+```bash
+# 백엔드 가상환경 안에서 또는 글로벌에서
+pip install playwright && playwright install chromium
+```
+
+**서버 실행 확인:**
+- `curl http://localhost:8000/api/health` → 200 응답 확인
+- `curl http://localhost:3000` → HTML 응답 확인
+- 둘 다 응답해야 테스트 진행 가능
+
+**환경변수 확인:**
+- `backend/.env` 파일에 BOOKPRINT_API_KEY, BOOKPRINT_BASE_URL, SECRET_KEY가 설정되어 있어야 함
+- 없으면 `backend/.env.example`을 복사하여 `.env` 생성 후 값 입력
 
 #### E2E 테스트 시나리오
 
