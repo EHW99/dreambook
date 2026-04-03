@@ -1,0 +1,157 @@
+{
+  "results": [
+    {
+      "scenario": "S1",
+      "step": "Landing page loads",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S1",
+      "step": "CTA button exists",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S1",
+      "step": "CTA redirects to login",
+      "passed": true,
+      "note": "URL: http://localhost:3000/login"
+    },
+    {
+      "scenario": "S1",
+      "step": "Mypage redirects to login",
+      "passed": true,
+      "note": "URL: http://localhost:3000/login"
+    },
+    {
+      "scenario": "S2",
+      "step": "Signup page loads",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S2",
+      "step": "Signup succeeds",
+      "passed": true,
+      "note": "URL: http://localhost:3000/login"
+    },
+    {
+      "scenario": "S2",
+      "step": "Login succeeds",
+      "passed": true,
+      "note": "URL: http://localhost:3000/"
+    },
+    {
+      "scenario": "S2",
+      "step": "Mypage button visible",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S2",
+      "step": "Logout button visible",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S2",
+      "step": "Logout works",
+      "passed": true,
+      "note": "URL: http://localhost:3000/"
+    },
+    {
+      "scenario": "S3",
+      "step": "Mypage loads",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S3",
+      "step": "Mypage has tabs",
+      "passed": true,
+      "note": "Found 5 tabs"
+    },
+    {
+      "scenario": "S3",
+      "step": "Photos tab accessible",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S3",
+      "step": "Bookshelf tab accessible",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S3",
+      "step": "Orders tab accessible",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S4",
+      "step": "Voucher page loads",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S4",
+      "step": "Voucher purchase",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S4",
+      "step": "Create page loads",
+      "passed": false,
+      "note": "URL: http://localhost:3000/vouchers"
+    },
+    {
+      "scenario": "S4",
+      "step": "Wizard UI present",
+      "passed": false,
+      "note": ""
+    },
+    {
+      "scenario": "S5",
+      "step": "Mypage for bookshelf",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "S6",
+      "step": "404 page displays",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "Responsive",
+      "step": "Mobile landing",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "Responsive",
+      "step": "Mobile login",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "Responsive",
+      "step": "Tablet landing",
+      "passed": true,
+      "note": ""
+    },
+    {
+      "scenario": "Responsive",
+      "step": "Desktop landing",
+      "passed": true,
+      "note": ""
+    }
+  ],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

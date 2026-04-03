@@ -1,0 +1,18 @@
+{
+  "S1.1_landing": "PASS",
+  "S1.2_cta_redirect": "FAIL: Expected /login in URL, got http://localhost:3000/",
+  "S1.3_mypage_redirect": "FAIL: Expected /login in URL, got http://localhost:3000/mypage",
+  "S2.1_signup": "FAIL: Page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"input[name=\\\"name\\\"]\")\n",
+  "S2.2_login": "PASS",
+  "S2.3_header_buttons": "FAIL: header text=꿈꾸는 나\n로그인\n회원가입",
+  "S2.4_logout": "PASS (no logout button visible, may be in menu)",
+  "S3.1_mypage_tabs": "FAIL: found=[]",
+  "S3.2_empty_state": "PASS",
+  "S3.3_photos_tab": "PASS",
+  "S4.1_create_page": "FAIL: unexpected content",
+  "S4.2_voucher_purchase": "PASS (no buy button, might already have voucher)",
+  "S5.1_404_page": "PASS",
+  "S6.mobile_responsive": "PASS",
+  "S6.tablet_responsive": "PASS",
+  "S6.desktop_responsive": "PASS"
+}
