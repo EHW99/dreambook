@@ -56,15 +56,17 @@ def _get_pages_data(db: Session, book: Book) -> list[dict]:
 
         image_path = ""
         if selected_image and selected_image.image_path:
-            # 절대 경로로 변환 (업로드 디렉토리 기준)
             img_path = selected_image.image_path
-            if img_path.startswith("/"):
+            if os.path.isabs(img_path) and os.path.exists(img_path):
+                # 절대 경로가 이미 실제 파일을 가리킴
+                image_path = img_path
+            elif img_path.startswith("/"):
                 # 서버 로컬 경로 — uploads 디렉토리에서 찾기
                 from app.services.photo import UPLOAD_DIR
                 local_path = os.path.join(UPLOAD_DIR, os.path.basename(img_path))
                 if os.path.exists(local_path):
                     image_path = local_path
-            else:
+            elif os.path.exists(img_path):
                 image_path = img_path
 
         pages_data.append({

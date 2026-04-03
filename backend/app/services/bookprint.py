@@ -6,6 +6,7 @@ Sandbox 충전금 확인/충전, 책 생성, 사진 업로드, 표지/내지 생
 import asyncio
 import httpx
 import logging
+import mimetypes
 import os
 from typing import Any, Optional
 
@@ -40,6 +41,38 @@ BOOK_SPEC_UIDS = {
         "page_max": 200,
     },
 }
+
+
+def detect_mime_type(file_path: str) -> str:
+    """파일의 MIME type을 확장자 및 magic bytes로 감지한다.
+
+    Book Print API는 JPEG, PNG, WebP 등을 지원하므로,
+    실제 파일 형식에 맞는 Content-Type을 전송해야 한다.
+    """
+    # 1) magic bytes 기반 감지 (가장 정확)
+    try:
+        with open(file_path, "rb") as f:
+            header = f.read(16)
+        if header[:8] == b'\x89PNG\r\n\x1a\n':
+            return "image/png"
+        if header[:2] == b'\xff\xd8':
+            return "image/jpeg"
+        if header[:4] == b'RIFF' and header[8:12] == b'WEBP':
+            return "image/webp"
+        if header[:3] == b'GIF':
+            return "image/gif"
+        if header[:2] in (b'BM',):
+            return "image/bmp"
+    except (IOError, OSError):
+        pass
+
+    # 2) 확장자 기반 폴백
+    mime, _ = mimetypes.guess_type(file_path)
+    if mime and mime.startswith("image/"):
+        return mime
+
+    # 3) 기본값
+    return "image/png"
 
 
 class BookPrintAPIError(Exception):
@@ -193,8 +226,9 @@ class BookPrintService:
         if not os.path.exists(file_path):
             raise BookPrintAPIError(f"파일을 찾을 수 없습니다: {file_path}")
 
+        content_type = detect_mime_type(file_path)
         with open(file_path, "rb") as f:
-            files = [("file", (os.path.basename(file_path), f, "image/png"))]
+            files = [("file", (os.path.basename(file_path), f, content_type))]
             result = await self._request("POST", f"/books/{book_uid}/photos", files=files)
 
         return result["data"]["fileName"]
@@ -219,6 +253,11 @@ class BookPrintService:
         if isinstance(data, dict):
             return data.get("templates", data.get("items", []))
         return data if isinstance(data, list) else []
+
+    async def get_template_detail(self, template_uid: str) -> dict:
+        """템플릿 상세 조회 — 파라미터 정의 포함"""
+        result = await self._request("GET", f"/templates/{template_uid}")
+        return result.get("data", {})
 
     # === Covers API ===
 
@@ -363,6 +402,181 @@ class BookPrintService:
 
         return await self._request("GET", "/webhooks/deliveries", params=params)
 
+    # === Template Selection Helpers ===
+
+    async def _select_best_template(
+        self,
+        templates: list[dict],
+        prefer_simple: bool = True,
+    ) -> tuple[str, dict]:
+        """템플릿 목록에서 가장 적합한 템플릿을 선택한다.
+
+        각 템플릿의 상세 정보(파라미터 정의)를 조회하여,
+        필수 파라미터가 가장 적은 것을 선택한다.
+
+        Returns:
+            (templateUid, parameters_definition_dict)
+        """
+        best_uid = templates[0]["templateUid"]
+        best_params: dict = {}
+        best_count = float("inf")
+
+        # 최대 5개만 조회하여 API 호출 최소화
+        for tpl in templates[:5]:
+            uid = tpl["templateUid"]
+            try:
+                detail = await self.get_template_detail(uid)
+                params_def = detail.get("parameters", {})
+                param_count = len(params_def)
+                if param_count < best_count:
+                    best_count = param_count
+                    best_uid = uid
+                    best_params = params_def
+                if param_count == 0:
+                    break  # 파라미터 없는 템플릿 발견 — 즉시 선택
+            except BookPrintAPIError:
+                continue
+
+        return best_uid, best_params
+
+    async def _select_best_content_template(
+        self,
+        templates: list[dict],
+    ) -> tuple[str, dict]:
+        """내지 템플릿 중 동화책에 가장 적합한 것을 선택한다.
+
+        우선순위:
+        1. 파라미터가 없는 빈 템플릿 (이미지/텍스트를 자유롭게 배치)
+        2. photo+text 조합의 단순 템플릿
+        3. 파라미터가 가장 적은 템플릿
+
+        Returns:
+            (templateUid, parameters_definition_dict)
+        """
+        candidates: list[tuple[str, dict, int]] = []  # (uid, params_def, score)
+
+        for tpl in templates[:10]:
+            uid = tpl["templateUid"]
+            try:
+                detail = await self.get_template_detail(uid)
+                params_def = detail.get("parameters", {})
+                param_count = len(params_def)
+                param_names = set(params_def.keys())
+
+                # 스코어: 낮을수록 좋음
+                score = param_count * 10  # 기본: 파라미터 수
+
+                if param_count == 0:
+                    score = 0  # 빈 템플릿 — 최우선
+                elif param_names <= {"photo", "text"}:
+                    score = 1  # photo+text만 — 차우선
+                elif "photo1" in param_names and "diaryText" in param_names:
+                    score = 5  # diary 스타일 — 매핑 가능
+
+                candidates.append((uid, params_def, score))
+
+                if score == 0:
+                    break  # 빈 템플릿 발견
+            except BookPrintAPIError:
+                continue
+
+        if not candidates:
+            # 폴백: 첫 번째 템플릿 사용
+            return templates[0]["templateUid"], {}
+
+        # 가장 낮은 스코어 선택
+        candidates.sort(key=lambda x: x[2])
+        best = candidates[0]
+        return best[0], best[1]
+
+    @staticmethod
+    def _build_cover_parameters(
+        title: str,
+        params_def: dict,
+        cover_file_name: str | None,
+    ) -> dict:
+        """표지 템플릿의 필수 파라미터를 채운다.
+
+        API 문서 기준: 표지 템플릿은 `frontPhoto`(file), `dateRange`(text),
+        `spineTitle`(text) 등의 필수 파라미터를 가질 수 있다.
+        """
+        from datetime import datetime
+
+        params: dict[str, Any] = {}
+
+        for name, definition in params_def.items():
+            binding = definition.get("binding", "text")
+
+            if binding == "file":
+                # file 타입 파라미터 — 업로드된 이미지 파일명 매핑
+                if cover_file_name:
+                    params[name] = cover_file_name
+            elif binding == "text":
+                # text 타입 파라미터 — 맥락에 맞는 값 매핑
+                lower_name = name.lower()
+                if "title" in lower_name or "booktitle" in lower_name:
+                    params[name] = title
+                elif "spine" in lower_name:
+                    params[name] = title[:20]  # 등뼈 제목은 짧게
+                elif "date" in lower_name or "range" in lower_name:
+                    params[name] = datetime.now().strftime("%Y-%m-%d")
+                elif "author" in lower_name or "name" in lower_name:
+                    params[name] = ""
+                else:
+                    params[name] = ""  # 기타 text 파라미터는 빈 문자열
+
+        return params
+
+    @staticmethod
+    def _build_content_parameters(
+        params_def: dict,
+        text: str,
+        image_file_name: str,
+        page_number: int,
+    ) -> dict:
+        """내지 템플릿의 파라미터를 동적으로 매핑한다.
+
+        빈 템플릿(파라미터 없음)이면 빈 dict 반환.
+        파라미터가 있으면 정의에 맞춰 텍스트/이미지를 매핑한다.
+        """
+        from datetime import datetime
+
+        if not params_def:
+            return {}  # 빈 템플릿
+
+        params: dict[str, Any] = {}
+        for name, definition in params_def.items():
+            binding = definition.get("binding", "text")
+
+            if binding == "file":
+                # file 타입 — 이미지 파일명 매핑
+                if image_file_name:
+                    params[name] = image_file_name
+            elif binding == "rowGallery":
+                # 갤러리 타입 — 이미지 파일명 배열
+                if image_file_name:
+                    params[name] = [image_file_name]
+                else:
+                    params[name] = []
+            elif binding == "text":
+                lower_name = name.lower()
+                if "text" in lower_name or "diary" in lower_name or "content" in lower_name or "body" in lower_name:
+                    params[name] = text
+                elif "label" in lower_name:
+                    params[name] = f"Page {page_number}"
+                elif "year" in lower_name:
+                    params[name] = str(datetime.now().year)
+                elif "month" in lower_name:
+                    params[name] = str(datetime.now().month)
+                elif "date" in lower_name or lower_name == "day":
+                    params[name] = str(datetime.now().day)
+                elif "title" in lower_name:
+                    params[name] = text[:30] if text else ""
+                else:
+                    params[name] = ""
+
+        return params
+
     # === Full Workflow ===
 
     async def execute_order_workflow(
@@ -403,7 +617,7 @@ class BookPrintService:
 
         # 3. 사진 업로드 — 페이지 이미지들
         uploaded_files: dict[str, str] = {}  # local_path -> remote_fileName
-        all_image_paths = []
+        all_image_paths: list[str] = []
 
         if cover_image_path and os.path.exists(cover_image_path):
             all_image_paths.append(cover_image_path)
@@ -421,46 +635,55 @@ class BookPrintService:
                     logger.info(f"사진 업로드 완료: {img_path} -> {file_name}")
                 except BookPrintAPIError as e:
                     logger.warning(f"사진 업로드 실패 ({img_path}): {e.message}")
-                    # 더미 이미지의 경우 placeholder 생성
-                    uploaded_files[img_path] = f"placeholder_{os.path.basename(img_path)}"
+                    # 이미지가 없으면 업로드 건너뜀 (해당 페이지는 이미지 없이 삽입)
 
-        # 4. 템플릿 조회
+        # 4. 템플릿 조회 + 적합한 템플릿 선택
         cover_templates = await self.get_templates(book_spec_uid, "cover")
         content_templates = await self.get_templates(book_spec_uid, "content")
 
-        cover_template_uid = cover_templates[0]["templateUid"] if cover_templates else None
-        content_template_uid = content_templates[0]["templateUid"] if content_templates else None
-
-        if not cover_template_uid or not content_template_uid:
+        if not cover_templates or not content_templates:
             raise BookPrintAPIError("사용 가능한 템플릿이 없습니다")
 
-        # 5. 표지 생성
+        # 표지 템플릿 선택: 파라미터가 가장 단순한 것을 선택
+        cover_template_uid, cover_params_def = await self._select_best_template(
+            cover_templates, prefer_simple=True
+        )
+        # 내지 템플릿 선택: 빈 템플릿(필수 파라미터 없음)을 우선 선택
+        content_template_uid, content_params_def = await self._select_best_content_template(
+            content_templates
+        )
+
+        logger.info(f"선택된 표지 템플릿: {cover_template_uid}, 내지 템플릿: {content_template_uid}")
+
+        # 5. 표지 생성 — 템플릿 필수 파라미터를 모두 채움
         cover_file = None
         if cover_image_path and cover_image_path in uploaded_files:
             cover_file = uploaded_files[cover_image_path]
         elif pages_data and pages_data[0].get("image_path") in uploaded_files:
             cover_file = uploaded_files[pages_data[0]["image_path"]]
 
+        cover_params = self._build_cover_parameters(
+            title, cover_params_def, cover_file
+        )
         await self.create_cover(
             book_uid,
             cover_template_uid,
-            {"title": title},
-            cover_file,
+            cover_params,
+            uploaded_file_name=cover_file,
         )
         logger.info("표지 생성 완료")
 
         # 6. 내지 삽입 (페이지별) — 실패 시 워크플로우 중단
-        content_insert_failures = 0
+        inserted_count = 0
         for i, page in enumerate(pages_data):
             text = page.get("text", "")
             img_path = page.get("image_path", "")
             img_file_name = uploaded_files.get(img_path, "")
 
-            params: dict[str, Any] = {}
-            if text:
-                params["text"] = text
-            if img_file_name:
-                params["photo"] = img_file_name
+            # 내지 템플릿의 파라미터 정의에 맞게 동적 매핑
+            params = self._build_content_parameters(
+                content_params_def, text, img_file_name, i + 1
+            )
 
             try:
                 await self.insert_content(
@@ -469,9 +692,9 @@ class BookPrintService:
                     params,
                     break_before="page",
                 )
+                inserted_count += 1
                 logger.info(f"내지 삽입 완료: 페이지 {i + 1}")
             except BookPrintAPIError as e:
-                content_insert_failures += 1
                 logger.error(f"내지 삽입 실패 (페이지 {i + 1}): {e.message}")
                 # 1개라도 실패하면 불완전한 책이므로 워크플로우 중단
                 raise BookPrintAPIError(
@@ -479,15 +702,14 @@ class BookPrintService:
                     status_code=e.status_code,
                 )
 
-        # 7. 페이지 수 사전 검증 (판형별 범위 체크)
-        total_pages = len(pages_data)
+        # 7. 페이지 수 사전 검증 (실제 삽입 성공 수 기준)
         spec_info = BOOK_SPEC_UIDS.get(book_spec_uid)
         if spec_info:
             page_min = spec_info["page_min"]
             page_max = spec_info["page_max"]
-            if total_pages < page_min or total_pages > page_max:
+            if inserted_count < page_min or inserted_count > page_max:
                 raise BookPrintAPIError(
-                    f"페이지 수({total_pages})가 판형 제약을 벗어납니다 "
+                    f"삽입된 페이지 수({inserted_count})가 판형 제약을 벗어납니다 "
                     f"({book_spec_uid}: {page_min}~{page_max}페이지)",
                 )
 

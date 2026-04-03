@@ -1,4 +1,5 @@
 """동화책 더미 스토리/이미지 생성 서비스 (Phase 2)"""
+import os
 from datetime import datetime, timezone
 from typing import List
 
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.book import Book
 from app.models.page import Page
 from app.models.page_image import PageImage
+from app.services.photo import UPLOAD_DIR, ensure_upload_dir
 
 
 # 더미 스토리 템플릿 (아이 이름, 직업을 치환)
@@ -27,8 +29,58 @@ DUMMY_STORY_TEMPLATES = {
     "ending": "그리고 {child_name}는 자신의 꿈을 향해 한 걸음씩 나아갔답니다. {child_name}의 꿈은 반드시 이루어질 거예요! 끝.",
 }
 
-# 더미 placeholder 이미지 경로
-DUMMY_IMAGE_PATH = "/placeholder/illustration_{page_number}.png"
+# 더미 placeholder 색상 팔레트 (파스텔 톤)
+PLACEHOLDER_COLORS = [
+    (255, 218, 185),  # peach
+    (173, 216, 230),  # light blue
+    (221, 160, 221),  # plum
+    (144, 238, 144),  # light green
+    (255, 255, 186),  # light yellow
+    (255, 182, 193),  # light pink
+    (176, 224, 230),  # powder blue
+    (216, 191, 216),  # thistle
+    (240, 230, 140),  # khaki
+    (152, 251, 152),  # pale green
+    (255, 228, 196),  # bisque
+    (175, 238, 238),  # pale turquoise
+]
+
+
+def _create_placeholder_image(page_number: int, label: str, book_id: int) -> str:
+    """실제 PNG 파일로 placeholder 이미지를 생성하여 uploads/ 디렉토리에 저장.
+
+    Returns:
+        생성된 이미지의 절대 경로
+    """
+    from PIL import Image, ImageDraw, ImageFont
+
+    ensure_upload_dir()
+
+    width, height = 800, 800
+    color = PLACEHOLDER_COLORS[(page_number - 1) % len(PLACEHOLDER_COLORS)]
+    img = Image.new("RGB", (width, height), color)
+
+    draw = ImageDraw.Draw(img)
+    # 간단한 텍스트 표기 (폰트가 없어도 기본 폰트 사용)
+    text = f"Page {page_number}\n{label}"
+    try:
+        font = ImageFont.truetype("arial.ttf", 36)
+    except (IOError, OSError):
+        font = ImageFont.load_default()
+
+    # 텍스트를 중앙에 배치
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+    x = (width - text_w) // 2
+    y = (height - text_h) // 2
+    draw.text((x, y), text, fill=(80, 80, 80), font=font)
+
+    filename = f"placeholder_book{book_id}_page{page_number}.png"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    img.save(filepath, "PNG")
+
+    return filepath
 
 
 def generate_dummy_story(
@@ -68,10 +120,11 @@ def generate_dummy_story(
     db.add(title_page)
     db.flush()
 
-    # 제목 페이지 이미지
+    # 제목 페이지 이미지 — 실제 파일 생성
+    title_image_path = _create_placeholder_image(1, f"{child_name} - {job_name}", book.id)
     title_image = PageImage(
         page_id=title_page.id,
-        image_path=DUMMY_IMAGE_PATH.format(page_number=1),
+        image_path=title_image_path,
         generation_index=0,
         is_selected=True,
         created_at=now,
@@ -99,9 +152,10 @@ def generate_dummy_story(
         db.add(content_page)
         db.flush()
 
+        content_image_path = _create_placeholder_image(i + 2, f"Scene {i + 1}", book.id)
         content_image = PageImage(
             page_id=content_page.id,
-            image_path=DUMMY_IMAGE_PATH.format(page_number=i + 2),
+            image_path=content_image_path,
             generation_index=0,
             is_selected=True,
             created_at=now,
@@ -125,9 +179,10 @@ def generate_dummy_story(
     db.add(ending_page)
     db.flush()
 
+    ending_image_path = _create_placeholder_image(total_pages, "The End", book.id)
     ending_image = PageImage(
         page_id=ending_page.id,
-        image_path=DUMMY_IMAGE_PATH.format(page_number=total_pages),
+        image_path=ending_image_path,
         generation_index=0,
         is_selected=True,
         created_at=now,

@@ -233,9 +233,15 @@ export default function LandingPage() {
                     className="group bg-white rounded-3xl shadow-card overflow-hidden hover:shadow-hover transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                   >
                     {/* 더미 표지 */}
-                    <div className={`h-48 sm:h-56 bg-gradient-to-br ${book.coverColor} flex items-center justify-center`}>
+                    <div className={`h-48 sm:h-56 bg-gradient-to-br ${book.coverColor} flex flex-col items-center justify-center gap-2`}>
                       <span className="text-6xl group-hover:scale-110 transition-transform duration-300">
                         {book.emoji}
+                      </span>
+                      <span className="text-sm font-bold text-text/60 mt-2">
+                        {book.title}
+                      </span>
+                      <span className="text-xs text-text/40 px-4 text-center">
+                        AI가 만든 샘플 미리보기
                       </span>
                     </div>
                     <div className="p-5">
@@ -276,8 +282,9 @@ export default function LandingPage() {
                     className={`group ${style.bgColor} border-2 ${style.borderColor} rounded-2xl p-4 text-center hover:shadow-card transition-all duration-300 hover:-translate-y-1`}
                   >
                     {/* placeholder 이미지 영역 */}
-                    <div className={`w-full aspect-square rounded-xl bg-gradient-to-br ${style.placeholderColor} mb-3 flex items-center justify-center`}>
+                    <div className={`w-full aspect-square rounded-xl bg-gradient-to-br ${style.placeholderColor} mb-3 flex flex-col items-center justify-center gap-1`}>
                       <Palette className="w-8 h-8 text-text-lighter group-hover:text-text-light transition-colors" />
+                      <span className="text-xs text-text-lighter/70 font-medium">{style.name} 스타일</span>
                     </div>
                     <h3 className="font-bold text-text text-sm sm:text-base mb-1">{style.name}</h3>
                     <p className="text-xs text-text-light hidden sm:block">{style.description}</p>
