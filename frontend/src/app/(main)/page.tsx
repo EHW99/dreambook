@@ -13,8 +13,6 @@ import {
   Check,
   ArrowRight,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
 
 /* ───────── 애니메이션 헬퍼 ───────── */
 function FadeInSection({ children, className = "", delay = 0 }: {
@@ -143,16 +141,12 @@ export default function LandingPage() {
 
   return (
     <>
-      <Header />
-
-      <main className="flex-1">
         {/* ── 히어로 섹션 ── */}
         <section className="relative overflow-hidden py-20 sm:py-28 lg:py-36">
           {/* 배경 장식 */}
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-10 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-3xl" />
+            <div className="absolute top-10 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
           </div>
 
           <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -433,9 +427,6 @@ export default function LandingPage() {
             </FadeInSection>
           </div>
         </section>
-      </main>
-
-      <Footer />
     </>
   );
 }

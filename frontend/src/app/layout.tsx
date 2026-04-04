@@ -18,7 +18,7 @@ const gowunBatang = Gowun_Batang({
 });
 
 export const metadata: Metadata = {
-  title: "꿈꾸는 나 — AI 직업 동화책",
+  title: "Dreambook — AI 직업 동화책",
   description: "아이의 꿈을 동화책으로 만들어주는 AI 서비스",
 };
 

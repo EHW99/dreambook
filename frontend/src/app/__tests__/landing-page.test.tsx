@@ -52,7 +52,7 @@ jest.mock("lucide-react", () => ({
   ArrowRight: ({ className }: any) => <svg data-testid="icon-arrow-right" className={className} />,
 }));
 
-import LandingPage from "../page";
+import LandingPage from "../(main)/page";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 

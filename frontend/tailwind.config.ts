@@ -25,7 +25,7 @@ const config: Config = {
           dark: "#7BBFC2",
         },
         background: {
-          DEFAULT: "#FFF8F0",
+          DEFAULT: "#FFFFFF",
           card: "#FFFFFF",
         },
         text: {

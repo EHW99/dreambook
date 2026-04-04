@@ -1,18 +1,18 @@
 "use client";
 
-import { BookOpen, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="bg-secondary/30 border-t border-secondary/50 mt-auto">
+    <footer className="bg-secondary/30 border-t border-secondary/50 mt-auto pb-16 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* 서비스 정보 */}
           <div>
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <BookOpen className="w-6 h-6 text-primary" />
-              <span className="text-lg font-bold font-display text-text">꿈꾸는 나</span>
+            <Link href="/" className="inline-block mb-4">
+              <Image src="/logo.png" alt="Dreambook" width={140} height={26} className="h-6 w-auto" />
             </Link>
             <p className="text-sm text-text-light leading-relaxed">
               아이의 꿈을 세상에서 단 하나뿐인
@@ -26,13 +26,18 @@ export function Footer() {
             <h3 className="text-sm font-bold text-text mb-4">바로가기</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/login" className="text-sm text-text-light hover:text-primary transition-colors">
-                  로그인
+                <Link href="/create" className="text-sm text-text-light hover:text-primary transition-colors">
+                  동화 만들기
                 </Link>
               </li>
               <li>
-                <Link href="/signup" className="text-sm text-text-light hover:text-primary transition-colors">
-                  회원가입
+                <Link href="/gallery" className="text-sm text-text-light hover:text-primary transition-colors">
+                  공개 갤러리
+                </Link>
+              </li>
+              <li>
+                <Link href="/bookshelf" className="text-sm text-text-light hover:text-primary transition-colors">
+                  내 책장
                 </Link>
               </li>
             </ul>
@@ -43,7 +48,7 @@ export function Footer() {
             <h3 className="text-sm font-bold text-text mb-4">회사 정보</h3>
             <ul className="space-y-2 text-sm text-text-light">
               <li>(주)스위트북</li>
-              <li>서비스명: 꿈꾸는 나 (dreambook)</li>
+              <li>서비스명: Dreambook</li>
             </ul>
           </div>
         </div>

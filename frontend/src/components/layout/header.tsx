@@ -1,145 +1,191 @@
 "use client";
 
-import Link from "next/link";
-import { useAuth } from "@/lib/auth-context";
-import { BookOpen, User, LogIn, UserPlus, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import Image from "next/image";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter, usePathname } from "next/navigation";
+
+const NAV_LINKS = [
+  { href: "/create", label: "동화 만들기", auth: true },
+  { href: "/bookshelf", label: "내 책장", auth: true },
+  { href: "/gallery", label: "공개 갤러리" },
+  { href: "/mypage/photos", label: "아이 사진", auth: true },
+  { href: "/mypage/orders", label: "주문 내역", auth: true },
+];
 
 export function Header() {
   const { user, loading, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const [loginAlert, setLoginAlert] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    setMobileMenuOpen(false);
     router.push("/");
   };
 
-  return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-secondary/50">
-      <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* 로고 */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <BookOpen className="w-7 h-7 text-primary group-hover:text-primary-dark transition-colors" />
-            <span className="text-xl font-bold font-display text-text group-hover:text-primary-dark transition-colors">
-              꿈꾸는 나
-            </span>
-          </Link>
+  const handleNavClick = (e: React.MouseEvent, link: typeof NAV_LINKS[0]) => {
+    if (link.auth && !user) {
+      e.preventDefault();
+      setLoginAlert(true);
+    }
+  };
 
-          {/* 데스크톱 네비게이션 */}
-          <div className="hidden md:flex items-center gap-3">
-            {!loading && (
-              <>
-                {user ? (
-                  <>
+  return (
+    <>
+      <header className="sticky top-0 z-50">
+        {/* 1단: 유틸리티 바 */}
+        <div className="hidden md:block bg-[#f5f5f5] border-b border-gray-200/80">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-end h-9 gap-1">
+              {!loading && (
+                <>
+                  {user ? (
+                    <>
+                      <Link
+                        href="/mypage"
+                        className="px-3 py-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        회원정보
+                      </Link>
+                      <span className="text-gray-300 text-xs">|</span>
+                      <button
+                        onClick={handleLogout}
+                        className="px-3 py-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        로그아웃
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/login"
+                        className="px-3 py-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        로그인
+                      </Link>
+                      <span className="text-gray-300 text-xs">|</span>
+                      <Link
+                        href="/signup"
+                        className="px-3 py-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        회원가입
+                      </Link>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 2단: 메인 네비게이션 */}
+        <div className="bg-white border-b border-gray-200/60">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              {/* 로고 */}
+              <Link href="/" className="flex-shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="Dreambook"
+                  width={180}
+                  height={32}
+                  className="h-8 w-auto"
+                  priority
+                />
+              </Link>
+
+              {/* 데스크톱 메뉴 */}
+              <nav className="hidden md:flex items-center gap-8 lg:gap-10">
+                {NAV_LINKS.map((link) => {
+                  const isActive =
+                    pathname === link.href ||
+                    (link.href !== "/" && pathname.startsWith(link.href));
+                  return (
                     <Link
-                      href="/mypage"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-white font-medium shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200"
+                      key={link.href}
+                      href={link.href}
+                      onClick={(e) => handleNavClick(e, link)}
+                      className={`text-sm font-medium transition-colors py-1 border-b-2 ${
+                        isActive
+                          ? "text-primary border-primary"
+                          : "text-gray-600 border-transparent hover:text-gray-900"
+                      }`}
                     >
-                      <User className="w-4 h-4" />
-                      마이페이지
+                      {link.label}
                     </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-secondary text-text/70 font-medium hover:bg-secondary/50 transition-all duration-200"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      로그아웃
-                    </button>
-                  </>
-                ) : (
+                  );
+                })}
+              </nav>
+
+              {/* 모바일: 로그인/회원가입 */}
+              <div className="flex md:hidden items-center gap-1">
+                {!loading && !user && (
                   <>
                     <Link
                       href="/login"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white transition-all duration-200"
+                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
                     >
-                      <LogIn className="w-4 h-4" />
                       로그인
                     </Link>
                     <Link
                       href="/signup"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-white font-medium shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200"
+                      className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors"
                     >
-                      <UserPlus className="w-4 h-4" />
                       회원가입
                     </Link>
                   </>
                 )}
-              </>
-            )}
-          </div>
-
-          {/* 모바일 햄버거 */}
-          <button
-            className="md:hidden p-2 rounded-xl text-text hover:bg-secondary/50 transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="메뉴 열기"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-
-        {/* 모바일 메뉴 */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden overflow-hidden"
-            >
-              <div className="py-4 space-y-3 border-t border-secondary/50">
-                {!loading && (
-                  <>
-                    {user ? (
-                      <>
-                        <Link
-                          href="/mypage"
-                          className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-primary text-white font-medium"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <User className="w-4 h-4" />
-                          마이페이지
-                        </Link>
-                        <button
-                          onClick={handleLogout}
-                          className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-secondary text-text/70 font-medium w-full"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          로그아웃
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Link
-                          href="/login"
-                          className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-primary text-primary font-medium"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <LogIn className="w-4 h-4" />
-                          로그인
-                        </Link>
-                        <Link
-                          href="/signup"
-                          className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-primary text-white font-medium"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <UserPlus className="w-4 h-4" />
-                          회원가입
-                        </Link>
-                      </>
-                    )}
-                  </>
+                {!loading && user && (
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    로그아웃
+                  </button>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
-    </header>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* 로그인 필요 알림 모달 */}
+      {loginAlert && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
+          onClick={() => setLoginAlert(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-hover p-6 max-w-sm w-full mx-4 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-4xl mb-3">🔒</div>
+            <h3 className="text-lg font-bold text-text mb-2">
+              로그인이 필요해요
+            </h3>
+            <p className="text-sm text-text-light mb-6">
+              이 기능을 이용하려면 로그인이 필요합니다.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setLoginAlert(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                닫기
+              </button>
+              <Link
+                href="/login"
+                onClick={() => setLoginAlert(false)}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors text-center"
+              >
+                로그인하기
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
