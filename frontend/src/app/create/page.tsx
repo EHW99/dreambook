@@ -29,20 +29,32 @@ function CreateWizardContent() {
   const [book, setBook] = useState<BookItem | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
 
+  // ── DEV 기본값 (개발 편의용, 프로덕션에서는 빈 값) ──
+  const isDev = process.env.NODE_ENV === "development";
+  const DEV_DEFAULTS = {
+    childName: "김서준",
+    childBirthDate: "2020-03-15",
+    jobCategory: "안전/봉사",
+    jobName: "소방관",
+    storyStyle: "dreaming_today",
+    artStyle: "watercolor",
+    plotInput: "",
+  };
+
   // 정보 입력 상태
-  const [childName, setChildName] = useState("");
-  const [childBirthDate, setChildBirthDate] = useState("");
+  const [childName, setChildName] = useState(isDev ? DEV_DEFAULTS.childName : "");
+  const [childBirthDate, setChildBirthDate] = useState(isDev ? DEV_DEFAULTS.childBirthDate : "");
   const [photoId, setPhotoId] = useState<number | null>(null);
   const [infoErrors, setInfoErrors] = useState<{ name?: string; birthDate?: string }>({});
 
   // 직업 선택 상태
-  const [jobCategory, setJobCategory] = useState("");
-  const [jobName, setJobName] = useState("");
+  const [jobCategory, setJobCategory] = useState(isDev ? DEV_DEFAULTS.jobCategory : "");
+  const [jobName, setJobName] = useState(isDev ? DEV_DEFAULTS.jobName : "");
   const [jobError, setJobError] = useState<string | null>(null);
 
   // 동화 스타일 + 그림체 상태
-  const [storyStyle, setStoryStyle] = useState("");
-  const [artStyle, setArtStyle] = useState("");
+  const [storyStyle, setStoryStyle] = useState(isDev ? DEV_DEFAULTS.storyStyle : "");
+  const [artStyle, setArtStyle] = useState(isDev ? DEV_DEFAULTS.artStyle : "");
   const [styleError, setStyleError] = useState<string | null>(null);
 
   // 캐릭터 미리보기 상태
@@ -130,13 +142,13 @@ function CreateWizardContent() {
   function loadBookState(bookData: BookItem) {
     setBook(bookData);
     setCurrentStep(bookData.current_step);
-    setChildName(bookData.child_name || "");
-    setChildBirthDate(bookData.child_birth_date || "");
+    setChildName(bookData.child_name || (isDev ? DEV_DEFAULTS.childName : ""));
+    setChildBirthDate(bookData.child_birth_date || (isDev ? DEV_DEFAULTS.childBirthDate : ""));
     setPhotoId(bookData.photo_id);
-    setJobCategory(bookData.job_category || "");
-    setJobName(bookData.job_name || "");
-    setStoryStyle(bookData.story_style || "");
-    setArtStyle(bookData.art_style || "");
+    setJobCategory(bookData.job_category || (isDev ? DEV_DEFAULTS.jobCategory : ""));
+    setJobName(bookData.job_name || (isDev ? DEV_DEFAULTS.jobName : ""));
+    setStoryStyle(bookData.story_style || (isDev ? DEV_DEFAULTS.storyStyle : ""));
+    setArtStyle(bookData.art_style || (isDev ? DEV_DEFAULTS.artStyle : ""));
     setPageCount(bookData.page_count || 24);
     setBookSpecUid(bookData.book_spec_uid || "SQUAREBOOK_HC");
     setPlotInput(bookData.plot_input || "");

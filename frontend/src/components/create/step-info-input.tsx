@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Camera, Plus, Check, User, Calendar, ImageIcon } from "lucide-react";
+import { Camera, Plus, Check, User, Calendar, ImageIcon, Maximize2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { PhotoLightbox } from "@/components/ui/photo-lightbox";
 import { apiClient, PhotoItem } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -31,6 +32,7 @@ export function StepInfoInput({
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [errors, setErrors] = useState<{ name?: string; birthDate?: string; photo?: string }>({});
   const [uploading, setUploading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadPhotos();
@@ -171,20 +173,20 @@ export function StepInfoInput({
               <div key={i} className="aspect-square rounded-2xl bg-secondary/30 animate-pulse" />
             ))
           ) : (
-            photos.map((photo) => (
-              <motion.button
+            photos.map((photo, index) => (
+              <motion.div
                 key={photo.id}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setSelectedPhotoId(photo.id);
-                  setErrors((prev) => ({ ...prev, photo: undefined }));
-                }}
-                className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
+                className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
                   selectedPhotoId === photo.id
                     ? "border-primary ring-2 ring-primary/30"
                     : "border-transparent hover:border-secondary"
                 }`}
+                onClick={() => {
+                  setSelectedPhotoId(photo.id);
+                  setErrors((prev) => ({ ...prev, photo: undefined }));
+                }}
               >
                 <img
                   src={`${API_BASE}${photo.thumbnail_url}`}
@@ -198,7 +200,19 @@ export function StepInfoInput({
                     </div>
                   </div>
                 )}
-              </motion.button>
+                {/* 크게보기 버튼 */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex(index);
+                  }}
+                  className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="크게 보기"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
+              </motion.div>
             ))
           )}
         </div>
@@ -211,6 +225,18 @@ export function StepInfoInput({
             <p className="text-sm text-text-light">등록된 사진이 없어요</p>
             <p className="text-xs text-text-lighter mt-1">위 버튼으로 사진을 업로드해주세요</p>
           </div>
+        )}
+
+        {/* 사진 크게보기 라이트박스 */}
+        {lightboxIndex !== null && (
+          <PhotoLightbox
+            images={photos.map((p) => ({
+              src: `${API_BASE}${p.thumbnail_url}`,
+              alt: p.original_name,
+            }))}
+            initialIndex={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+          />
         )}
       </div>
     </motion.div>

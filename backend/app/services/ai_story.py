@@ -5,9 +5,10 @@ OPENAI_API_KEY가 없으면 더미 스토리로 폴백한다.
 """
 import json
 import logging
-from typing import Optional
+from typing import Optional, Literal
 
 from openai import OpenAI
+from pydantic import BaseModel
 
 from app.config import get_settings
 
@@ -22,6 +23,21 @@ class StoryGenerationError(Exception):
 # ──────────────────────────────────────────────
 # 그림체 스타일 매핑
 # ──────────────────────────────────────────────
+# ──────────────────────────────────────────────
+# Structured Outputs 스키마
+# ──────────────────────────────────────────────
+class StoryPage(BaseModel):
+    page: int
+    page_type: Literal["title", "content", "ending"]
+    text: str
+    scene_description: str
+
+
+class StoryOutput(BaseModel):
+    title: str
+    pages: list[StoryPage]
+
+
 ART_STYLE_KEYWORDS = {
     "watercolor": "watercolor illustration, soft warm tones, gentle brushstrokes",
     "pencil": "pencil sketch, hand-drawn, fine line art",
@@ -51,33 +67,9 @@ def _build_system_prompt(story_style: str, art_style: Optional[str] = None) -> s
 - 성별/인종 고정관념 금지
 
 ## 출력 형식
-반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트를 추가하지 마세요.
-```json
-{
-  "title": "동화책 제목",
-  "pages": [
-    {
-      "page": 1,
-      "page_type": "title",
-      "text": "제목 페이지 텍스트",
-      "scene_description": "이미지 생성을 위한 영어 장면 묘사"
-    },
-    {
-      "page": 2,
-      "page_type": "content",
-      "text": "본문 텍스트",
-      "scene_description": "이미지 생성을 위한 영어 장면 묘사"
-    },
-    ...
-    {
-      "page": N,
-      "page_type": "ending",
-      "text": "엔딩 텍스트",
-      "scene_description": "이미지 생성을 위한 영어 장면 묘사"
-    }
-  ]
-}
-```
+응답 스키마가 자동 적용됩니다. 각 필드를 채워주세요:
+- title: 동화책 제목
+- pages: 페이지 배열 (page 번호, page_type, text, scene_description)
 
 ## scene_description 규칙
 - scene_description은 영어로 작성하세요 (이미지 생성 AI에 전달됨).
@@ -173,7 +165,7 @@ def generate_story_with_gpt(
             child_birth_date=child_birth_date,
         )
 
-        response = client.chat.completions.create(
+        response = client.beta.chat.completions.parse(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -181,10 +173,10 @@ def generate_story_with_gpt(
             ],
             temperature=0.8,
             max_tokens=4096,
-            response_format={"type": "json_object"},
+            response_format=StoryOutput,
         )
 
-        content = response.choices[0].message.content
+        parsed = response.choices[0].message.parsed
 
         # 비용 모니터링 로깅
         from app.services.cost_monitor import get_cost_monitor
@@ -209,20 +201,10 @@ def generate_story_with_gpt(
         logger.error(f"GPT-4o API 호출 실패: {e}")
         raise StoryGenerationError(f"스토리 생성 중 오류가 발생했습니다: {e}")
 
-    # JSON 파싱
-    try:
-        result = json.loads(content)
-    except json.JSONDecodeError as e:
-        logger.error(f"GPT-4o 응답 JSON 파싱 실패: {content[:200]}")
-        raise StoryGenerationError(f"스토리 생성 결과를 파싱할 수 없습니다: {e}")
+    if parsed is None:
+        raise StoryGenerationError("스토리 생성 결과가 비어 있습니다 (refusal)")
 
-    # 응답 검증
-    if "pages" not in result:
-        raise StoryGenerationError("스토리 생성 결과에 pages가 없습니다")
-
-    if "title" not in result:
-        # title이 없으면 첫 페이지 텍스트를 title로 사용
-        result["title"] = result["pages"][0].get("text", f"{child_name}의 꿈")
+    result = parsed.model_dump()
 
     # 페이지 수 검증 — 약간의 오차는 허용하되 로그 남김
     actual_count = len(result["pages"])

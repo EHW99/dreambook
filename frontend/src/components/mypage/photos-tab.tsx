@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { apiClient, PhotoItem } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { PhotoLightbox } from "@/components/ui/photo-lightbox";
 import {
   CameraIcon,
   AlertTriangleIcon,
@@ -100,6 +101,7 @@ export function PhotosTab() {
   const [deleteTarget, setDeleteTarget] = useState<PhotoItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadPhotos = useCallback(async () => {
@@ -272,20 +274,24 @@ export function PhotosTab() {
             </div>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {photos.map((photo) => (
+            {photos.map((photo, index) => (
               <div
                 key={photo.id}
                 className="group relative bg-white rounded-2xl shadow-card overflow-hidden transition-shadow hover:shadow-hover"
               >
-                {/* 썸네일 */}
-                <div className="aspect-square bg-secondary/20 overflow-hidden">
+                {/* 썸네일 — 클릭 시 크게보기 */}
+                <button
+                  type="button"
+                  onClick={() => setLightboxIndex(index)}
+                  className="w-full aspect-square bg-secondary/20 overflow-hidden cursor-pointer"
+                >
                   <img
                     src={`${API_BASE}${photo.thumbnail_url}`}
                     alt={photo.original_name}
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     loading="lazy"
                   />
-                </div>
+                </button>
 
                 {/* 삭제 버튼 (hover 시 표시) */}
                 <button
@@ -314,6 +320,18 @@ export function PhotosTab() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* 사진 크게보기 라이트박스 */}
+      {lightboxIndex !== null && (
+        <PhotoLightbox
+          images={photos.map((p) => ({
+            src: `${API_BASE}${p.thumbnail_url}`,
+            alt: p.original_name,
+          }))}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
 
       {/* 삭제 확인 다이얼로그 */}
