@@ -17,30 +17,51 @@ logger = logging.getLogger(__name__)
 # 자동 충전 금액 (Sandbox)
 SANDBOX_CHARGE_AMOUNT = 1_000_000
 
-# 판형 UID 하드코딩 (GET /book-specs 403 에러 우회)
-BOOK_SPEC_UIDS = {
-    "SQUAREBOOK_HC": {
-        "name": "정방형 하드커버",
-        "width_mm": 243,
-        "height_mm": 248,
-        "page_min": 24,
-        "page_max": 130,
-    },
-    "PHOTOBOOK_A4_SC": {
-        "name": "A4 소프트커버",
-        "width_mm": 210,
-        "height_mm": 297,
-        "page_min": 24,
-        "page_max": 130,
-    },
-    "PHOTOBOOK_A5_SC": {
-        "name": "A5 소프트커버",
-        "width_mm": 148,
-        "height_mm": 210,
-        "page_min": 50,
-        "page_max": 200,
-    },
-}
+# 판형 데이터 캐시 (서버 시작 시 API에서 로드)
+BOOK_SPEC_CACHE: dict[str, dict] = {}
+
+
+def get_book_specs() -> dict[str, dict]:
+    """캐시된 판형 데이터 반환"""
+    return BOOK_SPEC_CACHE
+
+
+async def load_book_specs():
+    """Book Print API에서 판형 목록을 조회하여 캐시에 저장"""
+    global BOOK_SPEC_CACHE
+    settings = get_settings()
+    if not settings.BOOKPRINT_API_KEY:
+        logger.warning("BOOKPRINT_API_KEY 미설정 — 판형 로드 스킵")
+        return
+
+    try:
+        service = BookPrintService()
+        result = await service._request("GET", "/book-specs")
+        await service.close()
+
+        specs = {}
+        for item in result.get("data", []):
+            uid = item.get("bookSpecUid", "")
+            name = item.get("name", "")
+            # 유효한 데이터만 캐시 (이름, 크기가 있는 것)
+            if name and item.get("innerTrimWidthMm", 0) > 0:
+                specs[uid] = {
+                    "name": name,
+                    "width_mm": item["innerTrimWidthMm"],
+                    "height_mm": item["innerTrimHeightMm"],
+                    "page_min": item.get("pageMin", 24),
+                    "page_max": item.get("pageMax", 130),
+                    "cover_type": item.get("coverType", ""),
+                    "binding_type": item.get("bindingType", ""),
+                }
+
+        if specs:
+            BOOK_SPEC_CACHE = specs
+            logger.info(f"[bookprint] 판형 {len(specs)}개 로드: {list(specs.keys())}")
+        else:
+            logger.warning("[bookprint] 유효한 판형이 없습니다")
+    except Exception as e:
+        logger.error(f"[bookprint] 판형 로드 실패: {e}")
 
 
 def detect_mime_type(file_path: str) -> str:
@@ -709,7 +730,7 @@ class BookPrintService:
                 )
 
         # 7. 페이지 수 사전 검증 (실제 삽입 성공 수 기준)
-        spec_info = BOOK_SPEC_UIDS.get(book_spec_uid)
+        spec_info = BOOK_SPEC_CACHE.get(book_spec_uid)
         if spec_info:
             page_min = spec_info["page_min"]
             page_max = spec_info["page_max"]

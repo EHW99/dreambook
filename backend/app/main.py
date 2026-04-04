@@ -28,6 +28,14 @@ async def lifespan(app: FastAPI):
     import app.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
 
+    # 개발용 테스트 계정 시드
+    from app.seed import run_seed
+    run_seed()
+
+    # Book Print API 판형 로드
+    from app.services.bookprint import load_book_specs
+    await load_book_specs()
+
     # 웹훅 자동 등록 (WEBHOOK_URL 설정 시)
     if settings.WEBHOOK_URL and settings.BOOKPRINT_API_KEY:
         import logging

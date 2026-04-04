@@ -1,37 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Ruler, DollarSign } from "lucide-react";
-
-const BOOK_SPECS = [
-  {
-    uid: "SQUAREBOOK_HC",
-    label: "정사각 하드커버",
-    desc: "243×248mm · 하드커버 · 24~130p",
-    priceBase: 15000,
-    pricePerPage: 200,
-    minPages: 24,
-    maxPages: 130,
-  },
-  {
-    uid: "PHOTOBOOK_A4_SC",
-    label: "A4 소프트커버",
-    desc: "210×297mm · 소프트커버 · 24~130p",
-    priceBase: 12000,
-    pricePerPage: 150,
-    minPages: 24,
-    maxPages: 130,
-  },
-  {
-    uid: "PHOTOBOOK_A5_SC",
-    label: "A5 소프트커버",
-    desc: "148×210mm · 소프트커버 · 50~200p",
-    priceBase: 9000,
-    pricePerPage: 100,
-    minPages: 50,
-    maxPages: 200,
-  },
-];
+import { apiClient, BookSpecItem } from "@/lib/api";
 
 interface StepOptionsProps {
   pageCount: number;
@@ -40,16 +12,16 @@ interface StepOptionsProps {
   onBookSpecChange: (uid: string) => void;
 }
 
-function getEstimatedPrice(bookSpecUid: string, pageCount: number): number {
-  const spec = BOOK_SPECS.find((s) => s.uid === bookSpecUid);
-  if (!spec) return 0;
-  const extraPages = Math.max(0, pageCount - spec.minPages);
-  return spec.priceBase + extraPages * spec.pricePerPage;
-}
-
-function getSpecRange(bookSpecUid: string) {
-  const spec = BOOK_SPECS.find((s) => s.uid === bookSpecUid);
-  return { minPages: spec?.minPages ?? 24, maxPages: spec?.maxPages ?? 130 };
+function getEstimatedPrice(spec: BookSpecItem, pageCount: number): number {
+  // 간이 가격 계산 (판형별 기본가 + 페이지당 추가)
+  const priceMap: Record<string, { base: number; perPage: number }> = {
+    SQUAREBOOK_HC: { base: 15000, perPage: 200 },
+    PHOTOBOOK_A4_SC: { base: 12000, perPage: 150 },
+    PHOTOBOOK_A5_SC: { base: 9000, perPage: 100 },
+  };
+  const pricing = priceMap[spec.uid] || { base: 10000, perPage: 150 };
+  const extraPages = Math.max(0, pageCount - spec.page_min);
+  return pricing.base + extraPages * pricing.perPage;
 }
 
 export function StepOptions({
@@ -58,19 +30,41 @@ export function StepOptions({
   onPageCountChange,
   onBookSpecChange,
 }: StepOptionsProps) {
-  const price = getEstimatedPrice(bookSpecUid, pageCount);
-  const { minPages, maxPages } = getSpecRange(bookSpecUid);
+  const [specs, setSpecs] = useState<BookSpecItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const result = await apiClient.getBookSpecs();
+      if (result.data && result.data.length > 0) {
+        setSpecs(result.data);
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const currentSpec = specs.find((s) => s.uid === bookSpecUid);
+  const minPages = currentSpec?.page_min ?? 24;
+  const maxPages = currentSpec?.page_max ?? 130;
+  const price = currentSpec ? getEstimatedPrice(currentSpec, pageCount) : 0;
 
   const handleBookSpecChange = (uid: string) => {
     onBookSpecChange(uid);
-    const range = getSpecRange(uid);
-    // 판형 변경 시 현재 페이지 수가 새 범위 밖이면 보정
-    if (pageCount < range.minPages) {
-      onPageCountChange(range.minPages);
-    } else if (pageCount > range.maxPages) {
-      onPageCountChange(range.maxPages);
+    const spec = specs.find((s) => s.uid === uid);
+    if (spec) {
+      if (pageCount < spec.page_min) onPageCountChange(spec.page_min);
+      else if (pageCount > spec.page_max) onPageCountChange(spec.page_max);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -94,8 +88,9 @@ export function StepOptions({
           판형 선택
         </div>
         <div className="grid gap-3">
-          {BOOK_SPECS.map((spec) => {
+          {specs.map((spec) => {
             const isSelected = bookSpecUid === spec.uid;
+            const desc = `${spec.width_mm}×${spec.height_mm}mm · ${spec.cover_type || "커버"} · ${spec.page_min}~${spec.page_max}p`;
             return (
               <motion.button
                 key={spec.uid}
@@ -115,9 +110,9 @@ export function StepOptions({
                         isSelected ? "text-primary" : "text-text"
                       }`}
                     >
-                      {spec.label}
+                      {spec.name}
                     </p>
-                    <p className="text-xs text-text-light mt-1">{spec.desc}</p>
+                    <p className="text-xs text-text-light mt-1">{desc}</p>
                   </div>
                   <div
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
@@ -203,19 +198,11 @@ export function StepOptions({
 }
 
 export function validateOptions(pageCount: number, bookSpecUid: string) {
-  const validUids = new Set(BOOK_SPECS.map((s) => s.uid));
-  if (!validUids.has(bookSpecUid)) {
+  if (!bookSpecUid) {
     return { valid: false, error: "판형을 선택해주세요" };
   }
   if (pageCount % 2 !== 0) {
     return { valid: false, error: "페이지 수는 2의 배수여야 합니다" };
-  }
-  const spec = BOOK_SPECS.find((s) => s.uid === bookSpecUid)!;
-  if (pageCount < spec.minPages || pageCount > spec.maxPages) {
-    return {
-      valid: false,
-      error: `${spec.label}의 페이지 수는 ${spec.minPages}~${spec.maxPages}p 범위여야 합니다`,
-    };
   }
   return { valid: true, error: null };
 }

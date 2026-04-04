@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   apiClient,
   BookItem,
+  BookSpecItem,
   EstimateResult,
   OrderResult,
   ShippingData,
@@ -33,6 +34,7 @@ function OrderContent() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [specs, setSpecs] = useState<BookSpecItem[]>([]);
 
   // 배송지 폼
   const [recipientName, setRecipientName] = useState("");
@@ -64,6 +66,10 @@ function OrderContent() {
           return;
         }
         setBook(bookRes.data!);
+
+        // 판형 정보 로드
+        const specsRes = await apiClient.getBookSpecs();
+        if (specsRes.data) setSpecs(specsRes.data);
 
         // 견적 로드
         setEstimateLoading(true);
@@ -396,11 +402,7 @@ function OrderContent() {
             <div className="flex justify-between">
               <span className="text-text-light">판형</span>
               <span className="text-text">
-                {book.book_spec_uid === "SQUAREBOOK_HC"
-                  ? "정방형 하드커버 (243x248mm)"
-                  : book.book_spec_uid === "PHOTOBOOK_A4_SC"
-                  ? "A4 소프트커버 (210x297mm)"
-                  : "A5 소프트커버 (148x210mm)"}
+{specs.find((s) => s.uid === book.book_spec_uid)?.name || book.book_spec_uid}
               </span>
             </div>
             <div className="flex justify-between">

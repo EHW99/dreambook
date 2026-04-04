@@ -11,14 +11,20 @@ class BookCreateRequest(BaseModel):
 VALID_STORY_STYLES = {"dreaming_today", "future_me"}
 VALID_ART_STYLES = {"watercolor", "pencil", "crayon", "3d", "cartoon"}
 VALID_STATUSES = {"draft", "character_confirmed", "generating", "editing", "completed"}
-VALID_BOOK_SPEC_UIDS = {"SQUAREBOOK_HC", "PHOTOBOOK_A4_SC", "PHOTOBOOK_A5_SC"}
+def _get_valid_book_spec_uids() -> set[str]:
+    """캐시된 판형 UID 목록 반환"""
+    from app.services.bookprint import get_book_specs
+    specs = get_book_specs()
+    return set(specs.keys()) if specs else {"SQUAREBOOK_HC", "PHOTOBOOK_A4_SC", "PHOTOBOOK_A5_SC"}
 
-# 판형별 페이지 수 범위
-BOOK_SPEC_PAGE_RANGES = {
-    "SQUAREBOOK_HC": (24, 130),
-    "PHOTOBOOK_A4_SC": (24, 130),
-    "PHOTOBOOK_A5_SC": (50, 200),
-}
+
+def _get_book_spec_page_range(spec_uid: str) -> tuple[int, int] | None:
+    """캐시된 판형의 페이지 범위 반환"""
+    from app.services.bookprint import get_book_specs
+    specs = get_book_specs()
+    if spec_uid in specs:
+        return (specs[spec_uid]["page_min"], specs[spec_uid]["page_max"])
+    return None
 
 
 class BookUpdateRequest(BaseModel):
@@ -75,8 +81,10 @@ class BookUpdateRequest(BaseModel):
     @field_validator("book_spec_uid")
     @classmethod
     def validate_book_spec_uid(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v not in VALID_BOOK_SPEC_UIDS:
-            raise ValueError(f"유효하지 않은 판형입니다. 가능한 값: {', '.join(VALID_BOOK_SPEC_UIDS)}")
+        if v is not None:
+            valid = _get_valid_book_spec_uids()
+            if v not in valid:
+                raise ValueError(f"유효하지 않은 판형입니다. 가능한 값: {', '.join(valid)}")
         return v
 
     @field_validator("plot_input")
@@ -90,12 +98,12 @@ class BookUpdateRequest(BaseModel):
     def validate_page_count_for_spec(self):
         """판형별 페이지 수 범위 교차 검증"""
         if self.page_count is not None and self.book_spec_uid is not None:
-            spec_uid = self.book_spec_uid
-            if spec_uid in BOOK_SPEC_PAGE_RANGES:
-                min_pages, max_pages = BOOK_SPEC_PAGE_RANGES[spec_uid]
+            page_range = _get_book_spec_page_range(self.book_spec_uid)
+            if page_range:
+                min_pages, max_pages = page_range
                 if self.page_count < min_pages or self.page_count > max_pages:
                     raise ValueError(
-                        f"{spec_uid} 판형의 페이지 수는 {min_pages}~{max_pages}페이지여야 합니다"
+                        f"{self.book_spec_uid} 판형의 페이지 수는 {min_pages}~{max_pages}페이지여야 합니다"
                     )
         return self
 

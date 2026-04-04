@@ -127,7 +127,29 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <div className="mt-6 text-center text-sm text-text-light">
+              {/* 체험 로그인 */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={async () => {
+                    setIsLoading(true);
+                    setError("");
+                    const result = await login("dev@test.com", "12345678");
+                    if (result.error) {
+                      setError(result.error);
+                      setIsLoading(false);
+                      return;
+                    }
+                    router.push("/");
+                  }}
+                  className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors"
+                >
+                  체험용 계정으로 시작하기
+                </button>
+              </div>
+
+              <div className="mt-4 text-center text-sm text-text-light">
                 계정이 없으신가요?{" "}
                 <Link href="/signup" className="text-primary font-medium hover:underline">
                   회원가입

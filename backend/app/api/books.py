@@ -24,6 +24,26 @@ from app.services.voucher import get_voucher_by_id, use_voucher
 router = APIRouter(prefix="/api/books")
 
 
+@router.get("/specs")
+def list_book_specs():
+    """판형 목록 조회 (캐시된 데이터)"""
+    from app.services.bookprint import get_book_specs
+    specs = get_book_specs()
+    return [
+        {
+            "uid": uid,
+            "name": info["name"],
+            "width_mm": info["width_mm"],
+            "height_mm": info["height_mm"],
+            "page_min": info["page_min"],
+            "page_max": info["page_max"],
+            "cover_type": info.get("cover_type", ""),
+            "binding_type": info.get("binding_type", ""),
+        }
+        for uid, info in specs.items()
+    ]
+
+
 @router.get("", response_model=List[BookListResponse])
 def list_books(
     user: User = Depends(get_current_user),

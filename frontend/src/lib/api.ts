@@ -370,6 +370,12 @@ class ApiClient {
     );
   }
 
+  // === Book Specs API ===
+
+  async getBookSpecs() {
+    return this.request<BookSpecItem[]>("/api/books/specs");
+  }
+
   // === Order API ===
 
   async getEstimate(bookId: number) {
@@ -550,6 +556,17 @@ export interface PhotoItem {
   height: number;
   file_size: number;
   created_at: string;
+}
+
+export interface BookSpecItem {
+  uid: string;
+  name: string;
+  width_mm: number;
+  height_mm: number;
+  page_min: number;
+  page_max: number;
+  cover_type: string;
+  binding_type: string;
 }
 
 export interface ShippingData {
