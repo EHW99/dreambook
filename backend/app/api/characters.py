@@ -8,6 +8,7 @@ from app.deps import get_current_user
 from app.models.user import User
 from app.schemas.character import CharacterSheetResponse
 from app.services.book import get_book_by_id
+from app.services.ai_character import CharacterGenerationError
 from app.services.character import (
     create_character_sheet,
     get_character_sheets,
@@ -43,11 +44,16 @@ def create_character(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """캐릭터 시트 생성 (Phase 2: 더미 이미지 반환)"""
+    """캐릭터 시트 생성 (AI 생성, API 키 없으면 더미 폴백)"""
     book = _get_user_book(db, book_id, user)
 
     try:
         character = create_character_sheet(db, book)
+    except CharacterGenerationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

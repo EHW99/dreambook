@@ -6,6 +6,8 @@ import { RefreshCw, Check, User, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiClient, CharacterSheetItem } from "@/lib/api";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 const MAX_GENERATIONS = 5; // 최초 1회 + 재생성 4회
 
 interface StepCharacterPreviewProps {
@@ -184,10 +186,29 @@ export function StepCharacterPreview({
                     </motion.div>
                   )}
 
-                  {/* 이미지 placeholder */}
-                  <div className="aspect-square bg-gradient-to-br from-secondary/30 to-accent/20 flex items-center justify-center">
-                    <div className="text-center space-y-2">
-                      <User className="w-12 h-12 text-text-lighter mx-auto" />
+                  {/* 캐릭터 이미지 */}
+                  <div className="aspect-square bg-gradient-to-br from-secondary/30 to-accent/20 flex items-center justify-center overflow-hidden">
+                    {char.image_path && !char.image_path.includes("dummy_") ? (
+                      <img
+                        src={`${API_BASE}${char.image_path}`}
+                        alt={`캐릭터 #${char.generation_index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // 이미지 로딩 실패 시 placeholder로 폴백
+                          const target = e.currentTarget;
+                          target.style.display = "none";
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = "flex";
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="text-center space-y-2 flex flex-col items-center justify-center w-full h-full"
+                      style={{
+                        display: char.image_path && !char.image_path.includes("dummy_") ? "none" : "flex",
+                      }}
+                    >
+                      <User className="w-12 h-12 text-text-lighter" />
                       <span className="text-xs text-text-lighter block">
                         캐릭터 #{char.generation_index + 1}
                       </span>
