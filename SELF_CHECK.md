@@ -1,43 +1,50 @@
-# 셀프체크 — 태스크 14: 에러/빈 상태 페이지 + 디자인 통합 마무리
+# 셀프체크 — 태스크 15: AI 스토리 생성 (GPT-4o) — R2
 
 ## 테스트 결과
-- 전체 테스트 수: 28개 (기존 16개 + 신규 12개)
-- 통과: 28개
+- 전체 테스트 수: 21개 (test_ai_story.py)
+- 통과: 21개
 - 실패: 0개
 
-### 신규 테스트 파일
-- `src/app/__tests__/not-found.test.tsx` (4개) — 404 페이지 렌더링, 메시지, 홈 링크, 아이콘
-- `src/app/__tests__/error-page.test.tsx` (4개) — 500 에러 메시지, 다시 시도 버튼, reset 호출, 홈 링크
-- `src/app/__tests__/empty-states.test.tsx` (4개) — 책장/사진/주문 빈 상태 메시지 확인
+### 기존 테스트 (test_generate.py)
+- 전체: 28개
+- 통과: 26개
+- 실패: 2개 (기존 SQLite teardown 순서 이슈 — 본 태스크와 무관)
+
+## R1 → R2 피드백 반영 내역
+
+### 1. [필수] requirements.txt에 openai 패키지 추가 ✅
+- `backend/requirements.txt`에 `openai>=1.0.0` 추가
+- 새 환경에서 `pip install -r requirements.txt`만으로 openai 설치 가능
+
+### 2. [권장] 프롬프트 검증 테스트 강화 ✅
+- `test_generate_story_dreaming_today_style`: `"꿈이 이루어진 세계"` 키워드 검증 추가
+- `test_generate_story_future_me_style`: `"성장 과정"` 또는 `"일대기"` 키워드 검증 추가
+- `test_generate_story_art_style_in_prompt` (신규): art_style="watercolor" 전달 시 시스템 프롬프트에 "watercolor" 포함 검증
+
+### 3. [권장] 응답 검증 엣지 케이스 테스트 추가 ✅
+- `test_response_missing_pages_key_raises` (신규): pages 키 없는 JSON → StoryGenerationError 발생
+- `test_response_missing_title_uses_fallback` (신규): title 없는 응답 → 첫 페이지 텍스트로 대체
+- `test_page_count_mismatch_logs_warning` (신규): 페이지 수 불일치 시 warning 로그 확인
 
 ## SPEC 기능 체크
+- [x] `POST /api/books/:id/generate`의 스토리 생성 로직을 GPT-4o 호출로 교체
+- [x] **입력**: 아이 이름, 직업, 동화 스타일(꿈꾸는 오늘/미래의 나), 줄거리, 페이지 수
+- [x] **출력**: 페이지별 text_content + scene_description (이미지 생성 프롬프트)
+- [x] **프롬프트**: ai-guide.md 규칙에 따라 설계 (5~7세 어휘, 금지사항, 동화 스타일별 분기)
+- [x] 스토리 재생성 (`POST /api/books/:id/regenerate-story`) GPT-4o 호출로 교체
+- [x] 재생성 횟수 체크 (최대 3회)
+- [x] 에러 처리: API 실패 시 사용자 안내 (500 + "스토리 생성에 실패했습니다"), 타임아웃 처리
+- [x] OPENAI_API_KEY 없으면 더미 스토리 폴백 (개발 편의)
 
-### 에러 페이지
-- [x] 404 페이지: 따뜻한 일러스트 (BookOpen 아이콘 + 떠다니는 도형 애니메이션) + "길을 잃었나봐요" + 홈으로 돌아가기 버튼
-- [x] 500 에러 페이지: AlertTriangle 일러스트 + "잠시 후 다시 시도해주세요" + 다시 시도 버튼 + 홈 버튼
-
-### 빈 상태 UI
-- [x] 내 책장: "아직 만든 동화책이 없어요" + BookOpen 아이콘 + 새 동화책 만들기 버튼 (기존 구현 확인)
-- [x] 사진 목록: "등록된 사진이 없어요" + 드래그앤드롭 영역 + 업로드 안내 (기존 구현 확인)
-- [x] 주문 내역: "아직 주문 내역이 없어요" + ShoppingBag 아이콘 (메시지 수정: "주문 내역이 없어요" → "아직 주문 내역이 없어요")
-
-### 디자인 통합 점검
-- [x] 색상 팔레트 일관 적용 확인: 모든 페이지가 tailwind.config.ts의 커스텀 색상(primary, secondary, accent, background, text 등) 사용
-- [x] 타이포그래피 통일: Noto Sans KR (본문) + Gowun Batang (디스플레이) — layout.tsx에서 전역 설정
-- [x] 모서리 둥글기 일관: rounded-2xl(16px) / rounded-3xl(20px) / rounded-full 일관 사용
-- [x] Framer Motion 페이지 전환: login/signup/mypage는 PageTransition 래퍼 사용, 나머지 페이지는 framer-motion의 motion 컴포넌트 직접 사용하여 동일한 fade+slide 효과 적용
-- [x] 로딩 상태 UI 통일: 스피너를 `w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin`으로 통일 (photos-tab의 w-8을 w-10으로 수정)
-- [x] 반응형: 모든 페이지에 grid 및 flex 기반 반응형 레이아웃 적용 (sm/md/lg breakpoint 사용)
-
-## 변경 파일 목록
-1. **신규** `frontend/src/app/not-found.tsx` — 404 페이지
-2. **신규** `frontend/src/app/error.tsx` — 500 에러 페이지
-3. **수정** `frontend/src/components/mypage/orders-tab.tsx` — 빈 상태 메시지 "아직" 추가
-4. **수정** `frontend/src/components/mypage/photos-tab.tsx` — 로딩 스피너 사이즈 통일 (w-8 → w-10)
-5. **신규** `frontend/src/app/__tests__/not-found.test.tsx` — 404 테스트
-6. **신규** `frontend/src/app/__tests__/error-page.test.tsx` — 에러 페이지 테스트
-7. **신규** `frontend/src/app/__tests__/empty-states.test.tsx` — 빈 상태 테스트
+## 구현 파일
+1. `backend/app/services/ai_story.py` — AI 스토리 생성 서비스 (변경 없음)
+2. `backend/app/services/generate.py` — 더미 → AI 호출 분기 (변경 없음)
+3. `backend/app/api/books.py` — 에러 핸들링 (변경 없음)
+4. `backend/requirements.txt` — openai>=1.0.0 추가 (R2)
+5. `backend/tests/test_ai_story.py` — 17개 → 21개 테스트 (R2: +4개)
 
 ## 특이사항
-- PageTransition 래퍼가 login/signup/mypage에만 적용되어 있으나, 다른 페이지(create, vouchers, books 등)는 framer-motion의 motion 컴포넌트를 직접 사용하여 동일한 효과를 내고 있으므로 기능적으로 문제 없음. 기존 코드를 깨뜨리지 않기 위해 일괄 변경하지 않음.
-- 에러/빈 상태 페이지 모두 프로젝트 디자인 시스템(파스텔 톤, 둥근 모서리, 부드러운 애니메이션)과 일관되게 구현
+- 모든 테스트에서 OpenAI API는 mock 사용 (실제 호출 없음)
+- 기존 test_generate.py의 2개 실패는 SQLite teardown 순서 문제로 본 태스크 이전부터 존재하는 이슈
+- `response_format: {"type": "json_object"}`를 사용하여 GPT-4o가 반드시 JSON으로 응답하도록 강제
+- 재생성 실패 시 story_regen_count를 롤백하여 사용자가 재시도할 수 있도록 처리

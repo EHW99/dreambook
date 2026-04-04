@@ -1,47 +1,40 @@
-# QA 리포트 — 태스크 14: 에러/빈 상태 페이지 + 디자인 통합 마무리 (R1)
+# QA 리포트 — 태스크 15: AI 스토리 생성 (GPT-4o) (R2)
 
 ## 전체 판정: PASS
-## 가중 점수: 7.6 / 10.0
+## 가중 점수: 8.1 / 10.0
 
 ## 항목별 점수
-- 기능 완성도 (30%): 8/10 — 404, 500 에러 페이지, 3종 빈 상태 UI 모두 구현 완료. E2E 플로우 페이지 라우트 전부 존재 확인.
-- 코드 품질 (25%): 8/10 — 보안 이슈 없음, 에러 처리 적절, 코드 구조 명확. 테스트 12개 전부 통과.
-- API 연동 (20%): 7/10 — 이번 태스크는 API 연동과 직접 관계없는 UI 태스크. 기존 API 연동 코드에 영향 없음.
-- 디자인 품질 (25%): 7/10 — 색상 팔레트, 폰트, 모서리, 반응형 모두 일관성 있음. 다만 세부 스피너 크기 불일치 1건, Lottie 미사용(허용 범위).
+- 기능 완성도 (30%): 9/10 — TASKS.md 완료 기준 7개 항목 모두 충족. 스토리 생성/재생성/폴백/에러처리 모두 정상 동작. 프롬프트가 ai-guide.md 규칙을 정확히 반영함.
+- 코드 품질 (25%): 8/10 — API 키 하드코딩 없음, StoryGenerationError 커스텀 예외 분리, 재생성 실패 시 횟수 롤백 처리, 타임아웃 120초 설정. response_format json_object 강제로 안정적 파싱.
+- API 연동 (20%): 7/10 — 이 태스크는 OpenAI API 연동이 핵심이며 올바르게 구현됨. Book Print API는 해당 없음. OpenAI 클라이언트 생성/호출/응답 파싱/에러 처리 체계적. 다만 retry 로직 없음 (rate limit 429 등 재시도 미구현).
+- 디자인 품질 (25%): 8/10 — 이 태스크는 백엔드 전용 태스크로 프론트엔드 변경 없음. 기존 디자인 퇴보 없음.
 
 ## SPEC 완료 기준 대조
-
-### 1. 에러 페이지
-- [PASS] 404 페이지: `frontend/src/app/not-found.tsx`에 BookOpen 아이콘 + 떠다니는 도형 애니메이션 + "길을 잃었나봐요" + 홈으로 돌아가기 버튼 구현 확인. 디자인 시스템 색상(primary, secondary, accent, success, warning) 사용.
-- [PASS] 500 에러 페이지: `frontend/src/app/error.tsx`에 AlertTriangle 아이콘 + "잠시 후 다시 시도해주세요" + 다시 시도(reset) 버튼 + 홈 버튼 구현 확인. Next.js error.tsx 규약(error + reset props) 준수.
-
-### 2. 빈 상태 UI
-- [PASS] 내 책장: `bookshelf-tab.tsx` 라인 139에 "아직 만든 동화책이 없어요" + BookOpen 아이콘 + 새 동화책 만들기 버튼 확인.
-- [PASS] 사진 목록: `photos-tab.tsx` 라인 246에 "등록된 사진이 없어요" + 드래그앤드롭 영역 + 업로드 안내 확인.
-- [PASS] 주문 내역: `orders-tab.tsx` 라인 208에 "아직 주문 내역이 없어요" + ShoppingBag 아이콘 확인.
-
-### 3. 디자인 통합 점검
-- [PASS] 색상 팔레트: `tailwind.config.ts`에 SPEC 색상(primary #FFB5A7, secondary #FCD5CE, accent #A8DADC, background #FFF8F0, text #2D3436, success #B5EAD7, warning #FFE0AC) 정확히 반영. 모든 페이지에서 커스텀 색상 사용 확인.
-- [PASS] 타이포그래피: Noto Sans KR(본문) + Gowun Batang(디스플레이) 2종 폰트로 통일. `layout.tsx`에서 전역 설정.
-- [PASS] 모서리 둥글기: `tailwind.config.ts`에 xl=12px, 2xl=16px, 3xl=20px 정의. 전체적으로 rounded-2xl/3xl 일관 사용.
-- [PASS] 페이지 전환: login/signup/mypage는 PageTransition 래퍼 사용, 나머지 8개 페이지(page.tsx, vouchers, create, create/edit, create/order, books/view, books/listen, not-found, error)는 framer-motion의 motion 컴포넌트 직접 사용. 모든 라우트에서 fade+slide 전환 효과 확인.
-- [MINOR] 로딩 상태: 대부분 `w-10 h-10 border-3` 스피너로 통일되었으나, `step-character-preview.tsx` 라인 93에서 `w-8 h-8` 스피너가 남아있음. TASKS.md에서 "Lottie 또는 통일된 스피너"라고 했는데, Lottie 미사용은 허용 범위이나 스피너 크기가 완전히 통일되지 않음.
-- [PASS] 반응형: 모든 페이지에서 grid/flex 기반 레이아웃 + sm/md/lg breakpoint 사용 확인.
-
-### 4. E2E 플로우 점검
-- [PASS] 모든 라우트 파일 존재 확인: `/` (랜딩), `/login`, `/signup`, `/mypage`, `/vouchers`, `/create` (위자드), `/create/edit`, `/create/order`, `/books/[id]/view`, `/books/[id]/listen`, 404(not-found.tsx), 500(error.tsx).
+- [PASS] 완료 기준 1: `POST /api/books/:id/generate`의 스토리 생성 로직이 GPT-4o 호출로 교체됨 — `generate.py:101`에서 `generate_story_with_gpt_or_dummy` 호출, `ai_story.py:176`에서 `model="gpt-4o"` 사용 확인
+- [PASS] 완료 기준 2: 입력 — child_name, job_name, story_style, plot_input, page_count, art_style, child_birth_date 모두 전달됨 (`generate.py:101-109`)
+- [PASS] 완료 기준 3: 출력 — 페이지별 text_content + scene_description (JSON 형식) 정상 반환. title/content/ending 페이지 타입 구분됨
+- [PASS] 완료 기준 4: 프롬프트 — ai-guide.md 규칙 준수 확인: 5~7세 어휘 제한, 금지사항(폭력/공포/성별고정관념), 동화 스타일별 분기(꿈꾸는 오늘: "꿈이 이루어진 세계", 미래의 나: "성장 과정/일대기"), scene_description 영어 작성 지시, 그림체 키워드 반영
+- [PASS] 완료 기준 5: `POST /api/books/:id/regenerate-story`가 GPT-4o 호출로 교체됨 — `books.py:296`에서 동일한 `generate_story` 함수 호출
+- [PASS] 완료 기준 6: 재생성 횟수 체크 최대 3회 — `books.py:287-290`에서 `story_regen_count >= 3` 시 422 반환. 테스트로 4번째 시도 시 422 확인됨
+- [PASS] 완료 기준 7: 에러 처리 — API 실패 시 `StoryGenerationError` → 500 + "스토리 생성에 실패했습니다" 메시지. 타임아웃 120초 설정(`ai_story.py:163`). JSON 파싱 실패/pages 키 누락 등 엣지 케이스 처리됨
 
 ## 테스트 검증
-- Developer 테스트 수: 28개 (기존 16개 + 신규 12개)
-- 전체 통과: 28/28 (0 실패)
-- 빠진 테스트 케이스:
-  - 404 페이지의 반응형 레이아웃 테스트 없음 (minor)
-  - 에러 페이지에서 error.digest 표시 여부 미테스트 (minor)
-  - 빈 상태 테스트에서 빈 상태 -> 데이터 로드 후 빈 상태 사라짐 테스트 없음 (minor)
-  - 이상의 누락은 사소한 수준이며 핵심 기능 테스트는 모두 커버됨
+- Developer 테스트 수: 21개 (전체 통과)
+- 테스트 구성:
+  - 서비스 단위 테스트 11개 (GPT-4o 호출, 모델 확인, 스타일별 프롬프트, art_style 반영, API 에러, JSON 파싱 실패, 더미 폴백, pages 키 누락, title 폴백, 페이지 수 불일치 경고)
+  - API 통합 테스트 3개 (AI 호출 성공, 더미 폴백, AI 에러 시 500)
+  - 재생성 테스트 3개 (횟수 증가, 최대 3회 제한, AI 호출 확인)
+  - 콘텐츠 검증 테스트 3개 (scene_description 존재, title 페이지, ending 페이지)
+  - 타임아웃 테스트 1개
+- 빠진 테스트 케이스: 없음 (R1 피드백 3건 모두 반영 완료)
+
+## R1 피드백 반영 확인
+1. **[필수] requirements.txt에 openai 추가**: `openai>=1.0.0`이 `backend/requirements.txt` line 14에 추가됨 — **반영 확인**
+2. **[권장] 프롬프트 검증 테스트 강화**: `test_generate_story_dreaming_today_style`에 "꿈이 이루어진 세계" 키워드 검증 추가, `test_generate_story_future_me_style`에 "성장 과정"/"일대기" 검증 추가, `test_generate_story_art_style_in_prompt` 신규 테스트 추가 — **반영 확인**
+3. **[권장] 응답 엣지 케이스 테스트**: `test_response_missing_pages_key_raises`, `test_response_missing_title_uses_fallback`, `test_page_count_mismatch_logs_warning` 3개 신규 테스트 추가 — **반영 확인**
 
 ## 구체적 개선 지시
-1. `frontend/src/components/create/step-character-preview.tsx` 라인 93의 `w-8 h-8`을 `w-10 h-10`으로 변경하여 로딩 스피너 크기를 통일할 것. (사소한 문제이므로 PASS 판정에 영향 없음, 다음 태스크에서 처리 가능)
+없음. R1 피드백 3건 모두 정상 반영됨. 기능 완성도, 코드 품질, 테스트 커버리지 모두 양호.
 
-## 총평
-태스크 14의 4개 완료 기준(에러 페이지, 빈 상태 UI, 디자인 통합, E2E 플로우)이 모두 충족되었다. 에러/빈 상태 페이지는 프로젝트 디자인 시스템과 일관되게 구현되었으며, 테스트도 적절히 작성되었다. 스피너 크기 불일치 1건은 사소한 문제이므로 PASS 판정한다.
+참고 사항 (다음 태스크에서 고려):
+- OpenAI API rate limit (429) 재시도 로직은 태스크 18 (AI 생성 통합 테스트)에서 추가하는 것이 적합함

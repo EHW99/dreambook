@@ -16,7 +16,8 @@ from app.schemas.book import (
 )
 from app.schemas.audiobook import AudioBookData, AudioPageData
 from app.services.book import create_book, get_book_by_id, get_books_by_user, update_book, delete_book
-from app.services.generate import generate_dummy_story
+from app.services.generate import generate_story
+from app.services.ai_story import StoryGenerationError
 from app.services.voucher import get_voucher_by_id, use_voucher
 
 router = APIRouter(prefix="/api/books")
@@ -202,7 +203,13 @@ def generate(
             detail="직업이 선택되지 않았습니다",
         )
 
-    pages = generate_dummy_story(db, book)
+    try:
+        pages = generate_story(db, book)
+    except StoryGenerationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"스토리 생성에 실패했습니다: {str(e)}",
+        )
 
     return GenerateResponse(
         status=book.status,
@@ -285,7 +292,16 @@ def regenerate_story(
     book.story_regen_count += 1
 
     # 기존 페이지 + 이미지 전부 삭제 후 새로 생성
-    pages = generate_dummy_story(db, book)
+    try:
+        pages = generate_story(db, book)
+    except StoryGenerationError as e:
+        # 실패 시 횟수 롤백
+        book.story_regen_count -= 1
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"스토리 생성에 실패했습니다: {str(e)}",
+        )
 
     return RegenerateStoryResponse(
         status=book.status,
