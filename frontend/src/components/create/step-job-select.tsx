@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Check, Lock } from "lucide-react";
+import { ChevronDown, Check, HelpCircle } from "lucide-react";
 import { JOB_CATEGORIES, UNDECIDED_CATEGORY, type JobCategory } from "@/lib/jobs-data";
+import { AptitudeTest } from "./aptitude-test";
 
 interface StepJobSelectProps {
   selectedCategory: string;
@@ -19,10 +20,11 @@ export function StepJobSelect({
   const [expandedCategory, setExpandedCategory] = useState<string | null>(
     selectedCategory || null
   );
+  const [showAptitudeTest, setShowAptitudeTest] = useState(false);
 
   function handleCategoryClick(categoryId: string) {
     if (categoryId === UNDECIDED_CATEGORY.id) {
-      // "모르겠어요" — 준비 중
+      setShowAptitudeTest(true);
       return;
     }
     setExpandedCategory(expandedCategory === categoryId ? null : categoryId);
@@ -122,23 +124,55 @@ export function StepJobSelect({
         })}
 
         {/* "어떤 직업이 좋을지 모르겠어요" */}
-        <div className="rounded-2xl overflow-hidden border border-secondary/50 bg-white/50 opacity-70">
+        <div className="rounded-2xl overflow-hidden border border-primary/30 bg-primary/5">
           <button
             onClick={() => handleCategoryClick(UNDECIDED_CATEGORY.id)}
-            className="w-full flex items-center justify-between p-4 cursor-not-allowed"
-            disabled
+            className="w-full flex items-center justify-between p-4 hover:bg-primary/10 transition-colors"
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl">{UNDECIDED_CATEGORY.icon}</span>
-              <span className="font-medium text-text-light">{UNDECIDED_CATEGORY.name}</span>
-              <span className="text-[10px] bg-warning/50 text-warning-dark px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                <Lock className="w-3 h-3" />
-                준비 중
+              <span className="font-medium text-text">{UNDECIDED_CATEGORY.name}</span>
+              <span className="text-[10px] bg-primary/20 text-primary-dark px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                <HelpCircle className="w-3 h-3" />
+                성향 테스트
               </span>
             </div>
           </button>
         </div>
       </div>
+
+      {/* 성향 테스트 모달 */}
+      <AnimatePresence>
+        {showAptitudeTest && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowAptitudeTest(false);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-background rounded-3xl shadow-xl p-6 w-full max-w-md max-h-[85vh] overflow-y-auto"
+            >
+              <h2 className="text-lg font-bold text-text text-center mb-4">
+                나에게 맞는 직업 찾기
+              </h2>
+              <AptitudeTest
+                onSelectJob={(categoryName, jobName) => {
+                  onSelect(categoryName, jobName);
+                  setShowAptitudeTest(false);
+                }}
+                onClose={() => setShowAptitudeTest(false)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

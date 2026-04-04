@@ -135,9 +135,15 @@ def generate_illustration_image(
         b64_data = response.data[0].b64_json
         image_bytes = base64.b64decode(b64_data)
 
+        # 비용 모니터링 로깅
+        from app.services.cost_monitor import get_cost_monitor
+        get_cost_monitor().log_illustration_call(image_count=1, success=True)
+
         return image_bytes
 
     except BadRequestError as e:
+        from app.services.cost_monitor import get_cost_monitor
+        get_cost_monitor().log_illustration_call(success=False, error=str(e))
         error_msg = str(e)
         if "content_policy" in error_msg.lower() or "safety" in error_msg.lower():
             logger.warning(f"일러스트 생성 콘텐츠 정책 위반: {error_msg}")
@@ -151,6 +157,8 @@ def generate_illustration_image(
         raise
 
     except Exception as e:
+        from app.services.cost_monitor import get_cost_monitor
+        get_cost_monitor().log_illustration_call(success=False, error=str(e))
         logger.error(f"GPT Image API 호출 실패: {e}")
         raise IllustrationGenerationError(f"일러스트 생성 중 오류가 발생했습니다: {e}")
 

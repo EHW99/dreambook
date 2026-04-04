@@ -186,7 +186,26 @@ def generate_story_with_gpt(
 
         content = response.choices[0].message.content
 
+        # 비용 모니터링 로깅
+        from app.services.cost_monitor import get_cost_monitor
+        monitor = get_cost_monitor()
+        usage = getattr(response, "usage", None)
+        prompt_tokens = getattr(usage, "prompt_tokens", 0) if usage else 0
+        completion_tokens = getattr(usage, "completion_tokens", 0) if usage else 0
+        total_tokens = getattr(usage, "total_tokens", 0) if usage else (prompt_tokens + completion_tokens)
+        monitor.log_story_call(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            success=True,
+        )
+
+    except StoryGenerationError:
+        raise
     except Exception as e:
+        # 실패 시에도 비용 모니터링 로깅
+        from app.services.cost_monitor import get_cost_monitor
+        get_cost_monitor().log_story_call(success=False, error=str(e))
         logger.error(f"GPT-4o API 호출 실패: {e}")
         raise StoryGenerationError(f"스토리 생성 중 오류가 발생했습니다: {e}")
 

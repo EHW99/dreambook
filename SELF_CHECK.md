@@ -1,29 +1,36 @@
-# 셀프체크 — 태스크 17: AI 페이지 일러스트 생성 (GPT Image)
+# 셀프체크 — 태스크 18: AI 생성 통합 테스트 + 성향 테스트 UI
 
 ## 테스트 결과
-- 전체 테스트 수: 19개 (test_ai_illustration.py)
-- 통과: 19개
+- 전체 테스트 수: 28개 (test_integration_e2e.py)
+- 통과: 28개
 - 실패: 0개
+- 기존 테스트: 영향 없음 (기존 실패는 OpenAI API 쿼터 초과로 인한 pre-existing 이슈)
 
 ## SPEC 기능 체크
-- [x] 1. `POST /api/books/:id/generate`의 이미지 생성 로직을 GPT Image images.edit으로 교체
-- [x] 2. **입력**: 캐릭터 시트 (참조 이미지) + scene_description + 그림체 키워드
-- [x] 3. **출력**: 1024x1024 PNG 일러스트 (quality: medium)
-- [x] 4. 페이지별 일러스트 순차 생성 (전체 페이지 수만큼)
-- [x] 5. 이미지 재생성 (`POST /api/books/:id/pages/:pageId/regenerate-image`) 실제 AI 호출
-- [x] 6. 재생성 횟수 체크 (페이지당 최대 4회, 갤러리 방식)
-- [x] 7. **스토리 재생성 연쇄 처리**: 스토리 재생성 시 기존 페이지 삭제 → 새 일러스트 자동 생성 → image_regen_count 리셋
-- [x] 8. 생성 진행률 표시: 페이지별 로깅 (프론트엔드 진행률 바와 연동 가능)
-- [x] 9. 에러 처리: 콘텐츠 정책 위반/API 오류/키 미설정 → 더미 폴백
+- [x] **E2E 테스트**: 정보 입력 → 직업 → 스타일 → 그림체 → 캐릭터 생성 → 확정 → 줄거리 → AI 생성 → 편집 전체 흐름 동작 (TestE2EWizardFlow)
+- [x] **스토리 테마 선택 연결**: 테마 카드 클릭 시 해당 테마를 줄거리로 전달 → AI 스토리 생성에 반영 (step-plot.tsx에서 THEME_PLOTS 매핑 + TestThemePlotIntegration)
+- [x] **성향 테스트 UI**: "어떤 직업이 좋을지 모르겠어요" → 간단한 성향 질문 (5개) → 직업 추천 (규칙 기반) (aptitude-test.tsx + aptitude_test.py + aptitude.py API)
+- [x] **재생성 전체 흐름 테스트**: 캐릭터 4회 (TestRegeneration.test_character_regeneration_max_4), 스토리 3회 (test_story_regeneration_max_3), 이미지 페이지당 4회 (test_image_regeneration_max_4_per_page)
+- [x] **비용 모니터링 로그**: API 호출 횟수, 토큰 사용량 로깅 (cost_monitor.py + ai_story/ai_character/ai_illustration에 로깅 추가)
 
-## 구현 파일
-- `backend/app/services/ai_illustration.py` — **신규**: GPT Image 일러스트 생성 서비스
-- `backend/app/services/generate.py` — **수정**: AI 일러스트 연동, `_generate_page_illustration` 헬퍼
-- `backend/app/api/books.py` — **수정**: `regenerate_image`에 AI 호출 추가
-- `backend/tests/test_ai_illustration.py` — **신규**: 19개 테스트 (전부 mock, 실제 API 호출 없음)
+## 구현 내용
+
+### 백엔드
+1. **cost_monitor.py** — AI API 비용 모니터링 싱글톤 (호출 횟수, 토큰 수, 에러 추적)
+2. **ai_story.py** — GPT-4o 호출 성공/실패 시 cost_monitor에 로깅 추가
+3. **ai_character.py** — GPT Image 호출 성공/실패 시 cost_monitor에 로깅 추가
+4. **ai_illustration.py** — GPT Image 호출 성공/실패 시 cost_monitor에 로깅 추가
+5. **aptitude_test.py** — 규칙 기반 성향 테스트 서비스 (5개 질문, 5개 카테고리, 점수 계산)
+6. **aptitude.py API** — GET /api/aptitude/questions, POST /api/aptitude/result (비로그인 접근 가능)
+7. **test_integration_e2e.py** — 28개 테스트 (E2E, 테마 연결, 재생성, 성향 테스트, 비용 모니터링)
+
+### 프론트엔드
+1. **step-plot.tsx** — 3개 테마 카드("모험", "도움", "배움") 활성화, 클릭 시 줄거리 자동 생성
+2. **aptitude-test.tsx** — 성향 테스트 컴포넌트 (질문 UI, 결과 화면, 직업 추천)
+3. **step-job-select.tsx** — "어떤 직업이 좋을지 모르겠어요" 버튼을 성향 테스트 모달로 연결
 
 ## 특이사항
-- OPENAI_API_KEY가 환경에 설정되어 있으면 실제 GPT Image API 호출, 없으면 placeholder 이미지 폴백
-- AI 호출 실패 시에도 서비스 중단 없이 placeholder로 폴백
-- quality: medium 사용하여 비용 절약
-- 기존 test_generate.py의 일부 테스트 실패는 이번 태스크와 무관 — 환경에 OPENAI_API_KEY가 있어 GPT-4o API 429(quota exceeded) 발생
+- 모든 테스트에서 실제 OpenAI API 호출 없음 (전부 mock 또는 더미 폴백 사용)
+- 비용 모니터링은 로깅만 구현 (실제 과금 집계는 하지 않음)
+- 성향 테스트는 AI 호출 없이 규칙 기반으로 동작
+- 기존 test_generate.py의 일부 테스트가 실패하나, 이는 OpenAI API 쿼터 초과로 인한 pre-existing 이슈로 본 태스크와 무관

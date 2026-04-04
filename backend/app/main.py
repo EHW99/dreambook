@@ -15,6 +15,7 @@ from app.api.books import router as books_router
 from app.api.characters import router as characters_router
 from app.api.orders import router as orders_router
 from app.api.webhooks import router as webhooks_router
+from app.api.aptitude import router as aptitude_router
 from app.services.photo import ensure_upload_dir, UPLOAD_DIR
 
 settings = get_settings()
@@ -78,6 +79,7 @@ def create_app() -> FastAPI:
     app.include_router(characters_router, tags=["characters"])
     app.include_router(orders_router, tags=["orders"])
     app.include_router(webhooks_router, tags=["webhooks"])
+    app.include_router(aptitude_router, tags=["aptitude"])
 
     # 정적 파일 서빙 (업로드된 사진 접근용)
     ensure_upload_dir()

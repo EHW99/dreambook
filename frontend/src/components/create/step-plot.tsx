@@ -12,27 +12,37 @@ interface ThemeCard {
   available: boolean;
 }
 
+// 테마별 줄거리 템플릿 (jobName이 치환됨)
+const THEME_PLOTS: Record<string, (jobName: string) => string> = {
+  adventure: (jobName) =>
+    `${jobName}가 된 주인공이 신비로운 모험을 떠나요. 낯선 곳에서 어려운 문제를 만나지만, 용기를 내어 해결하고 멋진 ${jobName}로 성장하는 이야기예요.`,
+  helping: (jobName) =>
+    `${jobName}가 된 주인공이 도움이 필요한 사람들을 만나요. 따뜻한 마음으로 하나씩 도와주면서, ${jobName}의 보람을 느끼는 이야기예요.`,
+  learning: (jobName) =>
+    `${jobName}가 되고 싶은 주인공이 열심히 배우고 도전해요. 실수도 하지만 포기하지 않고, 마침내 멋진 ${jobName}가 되어가는 성장 이야기예요.`,
+};
+
 const THEME_CARDS: ThemeCard[] = [
   {
     id: "adventure",
     label: "모험 이야기",
     desc: "직업 세계를 탐험하는 흥미진진한 모험",
     icon: <Sparkles className="w-5 h-5" />,
-    available: false,
+    available: true,
   },
   {
     id: "helping",
     label: "도움 이야기",
     desc: "사람들을 돕는 따뜻한 하루",
     icon: <Sparkles className="w-5 h-5" />,
-    available: false,
+    available: true,
   },
   {
     id: "learning",
     label: "배움 이야기",
     desc: "직업에 대해 배우고 성장하는 이야기",
     icon: <Sparkles className="w-5 h-5" />,
-    available: false,
+    available: true,
   },
   {
     id: "custom",
@@ -62,6 +72,12 @@ export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
       return;
     }
     setSelectedTheme(theme.id);
+
+    // 테마 카드 클릭 시 해당 테마 줄거리를 plot_input에 설정
+    if (theme.id !== "custom" && THEME_PLOTS[theme.id]) {
+      const plot = THEME_PLOTS[theme.id](jobName || "직업");
+      onPlotChange(plot);
+    }
   }
 
   return (
@@ -135,6 +151,19 @@ export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
           className="text-center py-2 px-4 bg-warning/20 rounded-xl text-sm text-text"
         >
           {toast}
+        </motion.div>
+      )}
+
+      {/* 테마 선택 시 선택된 줄거리 미리보기 */}
+      {selectedTheme && selectedTheme !== "custom" && plotInput && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ duration: 0.3 }}
+          className="p-4 rounded-2xl bg-primary/5 border border-primary/20"
+        >
+          <p className="text-sm font-medium text-text mb-2">선택된 줄거리</p>
+          <p className="text-sm text-text-light leading-relaxed">{plotInput}</p>
         </motion.div>
       )}
 
