@@ -17,6 +17,8 @@ from app.services.photo import UPLOAD_DIR, ensure_upload_dir
 from app.services.ai_story import (
     generate_story_with_gpt_or_dummy,
     StoryGenerationError,
+    STORY_PAGE_COUNT,
+    TOTAL_BOOK_PAGES,
 )
 from app.services.ai_illustration import generate_illustration_or_dummy
 
@@ -147,15 +149,22 @@ def generate_story(
 ) -> List[Page]:
     """AI 또는 더미 스토리를 생성하여 pages + page_images 테이블에 삽입.
 
-    OPENAI_API_KEY가 설정되어 있으면 GPT-4o를 사용하고,
-    없으면 더미 스토리로 폴백한다.
+    24페이지 고정 구성:
+      p1: 제목 페이지 (title)
+      p2: 그림1, p3: 이야기1
+      p4: 그림2, p5: 이야기2
+      ...
+      p22: 그림11, p23: 이야기11
+      p24: 판권 (colophon)
+
+    LLM이 생성한 stories(11개)를 위 구조로 펼친다.
+    그림 페이지(짝수)에만 AI 일러스트를 생성한다.
 
     Raises:
         StoryGenerationError: AI 스토리 생성 실패 시
     """
     child_name = book.child_name
     job_name = book.job_name or "직업"
-    page_count = book.page_count or 24
     story_style = book.story_style or "dreaming_today"
     art_style = book.art_style
     plot_input = book.plot_input or ""
@@ -163,13 +172,12 @@ def generate_story(
     if book.child_birth_date:
         child_birth_date = str(book.child_birth_date)
 
-    # AI 또는 더미 스토리 생성
+    # AI 또는 더미 스토리 생성 (이야기 11개)
     story_data = generate_story_with_gpt_or_dummy(
         child_name=child_name,
         job_name=job_name,
         story_style=story_style,
         plot_input=plot_input,
-        page_count=page_count,
         art_style=art_style,
         child_birth_date=child_birth_date,
     )
@@ -183,61 +191,143 @@ def generate_story(
 
     pages = []
     now = datetime.now(timezone.utc)
-    total_pages = len(story_data["pages"])
+    title = story_data.get("title", f"{child_name}의 꿈 — 멋진 {job_name}")
+    stories = story_data.get("stories", [])
 
-    for idx, page_data in enumerate(story_data["pages"]):
-        page_number = page_data["page"]
-        page_type = page_data.get("page_type", "content")
-        text_content = page_data["text"]
-        scene_description = page_data.get("scene_description", "")
+    # ── p1: 제목 페이지 ──
+    title_page = Page(
+        book_id=book.id,
+        page_number=1,
+        page_type="title",
+        scene_description="",
+        text_content=title,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(title_page)
+    db.flush()
 
-        page = Page(
+    # 제목 페이지 이미지: 첫 번째 이야기의 scene_description 활용
+    first_scene = stories[0]["scene_description"] if stories else ""
+    title_image_path = _generate_page_illustration(
+        book=book,
+        page_number=1,
+        scene_description=first_scene,
+        text_content=title,
+        character_sheet_path=character_sheet_path,
+    )
+    db.add(PageImage(
+        page_id=title_page.id,
+        image_path=title_image_path,
+        generation_index=0,
+        is_selected=True,
+        created_at=now,
+    ))
+    pages.append(title_page)
+    logger.info(f"페이지 1/{TOTAL_BOOK_PAGES} (제목) 완료")
+
+    # ── p2~p23: [그림+이야기] × 11 ──
+    for i, entry in enumerate(stories[:STORY_PAGE_COUNT]):
+        story_num = i + 1
+        illust_page_num = 2 + i * 2      # 2, 4, 6, ..., 22
+        text_page_num = 3 + i * 2        # 3, 5, 7, ..., 23
+
+        scene_desc = entry.get("scene_description", "")
+        text_content = entry.get("text", "")
+
+        # 그림 페이지 (짝수)
+        illust_page = Page(
             book_id=book.id,
-            page_number=page_number,
-            page_type=page_type,
-            scene_description=scene_description,
-            text_content=text_content,
+            page_number=illust_page_num,
+            page_type="illustration",
+            scene_description=scene_desc,
+            text_content="",
             created_at=now,
             updated_at=now,
         )
-        db.add(page)
+        db.add(illust_page)
         db.flush()
 
-        # AI 일러스트 생성 시도 → 실패 시 placeholder 폴백
         image_path = _generate_page_illustration(
             book=book,
-            page_number=page_number,
-            scene_description=scene_description,
+            page_number=illust_page_num,
+            scene_description=scene_desc,
             text_content=text_content,
             character_sheet_path=character_sheet_path,
         )
-
-        image = PageImage(
-            page_id=page.id,
+        db.add(PageImage(
+            page_id=illust_page.id,
             image_path=image_path,
             generation_index=0,
             is_selected=True,
             created_at=now,
-        )
-        db.add(image)
-        pages.append(page)
+        ))
+        pages.append(illust_page)
 
-        logger.info(f"페이지 {page_number}/{total_pages} 일러스트 생성 완료")
+        # 이야기 페이지 (홀수)
+        story_page = Page(
+            book_id=book.id,
+            page_number=text_page_num,
+            page_type="story",
+            scene_description=scene_desc,
+            text_content=text_content,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(story_page)
+        db.flush()
+
+        # 이야기 페이지에도 같은 일러스트를 참조 (편집 시 배경으로 사용 가능)
+        db.add(PageImage(
+            page_id=story_page.id,
+            image_path=image_path,
+            generation_index=0,
+            is_selected=True,
+            created_at=now,
+        ))
+        pages.append(story_page)
+
+        logger.info(f"이야기 {story_num}/{STORY_PAGE_COUNT} (p{illust_page_num}-{text_page_num}) 완료")
+
+    # ── p24: 판권 페이지 ──
+    colophon_text = f"{title}\n\n지은이: {child_name}\n제작: AI 동화책 서비스 Dreambook"
+    colophon_page = Page(
+        book_id=book.id,
+        page_number=TOTAL_BOOK_PAGES,
+        page_type="colophon",
+        scene_description="",
+        text_content=colophon_text,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(colophon_page)
+    db.flush()
+
+    colophon_image_path = _create_placeholder_image(TOTAL_BOOK_PAGES, "판권", book.id)
+    db.add(PageImage(
+        page_id=colophon_page.id,
+        image_path=colophon_image_path,
+        generation_index=0,
+        is_selected=True,
+        created_at=now,
+    ))
+    pages.append(colophon_page)
+    logger.info(f"페이지 {TOTAL_BOOK_PAGES}/{TOTAL_BOOK_PAGES} (판권) 완료")
 
     # 책 상태 업데이트
     book.status = "editing"
     book.current_step = 9
-    book.title = story_data.get("title", f"{child_name}의 꿈 — 멋진 {job_name}")
+    book.title = title
+    book.page_count = TOTAL_BOOK_PAGES
     book.updated_at = now
 
     db.commit()
 
-    # 이미지 관계 로드를 위해 refresh
     for page in pages:
         db.refresh(page)
 
     return pages
 
 
-# 하위 호환성: 기존 코드에서 generate_dummy_story를 호출하는 경우를 위한 별칭
+# 하위 호환성
 generate_dummy_story = generate_story

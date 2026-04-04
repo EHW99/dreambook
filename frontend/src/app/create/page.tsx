@@ -292,18 +292,11 @@ function CreateWizardContent() {
         setError(result.error || "저장에 실패했습니다");
       }
     } else if (currentStep === 6) {
-      // 옵션 선택 유효성 검사
-      const validation = validateOptions(pageCount, bookSpecUid);
-      if (!validation.valid) {
-        setError(validation.error);
-        return;
-      }
-
-      // 서버 저장
+      // 24페이지 + SQUAREBOOK_HC 고정
       setSaving(true);
       const result = await apiClient.updateBook(book.id, {
-        page_count: pageCount,
-        book_spec_uid: bookSpecUid,
+        page_count: 24,
+        book_spec_uid: "SQUAREBOOK_HC",
         current_step: 7,
       });
       setSaving(false);

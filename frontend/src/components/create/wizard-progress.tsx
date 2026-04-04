@@ -9,7 +9,7 @@ const STEPS = [
   { number: 3, label: "동화 스타일" },
   { number: 4, label: "그림체" },
   { number: 5, label: "캐릭터" },
-  { number: 6, label: "옵션" },
+  { number: 6, label: "책 구성" },
   { number: 7, label: "줄거리" },
   { number: 8, label: "생성" },
   { number: 9, label: "편집" },
