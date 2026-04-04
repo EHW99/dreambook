@@ -43,6 +43,11 @@ export function Header() {
                 <>
                   {user ? (
                     <>
+                      {user.name && (
+                        <span className="px-2 py-1 text-xs text-text font-medium">
+                          {user.name}님
+                        </span>
+                      )}
                       <Link
                         href="/mypage"
                         className="px-3 py-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"

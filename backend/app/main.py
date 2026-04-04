@@ -28,6 +28,18 @@ async def lifespan(app: FastAPI):
     import app.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
 
+    # 기존 DB에 새 컬럼이 없으면 추가 (SQLite ALTER TABLE)
+    from sqlalchemy import inspect, text
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+        if "users" in inspector.get_table_names():
+            existing_cols = {c["name"] for c in inspector.get_columns("users")}
+            if "name" not in existing_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR(100) NOT NULL DEFAULT ''"))
+            if "phone" not in existing_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT ''"))
+            conn.commit()
+
     # 개발용 테스트 계정 시드
     from app.seed import run_seed
     run_seed()

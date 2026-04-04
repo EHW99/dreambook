@@ -73,10 +73,25 @@ def get_user_by_id(db: Session, user_id: int) -> User | None:
     return db.query(User).filter(User.id == user_id).first()
 
 
-def create_user(db: Session, email: str, password: str) -> User:
+def validate_phone(phone: str) -> bool:
+    """전화번호 형식 검증 (한국 휴대폰)"""
+    import re
+    # 010-1234-5678, 01012345678, 010 1234 5678 등 허용
+    cleaned = re.sub(r"[\s\-]", "", phone)
+    return bool(re.match(r"^01[016789]\d{7,8}$", cleaned))
+
+
+def validate_name(name: str) -> bool:
+    """이름 검증 (1~50자)"""
+    return 1 <= len(name.strip()) <= 50
+
+
+def create_user(db: Session, email: str, password: str, name: str, phone: str) -> User:
     user = User(
         email=email,
         password_hash=hash_password(password),
+        name=name.strip(),
+        phone=phone.strip(),
     )
     db.add(user)
     db.commit()

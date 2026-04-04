@@ -17,6 +17,8 @@ from app.schemas.auth import (
 from app.services.auth import (
     validate_email,
     validate_password,
+    validate_name,
+    validate_phone,
     get_user_by_email,
     get_user_by_id,
     create_user,
@@ -50,6 +52,20 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
             detail="비밀번호는 8자 이상이어야 합니다",
         )
 
+    # 이름 검증
+    if not validate_name(req.name):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="이름을 입력해주세요 (1~50자)",
+        )
+
+    # 전화번호 검증
+    if not validate_phone(req.phone):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="유효하지 않은 전화번호입니다",
+        )
+
     # 이메일 중복 검증
     if get_user_by_email(db, req.email):
         raise HTTPException(
@@ -57,7 +73,7 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
             detail="이미 가입된 이메일입니다",
         )
 
-    user = create_user(db, req.email, req.password)
+    user = create_user(db, req.email, req.password, req.name, req.phone)
     return user
 
 

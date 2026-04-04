@@ -77,6 +77,17 @@ function OrderContent() {
         if (estRes.data) {
           setEstimate(estRes.data);
         }
+
+        // 회원 정보로 수령인 기본값 채우기
+        const meRes = await apiClient.getMe();
+        if (meRes.data) {
+          if (!recipientName && meRes.data.name) {
+            setRecipientName(meRes.data.name);
+          }
+          if (!recipientPhone && meRes.data.phone) {
+            setRecipientPhone(meRes.data.phone);
+          }
+        }
       } catch {
         setError("데이터를 불러오는데 실패했습니다");
       } finally {

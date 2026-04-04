@@ -1,11 +1,23 @@
-"""사용자 서비스 — 비밀번호 변경, 회원 탈퇴"""
+"""사용자 서비스 — 프로필 수정, 비밀번호 변경, 회원 탈퇴"""
 import os
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.models.photo import Photo
 from app.services.auth import verify_password, hash_password
+
+
+def update_profile(db: Session, user: User, name: Optional[str] = None, phone: Optional[str] = None) -> User:
+    """프로필 정보 수정 (이름, 전화번호)"""
+    if name is not None:
+        user.name = name.strip()
+    if phone is not None:
+        user.phone = phone.strip()
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def change_password(db: Session, user: User, current_password: str, new_password: str) -> bool:

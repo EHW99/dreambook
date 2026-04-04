@@ -92,12 +92,12 @@ class ApiClient {
 
   // === Auth API ===
 
-  async signup(email: string, password: string) {
-    return this.request<{ id: number; email: string }>(
+  async signup(email: string, password: string, name: string, phone: string) {
+    return this.request<{ id: number; email: string; name: string; phone: string }>(
       "/api/auth/signup",
       {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, name, phone }),
       }
     );
   }
@@ -134,11 +134,30 @@ class ApiClient {
     return this.request<{
       id: number;
       email: string;
+      name: string;
+      phone: string;
       created_at: string;
     }>("/api/auth/me", {}, true);
   }
 
   // === Users API ===
+
+  async updateProfile(data: { name?: string; phone?: string }) {
+    return this.request<{
+      id: number;
+      email: string;
+      name: string;
+      phone: string;
+      created_at: string;
+    }>(
+      "/api/users/me",
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      },
+      true
+    );
+  }
 
   async changePassword(currentPassword: string, newPassword: string) {
     return this.request<{ message: string }>(

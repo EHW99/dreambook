@@ -16,17 +16,44 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
     passwordConfirm?: string;
+    name?: string;
+    phone?: string;
     general?: string;
   }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // 전화번호 입력 시 자동 하이픈 포맷
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  };
+
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
+
+    if (!name.trim()) {
+      newErrors.name = "이름을 입력해주세요";
+    } else if (name.trim().length > 50) {
+      newErrors.name = "이름은 최대 50자까지 입력 가능합니다";
+    }
+
+    if (!phone.trim()) {
+      newErrors.phone = "전화번호를 입력해주세요";
+    } else {
+      const digits = phone.replace(/\D/g, "");
+      if (!/^01[016789]\d{7,8}$/.test(digits)) {
+        newErrors.phone = "유효하지 않은 전화번호입니다";
+      }
+    }
 
     if (!email) {
       newErrors.email = "이메일을 입력해주세요";
@@ -55,7 +82,8 @@ export default function SignupPage() {
     setIsLoading(true);
     setErrors({});
 
-    const result = await signup(email, password);
+    const phoneDigits = phone.replace(/\D/g, "");
+    const result = await signup(email, password, name.trim(), phoneDigits);
 
     if (result.error) {
       setErrors({ general: result.error });
@@ -120,6 +148,37 @@ export default function SignupPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-text mb-1.5">
+                    이름
+                  </label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="보호자 이름을 입력해주세요"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    error={errors.name}
+                    disabled={isLoading}
+                    maxLength={50}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-text mb-1.5">
+                    전화번호
+                  </label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="010-0000-0000"
+                    value={phone}
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    error={errors.phone}
+                    disabled={isLoading}
+                  />
+                </div>
+
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-text mb-1.5">
                     이메일

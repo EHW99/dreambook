@@ -6,6 +6,8 @@ import { apiClient } from "@/lib/api";
 interface User {
   id: number;
   email: string;
+  name: string;
+  phone: string;
   created_at: string;
 }
 
@@ -13,7 +15,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error?: string }>;
-  signup: (email: string, password: string) => Promise<{ error?: string }>;
+  signup: (email: string, password: string, name: string, phone: string) => Promise<{ error?: string }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -54,8 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {};
   };
 
-  const signup = async (email: string, password: string) => {
-    const result = await apiClient.signup(email, password);
+  const signup = async (email: string, password: string, name: string, phone: string) => {
+    const result = await apiClient.signup(email, password, name, phone);
     if (result.error) {
       return { error: result.error };
     }

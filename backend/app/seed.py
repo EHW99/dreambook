@@ -14,6 +14,8 @@ from app.services.photo import UPLOAD_DIR, ensure_upload_dir
 
 DEV_EMAIL = "dev@test.com"
 DEV_PASSWORD = "12345678"
+DEV_NAME = "체험사용자"
+DEV_PHONE = "01012345678"
 
 # samples/ 폴더 경로 (sweetbook/ 기준)
 SAMPLES_DIR = os.path.join(
@@ -31,6 +33,8 @@ def seed_dev_account(db: Session) -> User:
     user = User(
         email=DEV_EMAIL,
         password_hash=hash_password(DEV_PASSWORD),
+        name=DEV_NAME,
+        phone=DEV_PHONE,
     )
     db.add(user)
     db.commit()
