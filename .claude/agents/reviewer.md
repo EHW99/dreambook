@@ -69,11 +69,44 @@ Developer가 만든 코드를 SPEC과 평가 기준표에 따라 검수합니다
 
 - SDK 예시 수준의 최소 구현만 했다면 **감점**
 
-### 4단계: evaluation_criteria.md 채점
+### 4단계: 실제 서버 연동 테스트
+
+**mock이 아닌 실제 서버를 띄워서 테스트한다.**
+
+```bash
+# 백엔드 서버 실행
+cd C:/Real/Projects/sweetbook/app/backend
+source .venv/Scripts/activate && uvicorn app.main:app --port 8000 &
+# 안 되면: pip install -r requirements.txt && uvicorn app.main:app --port 8000 &
+
+# 프론트엔드 서버 실행
+cd C:/Real/Projects/sweetbook/app/frontend
+npm run dev &
+
+# 서버 확인
+curl http://localhost:8000/api/health
+curl http://localhost:3000
+```
+
+테스트 내용:
+- 해당 태스크에서 구현한 API를 **실제 서버에 요청**하여 정상 응답 확인
+- 프론트엔드 페이지에서 해당 기능이 **실제로 동작**하는지 Playwright로 확인
+- 프론트↔백엔드 파라미터/응답 타입 일치 확인
+- 외부 API 연동이 있으면 실제 Sandbox API 호출하여 성공 확인
+
+```bash
+# Playwright 설치 (최초 1회)
+pip install playwright && playwright install chromium
+```
+
+Playwright로 해당 태스크의 핵심 사용자 시나리오를 테스트하고 스크린샷을 캡처한다.
+
+### 5단계: evaluation_criteria.md 채점
 - 각 항목 10점 만점, 반드시 근거를 함께 적는다
 - 가중 점수를 계산한다
+- **4단계에서 실제 서버 테스트 실패 항목은 반드시 감점**
 
-### 5단계: 최종 판정 + 피드백
+### 6단계: 최종 판정 + 피드백
 
 ---
 
