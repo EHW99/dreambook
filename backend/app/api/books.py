@@ -18,6 +18,7 @@ from app.schemas.audiobook import AudioBookData, AudioPageData
 from app.services.book import create_book, get_book_by_id, get_books_by_user, update_book, delete_book
 from app.services.generate import generate_story
 from app.services.ai_story import StoryGenerationError
+from app.services.ai_illustration import generate_illustration_or_dummy
 from app.services.voucher import get_voucher_by_id, use_voucher
 
 router = APIRouter(prefix="/api/books")
@@ -331,18 +332,50 @@ def regenerate_image(
         )
 
     from datetime import datetime, timezone
+    import os
     now = datetime.now(timezone.utc)
 
     # 기존 이미지 모두 선택 해제
     for img in page.images:
         img.is_selected = False
 
-    # 새 더미 이미지 추가 — 실제 PNG 파일 생성
-    from app.services.generate import _create_placeholder_image
     new_index = len(page.images)
-    image_path = _create_placeholder_image(
-        page.page_number, f"Regen v{new_index}", book.id
-    )
+
+    # AI 일러스트 생성 시도
+    image_path = None
+
+    # 캐릭터 시트 조회
+    from app.models.character_sheet import CharacterSheet
+    selected_char = db.query(CharacterSheet).filter(
+        CharacterSheet.book_id == book.id,
+        CharacterSheet.is_selected == True,
+    ).first()
+    char_path = selected_char.image_path if selected_char else None
+
+    if page.scene_description:
+        ai_bytes = generate_illustration_or_dummy(
+            character_sheet_path=char_path or "",
+            scene_description=page.scene_description,
+            art_style=book.art_style or "watercolor",
+            child_name=book.child_name,
+            job_name=book.job_name or "직업",
+        )
+        if ai_bytes:
+            from app.services.photo import UPLOAD_DIR, ensure_upload_dir
+            ensure_upload_dir()
+            filename = f"ai_illust_book{book.id}_page{page.page_number}_v{new_index}.png"
+            filepath = os.path.join(UPLOAD_DIR, filename)
+            with open(filepath, "wb") as f:
+                f.write(ai_bytes)
+            image_path = filepath
+
+    # AI 실패 시 placeholder 폴백
+    if not image_path:
+        from app.services.generate import _create_placeholder_image
+        image_path = _create_placeholder_image(
+            page.page_number, f"Regen v{new_index}", book.id
+        )
+
     new_image = PageImage(
         page_id=page.id,
         image_path=image_path,

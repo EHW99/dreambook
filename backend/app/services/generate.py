@@ -1,12 +1,12 @@
 """동화책 스토리/이미지 생성 서비스
 
-Phase 3: GPT-4o를 사용한 AI 스토리 생성 (OPENAI_API_KEY 필요)
-폴백: API 키 없으면 더미 스토리 반환
+Phase 3: GPT-4o 스토리 + GPT Image 일러스트 생성
+폴백: API 키 없으면 더미 스토리 + placeholder 이미지
 """
 import logging
 import os
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -18,6 +18,7 @@ from app.services.ai_story import (
     generate_story_with_gpt_or_dummy,
     StoryGenerationError,
 )
+from app.services.ai_illustration import generate_illustration_or_dummy
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,71 @@ PLACEHOLDER_COLORS = [
     (255, 228, 196),  # bisque
     (175, 238, 238),  # pale turquoise
 ]
+
+
+def _get_selected_character_sheet_path(db: Session, book_id: int) -> Optional[str]:
+    """확정된 캐릭터 시트의 이미지 경로를 반환한다."""
+    from app.models.character_sheet import CharacterSheet
+    selected = db.query(CharacterSheet).filter(
+        CharacterSheet.book_id == book_id,
+        CharacterSheet.is_selected == True,
+    ).first()
+    if selected:
+        return selected.image_path
+    return None
+
+
+def _generate_page_illustration(
+    book: Book,
+    page_number: int,
+    scene_description: str,
+    text_content: str,
+    character_sheet_path: Optional[str],
+) -> str:
+    """AI 일러스트를 시도하고, 실패하면 placeholder를 생성한다.
+
+    Returns:
+        저장된 이미지의 파일 경로
+    """
+    ensure_upload_dir()
+
+    # 캐릭터 시트가 있고 scene_description이 있으면 AI 일러스트 시도
+    if character_sheet_path and scene_description and os.path.exists(character_sheet_path):
+        ai_bytes = generate_illustration_or_dummy(
+            character_sheet_path=character_sheet_path,
+            scene_description=scene_description,
+            art_style=book.art_style or "watercolor",
+            child_name=book.child_name,
+            job_name=book.job_name or "직업",
+        )
+
+        if ai_bytes:
+            # AI 일러스트 성공 — 파일 저장
+            filename = f"ai_illust_book{book.id}_page{page_number}.png"
+            filepath = os.path.join(UPLOAD_DIR, filename)
+            with open(filepath, "wb") as f:
+                f.write(ai_bytes)
+            return filepath
+    else:
+        # 캐릭터 시트가 없어도 AI 일러스트 시도 (scene_description만으로)
+        if scene_description:
+            ai_bytes = generate_illustration_or_dummy(
+                character_sheet_path=character_sheet_path or "",
+                scene_description=scene_description,
+                art_style=book.art_style or "watercolor",
+                child_name=book.child_name,
+                job_name=book.job_name or "직업",
+            )
+            if ai_bytes:
+                filename = f"ai_illust_book{book.id}_page{page_number}.png"
+                filepath = os.path.join(UPLOAD_DIR, filename)
+                with open(filepath, "wb") as f:
+                    f.write(ai_bytes)
+                return filepath
+
+    # 폴백: placeholder 이미지
+    label = text_content[:30] if text_content else f"Page {page_number}"
+    return _create_placeholder_image(page_number, label, book.id)
 
 
 def _create_placeholder_image(page_number: int, label: str, book_id: int) -> str:
@@ -112,10 +178,14 @@ def generate_story(
     db.query(Page).filter(Page.book_id == book.id).delete()
     db.flush()
 
+    # 확정된 캐릭터 시트 경로 조회
+    character_sheet_path = _get_selected_character_sheet_path(db, book.id)
+
     pages = []
     now = datetime.now(timezone.utc)
+    total_pages = len(story_data["pages"])
 
-    for page_data in story_data["pages"]:
+    for idx, page_data in enumerate(story_data["pages"]):
         page_number = page_data["page"]
         page_type = page_data.get("page_type", "content")
         text_content = page_data["text"]
@@ -133,9 +203,15 @@ def generate_story(
         db.add(page)
         db.flush()
 
-        # placeholder 이미지 생성
-        label = text_content[:30] if text_content else f"Page {page_number}"
-        image_path = _create_placeholder_image(page_number, label, book.id)
+        # AI 일러스트 생성 시도 → 실패 시 placeholder 폴백
+        image_path = _generate_page_illustration(
+            book=book,
+            page_number=page_number,
+            scene_description=scene_description,
+            text_content=text_content,
+            character_sheet_path=character_sheet_path,
+        )
+
         image = PageImage(
             page_id=page.id,
             image_path=image_path,
@@ -145,6 +221,8 @@ def generate_story(
         )
         db.add(image)
         pages.append(page)
+
+        logger.info(f"페이지 {page_number}/{total_pages} 일러스트 생성 완료")
 
     # 책 상태 업데이트
     book.status = "editing"
