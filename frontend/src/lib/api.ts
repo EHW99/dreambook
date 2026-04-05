@@ -241,13 +241,29 @@ class ApiClient {
     return this.request<VoucherItem[]>("/api/vouchers", {}, true);
   }
 
-  async purchaseVoucher() {
-    return this.request<VoucherItem>(
+  async getVoucherSummary() {
+    return this.request<VoucherSummary>("/api/vouchers/summary", {}, true);
+  }
+
+  async getPayments() {
+    return this.request<PaymentItem[]>("/api/vouchers/payments", {}, true);
+  }
+
+  async purchaseVoucher(quantity: number = 1, paymentMethod: string = "card") {
+    return this.request<PurchaseResult>(
       "/api/vouchers/purchase",
       {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({ quantity, payment_method: paymentMethod }),
       },
+      true
+    );
+  }
+
+  async refundVoucher(voucherId: number) {
+    return this.request<VoucherItem>(
+      `/api/vouchers/${voucherId}/refund`,
+      { method: "POST" },
       true
     );
   }
@@ -453,8 +469,33 @@ export interface VoucherItem {
   price: number;
   status: string;
   book_id: number | null;
+  payment_id: number | null;
   purchased_at: string;
   used_at: string | null;
+  book_title: string | null;
+}
+
+export interface VoucherSummary {
+  available: number;
+  used: number;
+  refunded: number;
+  total: number;
+}
+
+export interface PaymentItem {
+  id: number;
+  amount: number;
+  quantity: number;
+  payment_method: string;
+  status: string;
+  merchant_uid: string;
+  paid_at: string;
+  refunded_at: string | null;
+}
+
+export interface PurchaseResult {
+  payment: PaymentItem;
+  vouchers: VoucherItem[];
 }
 
 export interface BookItem {

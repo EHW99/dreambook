@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Check, X } from "lucide-react";
+import { BookOpen, Check, X, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api";
 
@@ -19,9 +20,9 @@ export function VoucherModal({ open, onClose, onPurchased }: VoucherModalProps) 
   async function handlePurchase() {
     setPurchasing(true);
     setError("");
-    const result = await apiClient.purchaseVoucher();
+    const result = await apiClient.purchaseVoucher(1, "card");
     if (result.data) {
-      onPurchased(result.data.id);
+      onPurchased(result.data.vouchers[0].id);
     } else {
       setError(result.error || "구매에 실패했습니다");
     }
@@ -64,13 +65,14 @@ export function VoucherModal({ open, onClose, onPurchased }: VoucherModalProps) 
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-7 h-7 text-primary" />
               </div>
-              <h2 className="text-xl font-bold text-text mb-1">동화책 이용권</h2>
-              <p className="text-sm text-text-light">이용권을 구매하면 동화책을 만들 수 있어요</p>
+              <h2 className="text-xl font-bold text-text mb-1">이용권이 필요해요</h2>
+              <p className="text-sm text-text-light">동화책을 만들려면 이용권이 필요합니다</p>
             </div>
 
             <div className="text-center mb-5">
               <span className="text-3xl font-bold text-text">9,900</span>
               <span className="text-text-light ml-1">원</span>
+              <span className="text-text-lighter text-xs ml-1">/ 1장</span>
             </div>
 
             <ul className="space-y-2.5 mb-6">
@@ -104,8 +106,17 @@ export function VoucherModal({ open, onClose, onPurchased }: VoucherModalProps) 
               onClick={handlePurchase}
               disabled={purchasing}
             >
-              {purchasing ? "구매 중..." : "구매하기"}
+              {purchasing ? "결제 처리 중..." : "바로 구매하기"}
             </Button>
+
+            <Link
+              href="/mypage/vouchers"
+              onClick={onClose}
+              className="flex items-center justify-center gap-1.5 mt-3 text-sm text-text-light hover:text-text transition-colors"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              이용권 관리 페이지로 이동
+            </Link>
           </motion.div>
         </motion.div>
       )}

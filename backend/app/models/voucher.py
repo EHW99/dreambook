@@ -11,12 +11,14 @@ class Voucher(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    payment_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("payments.id"), nullable=True)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), default="purchased")
+    status: Mapped[str] = mapped_column(String(20), default="purchased")  # purchased, used, refunded
     book_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("books.id", use_alter=True), nullable=True)
     purchased_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     user = relationship("User", back_populates="vouchers")
+    payment = relationship("Payment", back_populates="vouchers")
     book = relationship("Book", foreign_keys=[book_id], uselist=False)

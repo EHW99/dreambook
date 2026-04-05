@@ -5,6 +5,7 @@ from app.models.character_sheet import CharacterSheet
 from app.models.page import Page
 from app.models.page_image import PageImage
 from app.models.voucher import Voucher
+from app.models.payment import Payment
 from app.models.order import Order
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "Page",
     "PageImage",
     "Voucher",
+    "Payment",
     "Order",
 ]

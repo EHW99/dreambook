@@ -20,4 +20,5 @@ class User(Base):
     photos = relationship("Photo", back_populates="user", cascade="all, delete-orphan")
     books = relationship("Book", back_populates="user", cascade="all, delete-orphan")
     vouchers = relationship("Voucher", back_populates="user", cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
