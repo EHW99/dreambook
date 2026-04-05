@@ -110,7 +110,7 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
   };
 
   const handleCreateNew = () => {
-    router.push("/vouchers");
+    router.push("/create");
   };
 
   if (loading) {

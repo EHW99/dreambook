@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.voucher import Voucher
 
-VOUCHER_PRICE = 29900  # 동화책 이용권 (실물 책 포함)
+VOUCHER_PRICE = 9900  # AI 동화책 생성 이용권 (실물 책 별도)
 
 
 def get_vouchers_by_user(db: Session, user_id: int) -> List[Voucher]:

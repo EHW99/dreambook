@@ -102,15 +102,16 @@ const ART_STYLES = [
 
 const PRICING = {
   name: "동화책 이용권",
-  price: "29,900",
-  description: "AI 동화책 생성 + 실물 하드커버 책 배송",
+  price: "9,900",
+  description: "AI가 만드는 나만의 동화책",
   features: [
     "AI 맞춤 동화 스토리 11편",
+    "AI 일러스트 생성",
     "5가지 그림체 선택",
-    "디지털 동화책 뷰어 + 오디오북",
-    "하드커버 실물 책 인쇄 (243×248mm, 24p)",
-    "무료 배송",
+    "디지털 동화책 뷰어",
+    "오디오북 기능",
   ],
+  note: "실물 책 인쇄 및 배송은 별도 요금이 발생합니다",
 };
 
 /* ───────── 메인 페이지 ───────── */
@@ -359,6 +360,9 @@ export default function LandingPage() {
                       </li>
                     ))}
                   </ul>
+                  <p className="text-xs text-text-lighter text-center mb-5">
+                    {PRICING.note}
+                  </p>
                   <Link
                     href={ctaHref}
                     className="block w-full text-center py-3 rounded-2xl font-medium transition-all duration-200 bg-primary text-white hover:bg-primary-dark shadow-soft hover:shadow-hover"

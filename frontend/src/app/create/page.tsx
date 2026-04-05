@@ -14,6 +14,7 @@ import { StepCharacterPreview } from "@/components/create/step-character-preview
 import { StepOptions, validateOptions } from "@/components/create/step-options";
 import { StepPlot, validatePlot } from "@/components/create/step-plot";
 import { StepGenerating } from "@/components/create/step-generating";
+import { VoucherModal } from "@/components/voucher-modal";
 import { apiClient, BookItem, VoucherItem } from "@/lib/api";
 
 // 위자드 스텝: 1.정보 → 2.직업 → 3.그림체 → 4.캐릭터 → 5.책구성 → 6.줄거리 → 7.생성 → 8.편집
@@ -69,6 +70,9 @@ function CreateWizardContent() {
   // 생성 상태
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // 이용권 모달
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+
   // 임시 데이터 ref (StepInfoInput에서 업데이트)
   const pendingUpdate = useRef<{ child_name?: string; child_birth_date?: string; photo_id?: number }>({});
 
@@ -123,8 +127,9 @@ function CreateWizardContent() {
         (v: VoucherItem) => v.status === "purchased"
       );
       if (available.length === 0) {
-        // 이용권 없음 → 구매 페이지로
-        router.replace("/vouchers");
+        // 이용권 없음 → 모달 표시
+        setShowVoucherModal(true);
+        setLoading(false);
         return;
       }
       // 이용권 있으면 첫 번째 것으로 동화책 생성
@@ -552,6 +557,26 @@ function CreateWizardContent() {
           </div>
         </div>
       )}
+
+      {/* 이용권 구매 모달 */}
+      <VoucherModal
+        open={showVoucherModal}
+        onClose={() => {
+          setShowVoucherModal(false);
+          router.push("/");
+        }}
+        onPurchased={async (voucherId) => {
+          setShowVoucherModal(false);
+          setLoading(true);
+          const result = await apiClient.createBook(voucherId);
+          if (result.data) {
+            loadBookState(result.data);
+          } else {
+            setError(result.error || "동화책 생성에 실패했습니다");
+          }
+          setLoading(false);
+        }}
+      />
     </div>
   );
 }
