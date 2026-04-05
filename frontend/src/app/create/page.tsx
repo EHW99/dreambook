@@ -9,14 +9,13 @@ import { Button } from "@/components/ui/button";
 import { WizardProgress } from "@/components/create/wizard-progress";
 import { StepInfoInput, validateInfoInput } from "@/components/create/step-info-input";
 import { StepJobSelect, validateJobSelect } from "@/components/create/step-job-select";
-import { StepArtStyle, validateArtStyle } from "@/components/create/step-art-style";
-import { StepCharacterPreview } from "@/components/create/step-character-preview";
-import { StepOptions, validateOptions } from "@/components/create/step-options";
+import { validateArtStyle } from "@/components/create/step-art-style";
+import { StepArtAndCharacter } from "@/components/create/step-art-and-character";
 import { StepPlot, validatePlot } from "@/components/create/step-plot";
 import { StepGenerating } from "@/components/create/step-generating";
 import { apiClient, BookItem } from "@/lib/api";
 
-// 위자드 스텝: 1.정보 → 2.직업 → 3.그림체 → 4.캐릭터 → 5.책구성 → 6.줄거리 → 7.생성 → 8.편집
+// 위자드 스텝: 1.정보 → 2.직업 → 3.스타일+캐릭터 → 4.줄거리 → 5.생성 → 6.편집
 
 function CreateWizardContent() {
   const router = useRouter();
@@ -142,7 +141,7 @@ function CreateWizardContent() {
     setBookSpecUid(bookData.book_spec_uid || "SQUAREBOOK_HC");
     setPlotInput(bookData.plot_input || "");
     // 캐릭터 확정 상태는 status로 판단
-    setCharacterConfirmed(bookData.status === "character_confirmed" || bookData.current_step > 4);
+    setCharacterConfirmed(bookData.status === "character_confirmed" || bookData.current_step > 3);
     // 생성 중 상태 복원
     setIsGenerating(bookData.status === "generating");
   }
@@ -214,7 +213,7 @@ function CreateWizardContent() {
         setError(result.error || "저장에 실패했습니다");
       }
     } else if (currentStep === 3) {
-      // 그림체 유효성 검사
+      // 그림체 + 캐릭터 — 둘 다 필요
       const validation = validateArtStyle(artStyle);
       if (!validation.valid) {
         setStyleError(validation.error || null);
@@ -222,11 +221,16 @@ function CreateWizardContent() {
       }
       setStyleError(null);
 
-      // 서버 저장
+      if (!characterConfirmed) {
+        setError("캐릭터를 확정해주세요");
+        return;
+      }
+
       setSaving(true);
       const result = await apiClient.updateBook(book.id, {
         art_style: artStyle,
         current_step: 4,
+        status: "character_confirmed",
       });
       setSaving(false);
 
@@ -237,49 +241,6 @@ function CreateWizardContent() {
         setError(result.error || "저장에 실패했습니다");
       }
     } else if (currentStep === 4) {
-      // 캐릭터 미리보기 — 확정 필요
-      if (!characterConfirmed) {
-        setError("캐릭터를 확정해주세요");
-        return;
-      }
-
-      // 서버 저장
-      setSaving(true);
-      const result = await apiClient.updateBook(book.id, {
-        current_step: 5,
-        status: "character_confirmed",
-      });
-      setSaving(false);
-
-      if (result.data) {
-        loadBookState(result.data);
-        setCurrentStep(5);
-      } else {
-        setError(result.error || "저장에 실패했습니다");
-      }
-    } else if (currentStep === 5) {
-      // 책 구성 — 판형 선택 + 24p 고정
-      const validation = validateOptions(pageCount, bookSpecUid);
-      if (!validation.valid) {
-        setError(validation.error);
-        return;
-      }
-
-      setSaving(true);
-      const result = await apiClient.updateBook(book.id, {
-        page_count: 24,
-        book_spec_uid: bookSpecUid,
-        current_step: 6,
-      });
-      setSaving(false);
-
-      if (result.data) {
-        loadBookState(result.data);
-        setCurrentStep(6);
-      } else {
-        setError(result.error || "저장에 실패했습니다");
-      }
-    } else if (currentStep === 6) {
       // 줄거리 유효성 검사
       const validation = validatePlot(plotInput);
       if (!validation.valid) {
@@ -287,17 +248,19 @@ function CreateWizardContent() {
         return;
       }
 
-      // 줄거리 저장
+      // 줄거리 + 책구성 저장
       setSaving(true);
       const result = await apiClient.updateBook(book.id, {
         plot_input: plotInput.trim(),
-        current_step: 7,
+        page_count: 24,
+        book_spec_uid: bookSpecUid,
+        current_step: 5,
       });
       setSaving(false);
 
       if (result.data) {
         loadBookState(result.data);
-        setCurrentStep(7);
+        setCurrentStep(5);
         setIsGenerating(true);
       } else {
         setError(result.error || "저장에 실패했습니다");
@@ -307,7 +270,7 @@ function CreateWizardContent() {
 
   // 뒤로가기
   function handleBack() {
-    if (currentStep === 7 && isGenerating) {
+    if (currentStep === 5 && isGenerating) {
       return;
     }
     setError(null);
@@ -401,55 +364,41 @@ function CreateWizardContent() {
               onSelect={handleJobSelect}
             />
           )}
-          {currentStep === 3 && (
-            <StepArtStyle
+          {currentStep === 3 && book && (
+            <StepArtAndCharacter
               key="step-3"
-              selected={artStyle}
-              onSelect={(style) => {
+              bookId={book.id}
+              artStyle={artStyle}
+              characterRegenCount={book.character_regen_count}
+              onArtStyleChange={(style) => {
                 setArtStyle(style);
                 setStyleError(null);
               }}
-            />
-          )}
-          {currentStep === 4 && book && (
-            <StepCharacterPreview
-              key="step-4"
-              bookId={book.id}
-              characterRegenCount={book.character_regen_count}
+              onArtStyleSaved={async () => {
+                const result = await apiClient.getBook(book.id);
+                if (result.data) loadBookState(result.data);
+              }}
               onConfirm={async () => {
                 const result = await apiClient.getBook(book.id);
-                if (result.data) {
-                  loadBookState(result.data);
-                }
+                if (result.data) loadBookState(result.data);
                 setCharacterConfirmed(true);
               }}
               onRegenCountUpdate={(count) => {
-                if (book) {
-                  setBook({ ...book, character_regen_count: count });
-                }
+                if (book) setBook({ ...book, character_regen_count: count });
               }}
             />
           )}
-          {currentStep === 5 && (
-            <StepOptions
-              key="step-5"
-              pageCount={pageCount}
-              bookSpecUid={bookSpecUid}
-              onPageCountChange={setPageCount}
-              onBookSpecChange={setBookSpecUid}
-            />
-          )}
-          {currentStep === 6 && (
+          {currentStep === 4 && (
             <StepPlot
-              key="step-6"
+              key="step-4"
               plotInput={plotInput}
               jobName={book?.job_name || null}
               onPlotChange={setPlotInput}
             />
           )}
-          {currentStep === 7 && book && isGenerating && (
+          {currentStep === 5 && book && isGenerating && (
             <StepGenerating
-              key="step-7"
+              key="step-5"
               bookId={book.id}
               onComplete={async () => {
                 setIsGenerating(false);
@@ -458,7 +407,7 @@ function CreateWizardContent() {
               onError={(msg) => {
                 setIsGenerating(false);
                 setError(msg);
-                setCurrentStep(6); // 줄거리로 복귀
+                setCurrentStep(4); // 줄거리로 복귀
               }}
             />
           )}
@@ -496,21 +445,10 @@ function CreateWizardContent() {
           </motion.div>
         )}
 
-        {currentStep === 3 && styleError && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-4 p-3 bg-error/10 border border-error/20 rounded-xl"
-          >
-            <p className="text-sm text-error-dark flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" /> {styleError}
-            </p>
-          </motion.div>
-        )}
       </div>
 
       {/* 하단 네비게이션 — 생성 중에는 숨김 */}
-      {!(currentStep === 7 && isGenerating) && (
+      {!(currentStep === 5 && isGenerating) && (
         <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm border-t border-secondary/30">
           <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
             <Button variant="ghost" onClick={handleBack} className="gap-2">
@@ -520,7 +458,7 @@ function CreateWizardContent() {
 
             <Button
               onClick={handleNext}
-              disabled={saving || (currentStep === 4 && !characterConfirmed)}
+              disabled={saving || (currentStep === 3 && !characterConfirmed)}
               className="gap-2"
             >
               {saving ? (
@@ -528,7 +466,7 @@ function CreateWizardContent() {
                   <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                   저장 중...
                 </>
-              ) : currentStep === 6 ? (
+              ) : currentStep === 4 ? (
                 <>
                   <Sparkles className="w-4 h-4" />
                   동화책 생성하기

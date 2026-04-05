@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, PenLine, Lock } from "lucide-react";
+import { Sparkles, PenLine, Lock, BookOpen, Ruler, Layers } from "lucide-react";
+import { apiClient, BookSpecItem } from "@/lib/api";
 
 interface ThemeCard {
   id: string;
@@ -64,6 +65,18 @@ export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
     plotInput ? "custom" : ""
   );
   const [toast, setToast] = useState<string | null>(null);
+  const [bookSpec, setBookSpec] = useState<BookSpecItem | null>(null);
+
+  useEffect(() => {
+    async function loadSpec() {
+      const result = await apiClient.getBookSpecs();
+      if (result.data) {
+        const found = result.data.find((s) => s.uid === "SQUAREBOOK_HC");
+        if (found) setBookSpec(found);
+      }
+    }
+    loadSpec();
+  }, []);
 
   function handleThemeClick(theme: ThemeCard) {
     if (!theme.available) {
@@ -95,6 +108,43 @@ export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
             ? `${jobName} 동화의 줄거리를 선택하거나 직접 써 보세요`
             : "동화의 줄거리를 선택하거나 직접 써 보세요"}
         </p>
+      </div>
+
+      {/* 책 정보 */}
+      <div className="rounded-2xl border border-secondary/40 bg-white overflow-hidden">
+        <div className="px-4 py-3 bg-secondary/10 border-b border-secondary/20">
+          <p className="text-xs font-medium text-text-light flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5" />
+            이런 동화책이 만들어져요
+          </p>
+        </div>
+        <div className="px-4 py-3 space-y-2.5">
+          <div className="flex items-center gap-2.5">
+            <Ruler className="w-4 h-4 text-primary flex-shrink-0" />
+            <div className="text-sm">
+              <span className="font-medium text-text">{bookSpec?.name || "정사각형 하드커버"}</span>
+              {bookSpec && (
+                <span className="text-text-light"> · {bookSpec.width_mm}×{bookSpec.height_mm}mm</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Layers className="w-4 h-4 text-primary flex-shrink-0" />
+            <div className="text-sm">
+              <span className="font-medium text-text">{bookSpec?.cover_type || "하드커버"}</span>
+              {bookSpec?.binding_type && (
+                <span className="text-text-light"> · {bookSpec.binding_type}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <BookOpen className="w-4 h-4 text-primary flex-shrink-0" />
+            <span className="text-sm text-text">
+              <span className="font-medium">24페이지</span>
+              <span className="text-text-light"> · 제목 1p + 이야기 11편 + 판권 1p</span>
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* 테마 카드들 */}

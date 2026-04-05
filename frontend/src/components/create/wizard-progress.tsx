@@ -4,14 +4,12 @@ import { Check } from "lucide-react";
 import { motion } from "framer-motion";
 
 const STEPS = [
-  { number: 1, label: "정보 입력" },
-  { number: 2, label: "직업 선택" },
-  { number: 3, label: "그림체" },
-  { number: 4, label: "캐릭터" },
-  { number: 5, label: "책 구성" },
-  { number: 6, label: "줄거리" },
-  { number: 7, label: "생성" },
-  { number: 8, label: "편집" },
+  { number: 1, label: "정보" },
+  { number: 2, label: "직업" },
+  { number: 3, label: "스타일" },
+  { number: 4, label: "줄거리" },
+  { number: 5, label: "생성" },
+  { number: 6, label: "편집" },
 ];
 
 interface WizardProgressProps {
@@ -20,16 +18,14 @@ interface WizardProgressProps {
 
 export function WizardProgress({ currentStep }: WizardProgressProps) {
   return (
-    <div className="w-full overflow-x-auto pb-2">
-      <div className="flex items-center justify-center min-w-[600px] px-4">
+    <div className="w-full overflow-x-auto pb-2 -mx-2 px-2">
+      <div className="flex items-center justify-between min-w-[360px] sm:min-w-0">
         {STEPS.map((step, index) => {
           const isCompleted = currentStep > step.number;
           const isCurrent = currentStep === step.number;
-          const isUpcoming = currentStep < step.number;
 
           return (
             <div key={step.number} className="flex items-center">
-              {/* Step circle */}
               <div className="flex flex-col items-center">
                 <motion.div
                   initial={false}
@@ -68,10 +64,9 @@ export function WizardProgress({ currentStep }: WizardProgressProps) {
                 </span>
               </div>
 
-              {/* Connector line */}
               {index < STEPS.length - 1 && (
                 <div
-                  className={`w-6 h-0.5 mx-1 mt-[-14px] ${
+                  className={`w-6 sm:w-10 h-0.5 mx-1 mt-[-14px] ${
                     isCompleted ? "bg-success" : "bg-secondary"
                   }`}
                 />
