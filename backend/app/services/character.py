@@ -58,7 +58,6 @@ def _generate_ai_character(db: Session, book: Book) -> Optional[str]:
     # 그림체 및 직업 정보
     art_style = book.art_style or "watercolor"
     job_name = book.job_name or "소방관"
-    story_style = book.story_style or "dreaming_today"
 
     try:
         from app.services.ai_character import generate_character_image, CharacterGenerationError
@@ -67,7 +66,6 @@ def _generate_ai_character(db: Session, book: Book) -> Optional[str]:
             photo_path=photo.file_path,
             art_style=art_style,
             job_name=job_name,
-            story_style=story_style,
         )
 
         # 파일 저장

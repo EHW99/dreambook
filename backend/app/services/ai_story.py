@@ -121,7 +121,7 @@ FEW_SHOT_CHEF = """{
 }"""
 
 
-def _build_system_prompt(story_style: str, art_style: Optional[str] = None) -> str:
+def _build_system_prompt(art_style: Optional[str] = None) -> str:
     """시스템 프롬프트 구성"""
     art_keywords = ART_STYLE_KEYWORDS.get(art_style, "")
 
@@ -131,6 +131,13 @@ def _build_system_prompt(story_style: str, art_style: Optional[str] = None) -> s
 24페이지 동화책을 위해 정확히 11개의 이야기를 만들어주세요.
 책 구성: 제목(1p) + [그림+이야기]×11 (2~23p) + 판권(24p)
 당신이 만들 것: title(책 제목) + stories(이야기 11개)
+
+## 세계관
+- 아이가 이미 그 직업인 세계입니다. 꿈이 아니라 현실입니다.
+- "꿈을 꿨어요", "눈을 떠 보니", "~가 되고 싶어요" 같은 표현은 절대 금지합니다.
+- 아이는 이미 그 직업으로 일하고 있으며, 자연스러운 하루를 보냅니다.
+- 시간이나 나이를 언급하지 마세요.
+- 아이 모습(5~7세) 그대로 직업 활동을 능숙하게 수행합니다.
 
 ## 필수 규칙
 - 타겟 연령: 5~7세. 해당 연령이 이해할 수 있는 쉬운 어휘만 사용하세요.
@@ -161,33 +168,13 @@ def _build_system_prompt(story_style: str, art_style: Optional[str] = None) -> s
     if art_keywords:
         base += f"\n- 그림체 스타일: {art_keywords}"
 
-    if story_style == "dreaming_today":
-        base += """
-
-## 동화 스타일: 꿈꾸는 오늘
-- 아이가 이미 그 직업인 세계입니다. 꿈이 아니라 현실입니다.
-- "꿈을 꿨어요", "눈을 떠 보니", "~가 되고 싶어요" 같은 표현은 절대 금지합니다.
-- 아이는 이미 그 직업으로 일하고 있으며, 자연스러운 하루를 보냅니다.
-- 시간이나 나이를 언급하지 마세요.
-- 아이 모습(5~7세) 그대로 직업 활동을 능숙하게 수행합니다."""
-    elif story_style == "future_me":
-        base += """
-
-## 동화 스타일: 미래의 나
-- 성장 과정을 단계별로 묘사하세요
-- 생년월일이 제공되면 미래 연도를 계산하여 활용하세요
-- 일대기 구조로 작성하세요
-- 아이 → 청소년 → 성인으로 성장하는 모습"""
-
     return base
 
 
 def _build_user_prompt(
     child_name: str,
     job_name: str,
-    story_style: str,
     plot_input: str,
-    child_birth_date: Optional[str] = None,
 ) -> str:
     """사용자 프롬프트 구성 (Few-shot 포함)"""
     prompt = f"""## 예시 (3개 직업)
@@ -209,11 +196,7 @@ def _build_user_prompt(
 다음 정보로 동화 스토리를 만들어주세요.
 
 - 아이 이름: {child_name}
-- 직업: {job_name}
-- 동화 스타일: {"꿈꾸는 오늘" if story_style == "dreaming_today" else "미래의 나"}"""
-
-    if child_birth_date and story_style == "future_me":
-        prompt += f"\n- 생년월일: {child_birth_date}"
+- 직업: {job_name}"""
 
     if plot_input and plot_input.strip():
         prompt += f"\n- 줄거리 방향: {plot_input}"
@@ -230,10 +213,8 @@ def _build_user_prompt(
 def generate_story_with_gpt(
     child_name: str,
     job_name: str,
-    story_style: str,
     plot_input: str,
     art_style: Optional[str] = None,
-    child_birth_date: Optional[str] = None,
 ) -> dict:
     """GPT-4o를 사용하여 동화 스토리를 생성한다.
 
@@ -251,13 +232,11 @@ def generate_story_with_gpt(
             timeout=120.0,
         )
 
-        system_prompt = _build_system_prompt(story_style, art_style)
+        system_prompt = _build_system_prompt(art_style)
         user_prompt = _build_user_prompt(
             child_name=child_name,
             job_name=job_name,
-            story_style=story_style,
             plot_input=plot_input,
-            child_birth_date=child_birth_date,
         )
 
         response = client.beta.chat.completions.parse(
@@ -357,10 +336,8 @@ def _generate_dummy_story_data(
 def generate_story_with_gpt_or_dummy(
     child_name: str,
     job_name: str,
-    story_style: str,
     plot_input: str,
     art_style: Optional[str] = None,
-    child_birth_date: Optional[str] = None,
 ) -> dict:
     """API 키가 있으면 GPT-4o, 없으면 더미 스토리를 반환한다.
 
@@ -379,8 +356,6 @@ def generate_story_with_gpt_or_dummy(
     return generate_story_with_gpt(
         child_name=child_name,
         job_name=job_name,
-        story_style=story_style,
         plot_input=plot_input,
         art_style=art_style,
-        child_birth_date=child_birth_date,
     )

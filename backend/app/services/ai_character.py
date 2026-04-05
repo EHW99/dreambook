@@ -62,7 +62,6 @@ def _get_job_description(job_name: str) -> tuple:
 def _build_character_prompt(
     art_style: str,
     job_name: str,
-    story_style: str,
 ) -> str:
     """캐릭터 시트 생성용 프롬프트를 구성한다."""
     art_keywords = ART_STYLE_KEYWORDS.get(art_style, "illustration style")
@@ -77,12 +76,6 @@ def _build_character_prompt(
         f"High quality children's book illustration."
     )
 
-    if story_style == "future_me":
-        prompt += (
-            " This character will also appear in grown-up versions later, "
-            "so make the facial features distinctive and memorable."
-        )
-
     return prompt
 
 
@@ -90,7 +83,6 @@ def generate_character_image(
     photo_path: str,
     art_style: str,
     job_name: str,
-    story_style: str,
 ) -> bytes:
     """GPT Image images.edit을 사용하여 캐릭터 시트를 생성한다.
 
@@ -98,7 +90,6 @@ def generate_character_image(
         photo_path: 아이 원본 사진 파일 경로
         art_style: 그림체 스타일 (watercolor, pencil, crayon, 3d, cartoon)
         job_name: 직업명 (한글)
-        story_style: 동화 스타일 (dreaming_today, future_me)
 
     Returns:
         생성된 캐릭터 시트 PNG 이미지 바이트
@@ -108,7 +99,7 @@ def generate_character_image(
     """
     settings = get_settings()
 
-    prompt = _build_character_prompt(art_style, job_name, story_style)
+    prompt = _build_character_prompt(art_style, job_name)
 
     try:
         client = OpenAI(

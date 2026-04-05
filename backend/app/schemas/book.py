@@ -8,7 +8,6 @@ class BookCreateRequest(BaseModel):
     voucher_id: int
 
 
-VALID_STORY_STYLES = {"dreaming_today", "future_me"}
 VALID_ART_STYLES = {"watercolor", "pencil", "crayon", "3d", "cartoon"}
 VALID_STATUSES = {"draft", "character_confirmed", "generating", "editing", "completed"}
 def _get_valid_book_spec_uids() -> set[str]:
@@ -33,7 +32,6 @@ class BookUpdateRequest(BaseModel):
     photo_id: Optional[int] = None
     job_category: Optional[str] = None
     job_name: Optional[str] = None
-    story_style: Optional[str] = None
     art_style: Optional[str] = None
     page_count: Optional[int] = None
     book_spec_uid: Optional[str] = None
@@ -50,13 +48,6 @@ class BookUpdateRequest(BaseModel):
                 raise ValueError("아이 이름을 입력해주세요")
             if len(v) > 20:
                 raise ValueError("아이 이름은 최대 20자까지 입력 가능합니다")
-        return v
-
-    @field_validator("story_style")
-    @classmethod
-    def validate_story_style(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v not in VALID_STORY_STYLES:
-            raise ValueError(f"유효하지 않은 동화 스타일입니다. 가능한 값: {', '.join(VALID_STORY_STYLES)}")
         return v
 
     @field_validator("art_style")
@@ -123,7 +114,6 @@ class BookResponse(BaseModel):
     photo_id: Optional[int] = None
     job_category: Optional[str] = None
     job_name: Optional[str] = None
-    story_style: Optional[str] = None
     art_style: Optional[str] = None
     page_count: int
     book_spec_uid: str

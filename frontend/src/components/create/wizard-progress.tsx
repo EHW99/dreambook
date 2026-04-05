@@ -6,13 +6,12 @@ import { motion } from "framer-motion";
 const STEPS = [
   { number: 1, label: "정보 입력" },
   { number: 2, label: "직업 선택" },
-  { number: 3, label: "동화 스타일" },
-  { number: 4, label: "그림체" },
-  { number: 5, label: "캐릭터" },
-  { number: 6, label: "책 구성" },
-  { number: 7, label: "줄거리" },
-  { number: 8, label: "생성" },
-  { number: 9, label: "편집" },
+  { number: 3, label: "그림체" },
+  { number: 4, label: "캐릭터" },
+  { number: 5, label: "책 구성" },
+  { number: 6, label: "줄거리" },
+  { number: 7, label: "생성" },
+  { number: 8, label: "편집" },
 ];
 
 interface WizardProgressProps {

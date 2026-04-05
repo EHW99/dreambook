@@ -165,21 +165,15 @@ def generate_story(
     """
     child_name = book.child_name
     job_name = book.job_name or "직업"
-    story_style = book.story_style or "dreaming_today"
     art_style = book.art_style
     plot_input = book.plot_input or ""
-    child_birth_date = None
-    if book.child_birth_date:
-        child_birth_date = str(book.child_birth_date)
 
     # AI 또는 더미 스토리 생성 (이야기 11개)
     story_data = generate_story_with_gpt_or_dummy(
         child_name=child_name,
         job_name=job_name,
-        story_style=story_style,
         plot_input=plot_input,
         art_style=art_style,
-        child_birth_date=child_birth_date,
     )
 
     # 기존 페이지 삭제 (재생성 시)
@@ -316,7 +310,7 @@ def generate_story(
 
     # 책 상태 업데이트
     book.status = "editing"
-    book.current_step = 9
+    book.current_step = 8
     book.title = title
     book.page_count = TOTAL_BOOK_PAGES
     book.updated_at = now

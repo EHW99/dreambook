@@ -466,7 +466,6 @@ export interface BookItem {
   photo_id: number | null;
   job_category: string | null;
   job_name: string | null;
-  story_style: string | null;
   art_style: string | null;
   page_count: number;
   book_spec_uid: string;
@@ -498,7 +497,6 @@ export interface BookUpdateData {
   photo_id?: number;
   job_category?: string;
   job_name?: string;
-  story_style?: string;
   art_style?: string;
   page_count?: number;
   book_spec_uid?: string;
