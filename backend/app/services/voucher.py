@@ -6,10 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.voucher import Voucher
 
-VOUCHER_PRICES = {
-    "story_only": 9900,
-    "story_and_print": 29900,
-}
+VOUCHER_PRICE = 29900  # 동화책 이용권 (실물 책 포함)
 
 
 def get_vouchers_by_user(db: Session, user_id: int) -> List[Voucher]:
@@ -32,13 +29,11 @@ def get_voucher_by_id(db: Session, voucher_id: int) -> Optional[Voucher]:
     return db.query(Voucher).filter(Voucher.id == voucher_id).first()
 
 
-def purchase_voucher(db: Session, user_id: int, voucher_type: str) -> Voucher:
+def purchase_voucher(db: Session, user_id: int) -> Voucher:
     """이용권 구매 (목업 — 즉시 구매 완료)"""
-    price = VOUCHER_PRICES[voucher_type]
     voucher = Voucher(
         user_id=user_id,
-        voucher_type=voucher_type,
-        price=price,
+        price=VOUCHER_PRICE,
         status="purchased",
         purchased_at=datetime.now(timezone.utc),
     )

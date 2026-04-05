@@ -241,12 +241,12 @@ class ApiClient {
     return this.request<VoucherItem[]>("/api/vouchers", {}, true);
   }
 
-  async purchaseVoucher(voucherType: string) {
+  async purchaseVoucher() {
     return this.request<VoucherItem>(
       "/api/vouchers/purchase",
       {
         method: "POST",
-        body: JSON.stringify({ voucher_type: voucherType }),
+        body: JSON.stringify({}),
       },
       true
     );
@@ -450,7 +450,6 @@ class ApiClient {
 
 export interface VoucherItem {
   id: number;
-  voucher_type: string;
   price: number;
   status: string;
   book_id: number | null;

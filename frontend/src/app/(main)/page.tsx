@@ -100,38 +100,18 @@ const ART_STYLES = [
   },
 ];
 
-const PRICING = [
-  {
-    name: "AI 스토리북",
-    price: "9,900",
-    description: "AI가 만드는 나만의 동화책",
-    features: [
-      "AI 스토리 생성",
-      "5가지 그림체 선택",
-      "캐릭터 커스터마이징",
-      "온라인 뷰어로 읽기",
-      "오디오북 기능",
-    ],
-    popular: false,
-    bgColor: "bg-white",
-    borderColor: "border-secondary",
-  },
-  {
-    name: "AI 스토리북 + 실물 책",
-    price: "29,900",
-    description: "세상에 단 하나뿐인 실물 동화책",
-    features: [
-      "AI 스토리북 모든 기능",
-      "하드커버 실물 책 제작",
-      "고품질 인쇄 (243x248mm)",
-      "무료 배송",
-      "소중한 선물로 딱!",
-    ],
-    popular: true,
-    bgColor: "bg-gradient-to-br from-primary/5 to-accent/5",
-    borderColor: "border-primary",
-  },
-];
+const PRICING = {
+  name: "동화책 이용권",
+  price: "29,900",
+  description: "AI 동화책 생성 + 실물 하드커버 책 배송",
+  features: [
+    "AI 맞춤 동화 스토리 11편",
+    "5가지 그림체 선택",
+    "디지털 동화책 뷰어 + 오디오북",
+    "하드커버 실물 책 인쇄 (243×248mm, 24p)",
+    "무료 배송",
+  ],
+};
 
 /* ───────── 메인 페이지 ───────── */
 
@@ -362,46 +342,31 @@ export default function LandingPage() {
               </p>
             </FadeInSection>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
-              {PRICING.map((plan, index) => (
-                <FadeInSection key={plan.name} delay={index * 0.15}>
-                  <div
-                    className={`relative ${plan.bgColor} border-2 ${plan.borderColor} rounded-3xl p-6 sm:p-8 hover:shadow-hover transition-all duration-300 ${
-                      plan.popular ? "ring-2 ring-primary/30" : ""
-                    }`}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-white text-xs font-bold">
-                        추천
-                      </div>
-                    )}
-                    <h3 className="text-lg font-bold text-text mb-2">{plan.name}</h3>
-                    <p className="text-sm text-text-light mb-4">{plan.description}</p>
-                    <div className="mb-6">
-                      <span className="text-4xl font-bold text-text">{plan.price}</span>
-                      <span className="text-text-light ml-1">원</span>
-                    </div>
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-center gap-2 text-sm text-text">
-                          <Check className="w-4 h-4 text-success-dark flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href={ctaHref}
-                      className={`block w-full text-center py-3 rounded-2xl font-medium transition-all duration-200 ${
-                        plan.popular
-                          ? "bg-primary text-white hover:bg-primary-dark shadow-soft hover:shadow-hover"
-                          : "border-2 border-primary text-primary hover:bg-primary hover:text-white"
-                      }`}
-                    >
-                      시작하기
-                    </Link>
+            <div className="max-w-md mx-auto">
+              <FadeInSection>
+                <div className="bg-white border-2 border-primary rounded-3xl p-6 sm:p-8 hover:shadow-hover transition-all duration-300">
+                  <h3 className="text-lg font-bold text-text mb-2">{PRICING.name}</h3>
+                  <p className="text-sm text-text-light mb-4">{PRICING.description}</p>
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold text-text">{PRICING.price}</span>
+                    <span className="text-text-light ml-1">원</span>
                   </div>
-                </FadeInSection>
-              ))}
+                  <ul className="space-y-3 mb-8">
+                    {PRICING.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2 text-sm text-text">
+                        <Check className="w-4 h-4 text-success-dark flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={ctaHref}
+                    className="block w-full text-center py-3 rounded-2xl font-medium transition-all duration-200 bg-primary text-white hover:bg-primary-dark shadow-soft hover:shadow-hover"
+                  >
+                    시작하기
+                  </Link>
+                </div>
+              </FadeInSection>
             </div>
           </div>
         </section>

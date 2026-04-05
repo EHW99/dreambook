@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Ruler, Sparkles, Check } from "lucide-react";
+import { BookOpen, Ruler, Sparkles } from "lucide-react";
 import { apiClient, BookSpecItem } from "@/lib/api";
 
 interface StepOptionsProps {
@@ -12,8 +12,7 @@ interface StepOptionsProps {
   onBookSpecChange: (uid: string) => void;
 }
 
-// 제외할 판형 (최소 페이지가 24p 초과인 판형)
-const EXCLUDED_SPECS = new Set(["PHOTOBOOK_A5_SC"]);
+const TARGET_SPEC = "SQUAREBOOK_HC";
 
 // 24페이지 고정 구성 안내
 const BOOK_STRUCTURE = [
@@ -29,28 +28,24 @@ export function StepOptions({
   onPageCountChange,
   onBookSpecChange,
 }: StepOptionsProps) {
-  const [specs, setSpecs] = useState<BookSpecItem[]>([]);
+  const [spec, setSpec] = useState<BookSpecItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       const result = await apiClient.getBookSpecs();
-      if (result.data && result.data.length > 0) {
-        const filtered = result.data.filter((s) => !EXCLUDED_SPECS.has(s.uid));
-        setSpecs(filtered);
-
-        // 현재 선택된 판형이 필터링된 목록에 없으면 첫 번째로 변경
-        if (filtered.length > 0 && !filtered.find((s) => s.uid === bookSpecUid)) {
-          onBookSpecChange(filtered[0].uid);
-        }
+      if (result.data) {
+        const found = result.data.find((s) => s.uid === TARGET_SPEC);
+        if (found) setSpec(found);
       }
       setLoading(false);
     }
     load();
   }, []);
 
-  // 24페이지 고정
+  // 고정값 적용
   if (pageCount !== 24) onPageCountChange(24);
+  if (bookSpecUid !== TARGET_SPEC) onBookSpecChange(TARGET_SPEC);
 
   if (loading) {
     return (
@@ -69,51 +64,24 @@ export function StepOptions({
       className="space-y-8"
     >
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-text mb-2">책 구성 선택</h2>
+        <h2 className="text-xl font-bold text-text mb-2">책 구성 확인</h2>
         <p className="text-sm text-text-light">
-          24페이지 동화책의 판형을 선택해주세요
+          24페이지 정사각형 하드커버 동화책이 만들어져요
         </p>
       </div>
 
-      {/* 판형 선택 */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-text">
-          <Ruler className="w-4 h-4 text-primary" />
-          판형 선택
-        </div>
-        <div className="grid gap-3">
-          {specs.map((spec) => {
-            const isSelected = bookSpecUid === spec.uid;
-            return (
-              <motion.button
-                key={spec.uid}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => onBookSpecChange(spec.uid)}
-                className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${
-                  isSelected
-                    ? "border-primary bg-primary/5 shadow-md"
-                    : "border-secondary/40 bg-white hover:border-primary/40"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`font-bold text-sm ${isSelected ? "text-primary" : "text-text"}`}>
-                      {spec.name}
-                    </p>
-                    <p className="text-xs text-text-light mt-1">
-                      {spec.width_mm}×{spec.height_mm}mm · {spec.cover_type || "커버"} · 24페이지
-                    </p>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    isSelected ? "border-primary bg-primary" : "border-text-lighter"
-                  }`}>
-                    {isSelected && <Check className="w-3 h-3 text-white" />}
-                  </div>
-                </div>
-              </motion.button>
-            );
-          })}
+      {/* 판형 정보 (API에서 로드) */}
+      <div className="bg-white rounded-2xl border border-secondary/40 p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Ruler className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-bold text-text">{spec?.name || "정사각형 하드커버"}</p>
+            <p className="text-xs text-text-light">
+              {spec ? `${spec.width_mm}×${spec.height_mm}mm · ${spec.cover_type || "하드커버"}` : "243×248mm · 하드커버"} · 24페이지
+            </p>
+          </div>
         </div>
       </div>
 
@@ -162,8 +130,5 @@ export function StepOptions({
 }
 
 export function validateOptions(pageCount: number, bookSpecUid: string) {
-  if (!bookSpecUid) {
-    return { valid: false, error: "판형을 선택해주세요" };
-  }
   return { valid: true, error: null };
 }

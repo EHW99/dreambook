@@ -29,5 +29,5 @@ def purchase(
     db: Session = Depends(get_db),
 ):
     """이용권 구매 (목업 — 즉시 구매 완료)"""
-    voucher = purchase_voucher(db, user.id, req.voucher_type)
+    voucher = purchase_voucher(db, user.id)
     return voucher

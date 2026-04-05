@@ -11,7 +11,6 @@ class Voucher(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    voucher_type: Mapped[str] = mapped_column(String(30), nullable=False)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="purchased")
     book_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("books.id", use_alter=True), nullable=True)
