@@ -19,6 +19,14 @@ from app.services.photo import UPLOAD_DIR
 
 logger = logging.getLogger(__name__)
 
+# ============================================================
+# [AI 캐릭터 생성 스킵 플래그]
+# True로 설정하면 캐릭터 시트 생성 시 AI(GPT Image)를 호출하지 않고
+# 항상 더미 이미지 경로를 사용합니다.
+#
+# → 캐릭터 AI 생성을 활성화하려면 False로 변경하세요.
+# ============================================================
+SKIP_AI_CHARACTER = True
 
 # 최대 재생성 횟수 (최초 1회 + 재생성 4회 = 총 5회)
 MAX_CHARACTER_GENERATIONS = 5
@@ -96,8 +104,12 @@ def create_character_sheet(db: Session, book: Book) -> CharacterSheet:
     if existing_count >= MAX_CHARACTER_GENERATIONS:
         raise ValueError("재생성 횟수를 모두 사용했습니다")
 
-    # AI 캐릭터 생성 시도
-    image_path = _generate_ai_character(db, book)
+    # ── SKIP_AI_CHARACTER=True이면 AI 호출 없이 더미 사용 ──
+    if SKIP_AI_CHARACTER:
+        logger.info(f"[SKIP] 캐릭터 AI 생성 스킵 — SKIP_AI_CHARACTER=True")
+        image_path = None
+    else:
+        image_path = _generate_ai_character(db, book)
 
     # AI 생성 실패 시 더미 이미지 경로
     if image_path is None:

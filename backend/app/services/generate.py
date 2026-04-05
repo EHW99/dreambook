@@ -24,6 +24,16 @@ from app.services.ai_illustration import generate_illustration_or_dummy
 
 logger = logging.getLogger(__name__)
 
+# ============================================================
+# [AI 이미지 생성 스킵 플래그]
+# True로 설정하면 일러스트 생성 시 AI(GPT Image)를 호출하지 않고
+# 항상 placeholder 이미지를 사용합니다.
+# 스토리(GPT-4o 텍스트)는 이 플래그와 무관하게 정상 동작합니다.
+#
+# → 일러스트 AI 생성을 활성화하려면 False로 변경하세요.
+# ============================================================
+SKIP_AI_ILLUSTRATION = True
+
 # 더미 placeholder 색상 팔레트 (파스텔 톤)
 PLACEHOLDER_COLORS = [
     (255, 218, 185),  # peach
@@ -67,6 +77,12 @@ def _generate_page_illustration(
     """
     ensure_upload_dir()
 
+    # ── SKIP_AI_ILLUSTRATION=True이면 AI 호출 없이 placeholder 사용 ──
+    if SKIP_AI_ILLUSTRATION:
+        logger.info(f"[SKIP] 일러스트 AI 생성 스킵 (p{page_number}) — SKIP_AI_ILLUSTRATION=True")
+        label = text_content[:30] if text_content else f"Page {page_number}"
+        return _create_placeholder_image(page_number, label, book.id)
+
     # 캐릭터 시트가 있고 scene_description이 있으면 AI 일러스트 시도
     if character_sheet_path and scene_description and os.path.exists(character_sheet_path):
         ai_bytes = generate_illustration_or_dummy(
@@ -78,14 +94,12 @@ def _generate_page_illustration(
         )
 
         if ai_bytes:
-            # AI 일러스트 성공 — 파일 저장
             filename = f"ai_illust_book{book.id}_page{page_number}.png"
             filepath = os.path.join(UPLOAD_DIR, filename)
             with open(filepath, "wb") as f:
                 f.write(ai_bytes)
             return filepath
     else:
-        # 캐릭터 시트가 없어도 AI 일러스트 시도 (scene_description만으로)
         if scene_description:
             ai_bytes = generate_illustration_or_dummy(
                 character_sheet_path=character_sheet_path or "",
@@ -310,7 +324,7 @@ def generate_story(
 
     # 책 상태 업데이트
     book.status = "editing"
-    book.current_step = 8
+    book.current_step = 6
     book.title = title
     book.page_count = TOTAL_BOOK_PAGES
     book.updated_at = now

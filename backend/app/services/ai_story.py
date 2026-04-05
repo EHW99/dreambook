@@ -54,8 +54,8 @@ ART_STYLE_KEYWORDS = {
 
 # ──────────────────────────────────────────────
 # Few-shot 예시 — 3개 직업 (소방관, 의사, 요리사)
-# 각 직업마다 이야기 1(도입), 6(전환), 11(결말)
-# 톤, 분량(3~4문장), 도입/결말 품질의 기준을 보여준다
+# 각 직업마다 이야기 1(도입), 6(전환), 9(절정), 11(결말)
+# 톤, 분량(3~4문장), 도입/절정/결말 품질의 기준을 보여준다
 # ──────────────────────────────────────────────
 FEW_SHOT_FIREFIGHTER = """{
   "title": "용감한 소방관 하준이",
@@ -69,6 +69,11 @@ FEW_SHOT_FIREFIGHTER = """{
       "story_number": 6,
       "text": "소방서로 돌아온 하준이는 소방차를 꼼꼼히 점검했어요. 호스에서 물이 잘 나오는지, 사다리가 높이높이 올라가는지 하나하나 살폈어요. 선배 소방관이 '하준이, 장비를 잘 관리하는 것도 사람들을 지키는 일이야'라고 말해 주었어요. 하준이는 고개를 끄덕이며 더 열심히 점검했답니다.",
       "scene_description": "A child firefighter carefully inspecting a fire truck, crouched down checking the hose connection with a focused and serious expression. An adult firefighter stands nearby with a warm encouraging smile. Background: inside a spacious fire station garage with sunlight streaming through the open bay door, other equipment on walls, a Dalmatian dog sitting nearby. Composition: child on the right, fire truck dominating the left, adult figure in mid-ground, space at bottom for text."
+    },
+    {
+      "story_number": 9,
+      "text": "삐뽀삐뽀! 빵집에서 큰불이 났어요! 하준이는 소방차에서 뛰어내려 무거운 호스를 꽉 잡았어요. 뜨거운 연기가 자욱했지만, 안에 할머니가 갇혀 계신다는 말에 하준이는 물러서지 않았어요. '제가 꼭 구해 드릴게요!' 하준이는 물을 힘껏 뿌리며 연기 속으로 용감하게 뛰어 들어갔답니다.",
+      "scene_description": "A brave child firefighter (age 6) charging into a smoke-filled bakery doorway, gripping a fire hose with both hands and spraying a powerful stream of water. Flames flicker from the windows above, and thick gray smoke billows into the sky. Fellow firefighters in the background operate the fire truck and cheer the child on. The child's expression is fierce and determined, helmet reflecting the orange glow of the fire. Background: a small-town street with concerned neighbors watching from a safe distance, fire truck with flashing red lights. Composition: dynamic action shot, child running from the right toward the burning building on the left, dramatic lighting from the flames, space at top for text."
     },
     {
       "story_number": 11,
@@ -88,8 +93,13 @@ FEW_SHOT_DOCTOR = """{
     },
     {
       "story_number": 6,
-      "text": "수아는 청진기를 귀에 꽂고 토끼 인형의 배에 대 보았어요. '뚝딱뚝딱, 심장 소리가 잘 들려요!' 옆에서 지켜보던 아이가 깔깔 웃었어요. 수아도 웃으며 말했어요. '걱정 마, 토끼도 금방 나을 거야. 내가 약을 처방해 줄게!' 수아는 진지한 얼굴로 처방전을 써 주었답니다.",
-      "scene_description": "A child doctor using a stethoscope on a fluffy toy rabbit on an examination table, with a giggling young patient sitting on the bed watching. The child doctor wears a serious-yet-cute expression, pretending to write a prescription on a clipboard. Background: a colorful pediatric examination room with height chart on the wall, cartoon posters, medical toys scattered around. Warm, friendly lighting. Composition: child doctor on the left examining the toy, young patient on the right laughing, cozy medical room setting, space at bottom for text."
+      "text": "수아는 청진기를 귀에 꽂고 아픈 아이의 가슴에 살며시 대 보았어요. '심장이 튼튼하게 뛰고 있어, 걱정 마!' 수아의 다정한 말에 겁먹었던 아이의 얼굴이 조금씩 밝아졌어요. 수아는 처방전을 꼼꼼히 쓰며 말했어요. '이 약을 먹으면 금방 나을 거야. 내일이면 뛰어놀 수 있어!' 아이의 엄마가 '감사합니다, 수아 선생님' 하고 고개를 숙이자 수아는 환하게 웃었답니다.",
+      "scene_description": "A child doctor (age 6) in a white coat gently placing a stethoscope on a young patient's chest in a bright examination room. The patient, a small child sitting on the exam bed, looks relieved and is beginning to smile. The child doctor writes a prescription on a clipboard with a caring and professional expression. The patient's mother stands beside the bed, hands clasped in gratitude. Background: a clean, cheerful pediatric clinic with pastel-colored walls, anatomical posters, a jar of lollipops on the desk, warm sunlight through the window. Composition: child doctor on the left with stethoscope, patient in the center on the bed, mother on the right, warm and reassuring atmosphere, space at bottom for text."
+    },
+    {
+      "story_number": 9,
+      "text": "그때 복도에서 다급한 목소리가 들려왔어요. '수아 선생님, 빨리 와 주세요!' 운동장에서 넘어진 아이가 울며 실려 왔어요. 수아는 떨리는 마음을 꾹 누르고 재빨리 상처를 살폈어요. 소독하고, 붕대를 감고, 다정하게 말했어요. '다 괜찮아, 내가 고쳐 줄게.' 잠시 뒤 아이가 울음을 멈추고 방긋 웃자, 수아의 눈에도 안도의 눈물이 글썽였답니다.",
+      "scene_description": "A child doctor (age 6) in a white coat kneeling urgently beside a crying young patient lying on a hospital stretcher, carefully wrapping a bandage around the patient's knee with focused and gentle hands. A nurse assists by holding medical supplies. The child doctor's expression is intensely concentrated yet reassuring. The young patient's tears are stopping, a small smile breaking through. Background: a bright emergency treatment room with medical equipment, overhead surgical light on, a sense of urgency but warmth. Composition: dramatic close-up angle, child doctor in the center tending to the patient, nurse on the right, warm overhead lighting creating a halo effect, space at bottom for text."
     },
     {
       "story_number": 11,
@@ -111,6 +121,11 @@ FEW_SHOT_CHEF = """{
       "story_number": 6,
       "text": "지우는 커다란 볼에 밀가루와 달걀을 넣고 열심히 반죽했어요. 하얀 밀가루가 코끝에 묻었지만 지우는 신경 쓰지 않았어요. 반죽을 동글동글 모양을 내자, 예쁜 쿠키가 완성되었어요. '이건 별 모양, 이건 하트 모양!' 지우는 하나하나 정성껏 만들며 노래를 불렀답니다.",
       "scene_description": "A child chef energetically kneading dough in a large mixing bowl, with flour dusted on their nose and cheeks. Star and heart shaped cookies are arranged on a baking tray beside them. The child is singing happily while working. Background: a warm kitchen counter with bowls of colorful sprinkles, cookie cutters in various shapes, an oven glowing with warmth behind them. Flour particles floating in a beam of sunlight. Composition: close-up of the child and the baking workspace, warm and cozy kitchen atmosphere, space at bottom for text."
+    },
+    {
+      "story_number": 9,
+      "text": "드디어 요리 경연대회 결승전! 심사위원들 앞에서 지우의 손이 바쁘게 움직였어요. 프라이팬을 높이 들어 올려 휙! 하고 볶음밥을 공중에 날리자, 관객석에서 '우와!' 하는 탄성이 터져 나왔어요. 마지막으로 예쁜 접시에 정성껏 담아내자, 심사위원들이 한 입 먹고 눈을 동그랗게 떴어요. '우승은 꼬마 요리사 지우!' 트로피를 높이 들어 올린 지우의 눈에 기쁨의 눈물이 반짝였답니다.",
+      "scene_description": "A child chef (age 6) on a grand cooking competition stage, triumphantly holding a golden trophy above their head with both hands, tears of joy sparkling in their eyes. Confetti rains down from above. On the cooking station beside them, a beautifully plated dish gleams under the stage lights. Three impressed judges at a long table are standing and applauding enthusiastically. A large cheering audience fills the background with raised hands. Background: a dazzling competition stage with bright spotlights, a giant banner reading 'COOKING CHAMPIONSHIP', colorful confetti everywhere. Composition: child in the center holding the trophy high, judges on the left applauding, audience behind, dramatic stage lighting with golden spotlight on the child, space at top for text."
     },
     {
       "story_number": 11,
@@ -178,8 +193,8 @@ def _build_user_prompt(
 ) -> str:
     """사용자 프롬프트 구성 (Few-shot 포함)"""
     prompt = f"""## 예시 (3개 직업)
-다음은 소방관, 의사, 요리사 동화의 이야기 1, 6, 11번 예시입니다.
-각 이야기의 톤, 분량(3~4문장), 도입/결말의 감성을 참고하세요:
+다음은 소방관, 의사, 요리사 동화의 이야기 1, 6, 9, 11번 예시입니다.
+각 이야기의 톤, 분량(3~4문장), 도입/절정/결말의 감성을 참고하세요:
 
 ### 소방관 예시
 {FEW_SHOT_FIREFIGHTER}
@@ -240,7 +255,7 @@ def generate_story_with_gpt(
         )
 
         response = client.beta.chat.completions.parse(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

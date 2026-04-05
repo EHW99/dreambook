@@ -218,6 +218,7 @@ async def create_order(
             pages_data=pages_data,
             cover_image_path=cover_image_path,
             shipping=shipping,
+            child_name=book.child_name,
         )
 
         # DB에 주문 레코드 생성
