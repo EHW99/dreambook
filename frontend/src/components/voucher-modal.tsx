@@ -40,7 +40,7 @@ export function VoucherModal({ open, onClose, onPurchased }: VoucherModalProps) 
           onClick={onClose}
         >
           {/* 백드롭 */}
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/40" />
 
           {/* 모달 */}
           <motion.div

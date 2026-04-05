@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
+import { useVoucherGate } from "@/lib/voucher-gate-context";
 import { useRouter, usePathname } from "next/navigation";
 
 const NAV_LINKS = [
@@ -16,6 +17,7 @@ const NAV_LINKS = [
 
 export function Header() {
   const { user, loading, logout } = useAuth();
+  const { startCreate } = useVoucherGate();
   const router = useRouter();
   const pathname = usePathname();
   const [loginAlert, setLoginAlert] = useState(false);
@@ -107,6 +109,30 @@ export function Header() {
                   const isActive =
                     pathname === link.href ||
                     (link.href !== "/" && pathname.startsWith(link.href));
+
+                  // "동화 만들기"는 이용권 게이트를 거치는 버튼으로 렌더링
+                  if (link.href === "/create") {
+                    return (
+                      <button
+                        key={link.href}
+                        onClick={() => {
+                          if (!user) {
+                            setLoginAlert(true);
+                          } else {
+                            startCreate();
+                          }
+                        }}
+                        className={`text-sm font-medium transition-colors py-1 border-b-2 ${
+                          isActive
+                            ? "text-primary border-primary"
+                            : "text-gray-600 border-transparent hover:text-gray-900"
+                        }`}
+                      >
+                        {link.label}
+                      </button>
+                    );
+                  }
+
                   return (
                     <Link
                       key={link.href}

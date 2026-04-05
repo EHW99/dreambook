@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useVoucherGate } from "@/lib/voucher-gate-context";
 import { Home, Sparkles, BookOpen, Image, User } from "lucide-react";
 
 const TABS = [
@@ -18,6 +19,7 @@ export function BottomTabBar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { startCreate } = useVoucherGate();
   const [loginAlert, setLoginAlert] = useState(false);
 
   if (pathname === "/login" || pathname === "/signup") return null;
@@ -29,6 +31,30 @@ export function BottomTabBar() {
           {TABS.map((tab) => {
             const isActive = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href));
             const Icon = tab.icon;
+
+            // "만들기" 탭은 이용권 게이트를 거치는 버튼으로 렌더링
+            if (tab.href === "/create") {
+              return (
+                <button
+                  key={tab.href}
+                  onClick={() => {
+                    if (!user) {
+                      setLoginAlert(true);
+                    } else {
+                      startCreate();
+                    }
+                  }}
+                  className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-lg transition-colors ${
+                    isActive
+                      ? "text-primary"
+                      : "text-text/40 active:text-text/60"
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? "stroke-[2.5]" : ""}`} />
+                  <span className="text-[10px] font-medium leading-tight">{tab.label}</span>
+                </button>
+              );
+            }
 
             const handleClick = (e: React.MouseEvent) => {
               if (tab.auth && !user) {

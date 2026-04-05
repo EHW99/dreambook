@@ -14,8 +14,7 @@ import { StepCharacterPreview } from "@/components/create/step-character-preview
 import { StepOptions, validateOptions } from "@/components/create/step-options";
 import { StepPlot, validatePlot } from "@/components/create/step-plot";
 import { StepGenerating } from "@/components/create/step-generating";
-import { VoucherModal } from "@/components/voucher-modal";
-import { apiClient, BookItem, VoucherItem } from "@/lib/api";
+import { apiClient, BookItem } from "@/lib/api";
 
 // 위자드 스텝: 1.정보 → 2.직업 → 3.그림체 → 4.캐릭터 → 5.책구성 → 6.줄거리 → 7.생성 → 8.편집
 
@@ -70,8 +69,8 @@ function CreateWizardContent() {
   // 생성 상태
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // 이용권 모달
-  const [showVoucherModal, setShowVoucherModal] = useState(false);
+  // Strict Mode 이중 실행 방지
+  const initRef = useRef(false);
 
   // 임시 데이터 ref (StepInfoInput에서 업데이트)
   const pendingUpdate = useRef<{ child_name?: string; child_birth_date?: string; photo_id?: number }>({});
@@ -86,8 +85,11 @@ function CreateWizardContent() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  // 초기화: 이용권 확인 → 동화책 생성 또는 기존 동화책 불러오기
+  // 초기화: URL 파라미터 기반으로 동화책 생성 또는 불러오기
+  // 이용권 확인은 VoucherGateProvider에서 이미 완료됨
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
     initWizard();
   }, []);
 
@@ -103,6 +105,9 @@ function CreateWizardContent() {
         setLoading(false);
         return;
       }
+      setError("동화책을 불러올 수 없습니다");
+      setLoading(false);
+      return;
     }
 
     // URL 파라미터에 voucher_id가 있으면 새 동화책 생성
@@ -120,27 +125,8 @@ function CreateWizardContent() {
       }
     }
 
-    // 아무 파라미터도 없으면 이용권 확인
-    const voucherResult = await apiClient.getVouchers();
-    if (voucherResult.data) {
-      const available = voucherResult.data.filter(
-        (v: VoucherItem) => v.status === "purchased"
-      );
-      if (available.length === 0) {
-        // 이용권 없음 → 모달 표시
-        setShowVoucherModal(true);
-        setLoading(false);
-        return;
-      }
-      // 이용권 있으면 첫 번째 것으로 동화책 생성
-      const createResult = await apiClient.createBook(available[0].id);
-      if (createResult.data) {
-        loadBookState(createResult.data);
-      } else {
-        setError(createResult.error || "동화책 생성에 실패했습니다");
-      }
-    }
-    setLoading(false);
+    // 파라미터 없이 직접 접근 → 홈으로 리다이렉트
+    router.replace("/");
   }
 
   function loadBookState(bookData: BookItem) {
@@ -558,25 +544,6 @@ function CreateWizardContent() {
         </div>
       )}
 
-      {/* 이용권 구매 모달 */}
-      <VoucherModal
-        open={showVoucherModal}
-        onClose={() => {
-          setShowVoucherModal(false);
-          router.push("/");
-        }}
-        onPurchased={async (voucherId) => {
-          setShowVoucherModal(false);
-          setLoading(true);
-          const result = await apiClient.createBook(voucherId);
-          if (result.data) {
-            loadBookState(result.data);
-          } else {
-            setError(result.error || "동화책 생성에 실패했습니다");
-          }
-          setLoading(false);
-        }}
-      />
     </div>
   );
 }

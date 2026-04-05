@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useAuth } from "@/lib/auth-context";
+import { useVoucherGate } from "@/lib/voucher-gate-context";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import {
@@ -117,8 +116,7 @@ const PRICING = {
 /* ───────── 메인 페이지 ───────── */
 
 export default function LandingPage() {
-  const { user, loading } = useAuth();
-  const ctaHref = user ? "/create" : "/login";
+  const { startCreate } = useVoucherGate();
 
   return (
     <>
@@ -156,14 +154,14 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href={ctaHref}
+                <button
+                  onClick={startCreate}
                   className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary text-white text-lg font-bold shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200 hover:scale-105"
                 >
                   <BookOpen className="w-5 h-5" />
                   동화책 만들기
                   <ArrowRight className="w-5 h-5" />
-                </Link>
+                </button>
               </div>
             </motion.div>
 
@@ -363,12 +361,12 @@ export default function LandingPage() {
                   <p className="text-xs text-text-lighter text-center mb-5">
                     {PRICING.note}
                   </p>
-                  <Link
-                    href={ctaHref}
+                  <button
+                    onClick={startCreate}
                     className="block w-full text-center py-3 rounded-2xl font-medium transition-all duration-200 bg-primary text-white hover:bg-primary-dark shadow-soft hover:shadow-hover"
                   >
                     시작하기
-                  </Link>
+                  </button>
                 </div>
               </FadeInSection>
             </div>
@@ -385,14 +383,14 @@ export default function LandingPage() {
               <p className="text-text-light text-lg mb-8">
                 아이의 꿈이 동화책이 되는 마법같은 경험을 선물해 주세요.
               </p>
-              <Link
-                href={ctaHref}
+              <button
+                onClick={startCreate}
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary text-white text-lg font-bold shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200 hover:scale-105"
               >
                 <BookOpen className="w-5 h-5" />
                 동화책 만들기
                 <ArrowRight className="w-5 h-5" />
-              </Link>
+              </button>
             </FadeInSection>
           </div>
         </section>
