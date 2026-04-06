@@ -88,23 +88,23 @@ FEW_SHOT_DOCTOR = """{
   "stories": [
     {
       "story_number": 1,
-      "text": "수아 의사 선생님의 하루가 밝게 시작되었어요. 하얀 가운을 입고 청진기를 목에 걸자, 병원 복도에서 간호사 선생님이 '수아 선생님, 오늘 진료실에 친구들이 기다리고 있어요!'라고 알려주었어요. 수아는 환하게 웃으며 진료실 문을 열었어요. '자, 오늘도 아픈 친구들을 건강하게 만들어 주자!' 수아의 목소리에 병원이 활기를 띠었답니다.",
-      "scene_description": "A small child doctor (age 6) in a white coat with a stethoscope, walking confidently down a bright hospital corridor. A nurse beside them is gesturing toward a consultation room door. The child has a warm, professional smile. Background: a cheerful children's hospital hallway with pastel walls, cartoon animal decorations, sunflowers in vases, and sunlight streaming through large windows. Composition: child walking from left to right down the corridor, nurse beside them, welcoming and bright atmosphere, space at top for text."
+      "text": "수아 의사 선생님의 하루가 밝게 시작되었어요. 하얀 가운을 입고 청진기를 목에 걸자, 병원 복도에서 간호사가 '수아 선생님, 오늘 진료 환자분들이 기다리고 있어요!'라고 알려주었어요. 수아는 환하게 웃으며 진료실 문을 열었어요. '자, 오늘도 환자분들을 건강하게 만들어 드리자!' 수아의 목소리에 병원이 활기를 띠었답니다.",
+      "scene_description": "A small child doctor (age 6) in a white coat with a stethoscope, walking confidently down a bright hospital corridor. A nurse beside them is gesturing toward a consultation room door. The child has a warm, professional smile. Background: a modern hospital hallway with clean walls, medical posters, sunflowers in vases, and sunlight streaming through large windows. Composition: child walking from left to right down the corridor, nurse beside them, welcoming and bright atmosphere, space at top for text."
     },
     {
       "story_number": 6,
-      "text": "수아는 청진기를 귀에 꽂고 아픈 아이의 가슴에 살며시 대 보았어요. '심장이 튼튼하게 뛰고 있어, 걱정 마!' 수아의 다정한 말에 겁먹었던 아이의 얼굴이 조금씩 밝아졌어요. 수아는 처방전을 꼼꼼히 쓰며 말했어요. '이 약을 먹으면 금방 나을 거야. 내일이면 뛰어놀 수 있어!' 아이의 엄마가 '감사합니다, 수아 선생님' 하고 고개를 숙이자 수아는 환하게 웃었답니다.",
-      "scene_description": "A child doctor (age 6) in a white coat gently placing a stethoscope on a young patient's chest in a bright examination room. The patient, a small child sitting on the exam bed, looks relieved and is beginning to smile. The child doctor writes a prescription on a clipboard with a caring and professional expression. The patient's mother stands beside the bed, hands clasped in gratitude. Background: a clean, cheerful pediatric clinic with pastel-colored walls, anatomical posters, a jar of lollipops on the desk, warm sunlight through the window. Composition: child doctor on the left with stethoscope, patient in the center on the bed, mother on the right, warm and reassuring atmosphere, space at bottom for text."
+      "text": "수아는 청진기를 귀에 꽂고 환자의 가슴에 살며시 대 보았어요. '심장이 튼튼하게 뛰고 있어요, 걱정 마세요!' 수아의 다정한 말에 불안해하던 환자의 얼굴이 조금씩 밝아졌어요. 수아는 처방전을 꼼꼼히 쓰며 말했어요. '이 약을 드시면 금방 나으실 거예요.' 환자의 보호자가 '감사합니다, 수아 선생님' 하고 고개를 숙이자 수아는 환하게 웃었답니다.",
+      "scene_description": "A child doctor (age 6) in a white coat gently placing a stethoscope on a patient's chest in a bright examination room. The patient sitting on the exam bed looks relieved and is beginning to smile. The child doctor writes a prescription on a clipboard with a caring and professional expression. A family member stands beside the bed, hands clasped in gratitude. Background: a clean, modern clinic with pastel-colored walls, anatomical posters, warm sunlight through the window. Composition: child doctor on the left with stethoscope, patient in the center on the bed, family member on the right, warm and reassuring atmosphere, space at bottom for text."
     },
     {
       "story_number": 9,
-      "text": "그때 복도에서 다급한 목소리가 들려왔어요. '수아 선생님, 빨리 와 주세요!' 운동장에서 넘어진 아이가 울며 실려 왔어요. 수아는 떨리는 마음을 꾹 누르고 재빨리 상처를 살폈어요. 소독하고, 붕대를 감고, 다정하게 말했어요. '다 괜찮아, 내가 고쳐 줄게.' 잠시 뒤 아이가 울음을 멈추고 방긋 웃자, 수아의 눈에도 안도의 눈물이 글썽였답니다.",
-      "scene_description": "A child doctor (age 6) in a white coat kneeling urgently beside a crying young patient lying on a hospital stretcher, carefully wrapping a bandage around the patient's knee with focused and gentle hands. A nurse assists by holding medical supplies. The child doctor's expression is intensely concentrated yet reassuring. The young patient's tears are stopping, a small smile breaking through. Background: a bright emergency treatment room with medical equipment, overhead surgical light on, a sense of urgency but warmth. Composition: dramatic close-up angle, child doctor in the center tending to the patient, nurse on the right, warm overhead lighting creating a halo effect, space at bottom for text."
+      "text": "그때 복도에서 다급한 목소리가 들려왔어요. '수아 선생님, 응급 환자입니다!' 교통사고로 크게 다친 환자가 응급실에 실려 왔어요. 수아는 떨리는 마음을 꾹 누르고 재빨리 수술 준비를 지시했어요. 집중해서 수술을 진행하고, 마침내 환자의 상태가 안정되자 수술실에 안도의 한숨이 퍼졌답니다.",
+      "scene_description": "A child doctor (age 6) in a white coat and surgical mask, standing in a brightly lit operating room with intense focus, hands raised ready for surgery. Medical monitors beep in the background, a surgical team of nurses assists. The child doctor's eyes show fierce determination above the mask. Background: a modern operating room with overhead surgical lights, medical instruments neatly arranged, a sense of high-stakes urgency. Composition: dramatic close-up angle, child doctor in the center under bright surgical light, team around them, tension and professionalism, space at bottom for text."
     },
     {
       "story_number": 11,
-      "text": "하루가 끝나고, 수아는 병원 창가에 앉아 노을을 바라보았어요. 오늘 만난 아이들이 '고마워요, 수아 선생님!' 하고 웃던 모습이 자꾸자꾸 떠올랐어요. 수아는 청진기를 가만히 만지며 생각했어요. '아픈 사람들의 웃음을 되찾아 주는 것, 이게 바로 내가 하는 일이야.' 병원 밖으로 첫 번째 별이 반짝 빛났답니다.",
-      "scene_description": "A child doctor sitting peacefully on a wide hospital windowsill, legs dangling, gently holding their stethoscope and gazing at a beautiful sunset outside. Their expression is soft and thoughtful, with a gentle smile. Background: through the large window, a stunning sunset with the first evening star visible; inside, a warm lamp casts a golden glow on the child. A crayon thank-you card from a patient is propped up on the windowsill beside them. Composition: character centered at the window, warm interior light contrasting with the colorful sky outside, intimate and peaceful mood, space at top for text."
+      "text": "하루가 끝나고, 수아는 병원 창가에 앉아 노을을 바라보았어요. 오늘 수술이 성공해서 환자가 웃으며 퇴원하던 모습이 자꾸자꾸 떠올랐어요. 수아는 청진기를 가만히 만지며 생각했어요. '아픈 사람들의 웃음을 되찾아 주는 것, 이게 바로 내가 하는 일이야.' 병원 밖으로 첫 번째 별이 반짝 빛났답니다.",
+      "scene_description": "A child doctor sitting peacefully on a wide hospital windowsill, legs dangling, gently holding their stethoscope and gazing at a beautiful sunset outside. Their expression is soft and thoughtful, with a gentle smile. Background: through the large window, a stunning sunset with the first evening star visible; inside, a warm lamp casts a golden glow on the child. A thank-you card from a patient is propped up on the windowsill beside them. Composition: character centered at the window, warm interior light contrasting with the colorful sky outside, intimate and peaceful mood, space at top for text."
     }
   ]
 }"""
@@ -129,8 +129,8 @@ FEW_SHOT_CHEF = """{
     },
     {
       "story_number": 11,
-      "text": "해가 질 무렵, 지우는 오늘 만든 요리들을 테이블 위에 예쁘게 차려 놓았어요. 가족과 친구들이 한 입 먹더니 '세상에서 제일 맛있어!'라고 소리쳤어요. 지우는 수줍게 웃으며 말했어요. '맛있는 음식으로 사람들을 행복하게 만드는 것, 이게 바로 요리사인 나의 하루야.' 주방에 퍼진 달콤한 향기처럼, 지우의 따뜻한 마음도 온 세상에 퍼져 나갔답니다.",
-      "scene_description": "A child chef standing proudly behind a beautifully set dinner table with their handmade dishes — colorful plates of food, a small cake in the center. Family members and friends sit around the table with delighted expressions, clapping and cheering. The child has a shy but deeply happy smile, hands clasped behind their back. Background: a warm dining room bathed in golden sunset light from a window, fairy lights strung along the walls, a cozy and celebratory atmosphere. Composition: child standing behind the table in the center, happy faces all around, warm golden light enveloping the scene, space at top for text."
+      "text": "해가 질 무렵, 지우는 레스토랑 창가에 앉아 오늘 하루를 떠올렸어요. 손님들이 '세상에서 제일 맛있어요!'라며 빈 접시를 보여주던 모습이 눈에 선했어요. 지우는 수줍게 웃으며 말했어요. '맛있는 음식으로 사람들을 행복하게 만드는 것, 이게 바로 요리사인 나의 하루야.' 주방에 퍼진 달콤한 향기처럼, 지우의 따뜻한 마음도 온 세상에 퍼져 나갔답니다.",
+      "scene_description": "A child chef sitting by the window of their restaurant at sunset, looking out with a content and proud expression. Empty plates on nearby tables show satisfied customers have left. The warm glow of sunset fills the elegant restaurant interior. A few thank-you notes from customers are pinned on the kitchen board behind. Background: a cozy restaurant interior bathed in golden sunset light, clean kitchen visible through the pass, warm and peaceful atmosphere. Composition: child on the left gazing out the window, the restaurant stretching behind, golden hour light, space at top for text."
     }
   ]
 }"""
@@ -186,6 +186,11 @@ def _build_system_prompt(
   - 이야기 8~10: 절정 (도전과 해결, 성취감)
   - 이야기 11: 결말 (따뜻한 여운, 내일에 대한 다짐)
 
+## 줄거리 준수
+- 사용자가 제공한 줄거리 방향이 있다면, 반드시 그 줄거리를 중심으로 11개 이야기를 전개하세요.
+- 줄거리에 나온 핵심 사건과 상황이 이야기 속에 자연스럽게 녹아들어야 합니다.
+- 줄거리를 임의로 바꾸거나 무시하지 마세요.
+
 ## 금지 사항
 - 폭력, 공포, 부정적 결말 금지
 - 성인 수준의 어휘나 개념 금지
@@ -234,7 +239,13 @@ def _build_user_prompt(
 - 직업: {job_name}"""
 
     if plot_input and plot_input.strip():
-        prompt += f"\n- 줄거리 방향: {plot_input}"
+        prompt += f"""
+
+## 줄거리 (반드시 따라야 합니다)
+{plot_input}
+
+위 줄거리의 핵심 사건과 흐름을 기반으로 11개 이야기를 전개하세요.
+줄거리에 나온 상황이 이야기 속에 자연스럽게 포함되어야 합니다."""
 
     prompt += """
 

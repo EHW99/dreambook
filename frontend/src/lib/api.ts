@@ -344,6 +344,14 @@ class ApiClient {
     );
   }
 
+  async generatePlots(bookId: number) {
+    return this.request<PlotResult>(
+      `/api/books/${bookId}/generate-plots`,
+      { method: "POST" },
+      true
+    );
+  }
+
   async generateStoryOnly(bookId: number) {
     return this.request<GenerateResult>(
       `/api/books/${bookId}/generate-story`,
@@ -591,6 +599,16 @@ export interface PageItem {
   images: PageImageItem[];
   created_at: string;
   updated_at: string;
+}
+
+export interface PlotCandidate {
+  plot_number: number;
+  title: string;
+  description: string;
+}
+
+export interface PlotResult {
+  plots: PlotCandidate[];
 }
 
 export interface GenerateResult {

@@ -169,11 +169,22 @@ export function StepArtAndCharacter({
   }
 
   async function handleSelect(charId: number) {
+    const alreadySelected = characters.find((c) => c.id === charId)?.is_selected;
     setSelecting(true);
     setError(null);
+
+    if (alreadySelected) {
+      // 토글 해제
+      setCharacters((prev) => prev.map((c) => ({ ...c, is_selected: false })));
+      onConfirm(); // false 상태로 부모에게 알림
+      setSelecting(false);
+      return;
+    }
+
     const result = await apiClient.selectCharacter(bookId, charId);
     if (result.data) {
       setCharacters((prev) => prev.map((c) => ({ ...c, is_selected: c.id === charId })));
+      onConfirm(); // true 상태로 부모에게 알림
     } else {
       setError(result.error || "캐릭터 선택에 실패했습니다");
     }
@@ -455,20 +466,9 @@ export function StepArtAndCharacter({
               </span>
             </div>
 
-            <div className="text-center pt-4">
-              <Button
-                onClick={onConfirm}
-                disabled={!selectedChar || selecting}
-                size="lg"
-                className="gap-2 px-8"
-              >
-                <Check className="w-5 h-5" />
-                캐릭터 확정하기
-              </Button>
-              {!selectedChar && (
-                <p className="text-xs text-text-lighter mt-2">캐릭터를 선택하면 확정할 수 있어요</p>
-              )}
-            </div>
+            {!selectedChar && (
+              <p className="text-xs text-text-lighter text-center mt-3">캐릭터를 선택하면 다음 단계로 넘어갈 수 있어요</p>
+            )}
           </>
         )}
       </section>

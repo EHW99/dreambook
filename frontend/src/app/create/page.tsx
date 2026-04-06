@@ -66,9 +66,6 @@ function CreateWizardContent() {
   // 줄거리 상태
   const [plotInput, setPlotInput] = useState("");
 
-  // 생성 상태
-  const [isGenerating, setIsGenerating] = useState(false);
-
   // step 6: 글편집용 페이지 데이터
   const [storyPages, setStoryPages] = useState<PageItem[]>([]);
   const [editingPageId, setEditingPageId] = useState<number | null>(null);
@@ -144,7 +141,6 @@ function CreateWizardContent() {
     setBookSpecUid(bookData.book_spec_uid || "SQUAREBOOK_HC");
     setPlotInput(bookData.plot_input || "");
     setCharacterConfirmed(bookData.status === "character_confirmed" || bookData.current_step > 3);
-    setIsGenerating(bookData.status === "generating");
 
     // story_generated 상태면 step 6으로
     if (bookData.status === "story_generated" && bookData.current_step <= 6) {
@@ -225,7 +221,7 @@ function CreateWizardContent() {
         current_step: 5,
       });
       setSaving(false);
-      if (result.data) { loadBookState(result.data); setCurrentStep(5); setIsGenerating(true); }
+      if (result.data) { loadBookState(result.data); setCurrentStep(5); }
       else setError(result.error || "저장에 실패했습니다");
 
     } else if (currentStep === 6) {
@@ -248,7 +244,7 @@ function CreateWizardContent() {
 
   // 뒤로가기
   function handleBack() {
-    if (currentStep === 5 && isGenerating) return;
+    if (currentStep === 5) return; // 스토리 생성 단계에서는 뒤로가기 차단
     if (currentStep === 7 && isGeneratingIllust) return;
     setError(null);
     if (currentStep === 1) {
@@ -345,25 +341,28 @@ function CreateWizardContent() {
               onArtStyleChange={(style) => { setArtStyle(style); setStyleError(null); }}
               onArtStyleSaved={async () => { const r = await apiClient.getBook(book.id); if (r.data) loadBookState(r.data); }}
               onPhotoChange={(id) => setPhotoId(id)}
-              onConfirm={async () => { const r = await apiClient.getBook(book.id); if (r.data) loadBookState(r.data); setCharacterConfirmed(true); }}
+              onConfirm={async () => {
+                const chars = await apiClient.getCharacters(book.id);
+                const hasSelected = chars.data?.some((c) => c.is_selected) ?? false;
+                setCharacterConfirmed(hasSelected);
+              }}
               onRegenCountUpdate={(count) => { if (book) setBook({ ...book, character_regen_count: count }); }}
             />
           )}
           {currentStep === 4 && (
-            <StepPlot key="step-4" plotInput={plotInput} jobName={book?.job_name || null} onPlotChange={setPlotInput} />
+            <StepPlot key="step-4" bookId={book!.id} plotInput={plotInput} jobName={book?.job_name || null} onPlotChange={setPlotInput} />
           )}
 
           {/* step 5: 스토리 생성 */}
-          {currentStep === 5 && book && isGenerating && (
+          {currentStep === 5 && book && (
             <StepGenerating
               key="step-5"
               bookId={book.id}
               onComplete={async () => {
-                setIsGenerating(false);
                 await loadStoryPages(book.id);
                 setCurrentStep(6);
               }}
-              onError={(msg) => { setIsGenerating(false); setError(msg); setCurrentStep(4); }}
+              onError={(msg) => { setError(msg); setCurrentStep(4); }}
             />
           )}
 
@@ -467,7 +466,7 @@ function CreateWizardContent() {
       </div>
 
       {/* 하단 네비게이션 — 생성 중에는 숨김 */}
-      {!(currentStep === 5 && isGenerating) && !(currentStep === 7 && isGeneratingIllust) && (
+      {currentStep !== 5 && !(currentStep === 7 && isGeneratingIllust) && (
         <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm border-t border-secondary/30">
           <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
             <Button variant="ghost" onClick={handleBack} className="gap-2">

@@ -1,72 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Sparkles, PenLine, Lock, BookOpen, Ruler, Layers } from "lucide-react";
-import { apiClient, BookSpecItem } from "@/lib/api";
-
-interface ThemeCard {
-  id: string;
-  label: string;
-  desc: string;
-  icon: React.ReactNode;
-  available: boolean;
-}
-
-// 테마별 줄거리 템플릿 (jobName이 치환됨)
-const THEME_PLOTS: Record<string, (jobName: string) => string> = {
-  adventure: (jobName) =>
-    `${jobName}가 된 주인공이 신비로운 모험을 떠나요. 낯선 곳에서 어려운 문제를 만나지만, 용기를 내어 해결하고 멋진 ${jobName}로 성장하는 이야기예요.`,
-  helping: (jobName) =>
-    `${jobName}가 된 주인공이 도움이 필요한 사람들을 만나요. 따뜻한 마음으로 하나씩 도와주면서, ${jobName}의 보람을 느끼는 이야기예요.`,
-  learning: (jobName) =>
-    `${jobName}가 되고 싶은 주인공이 열심히 배우고 도전해요. 실수도 하지만 포기하지 않고, 마침내 멋진 ${jobName}가 되어가는 성장 이야기예요.`,
-};
-
-const THEME_CARDS: ThemeCard[] = [
-  {
-    id: "adventure",
-    label: "모험 이야기",
-    desc: "직업 세계를 탐험하는 흥미진진한 모험",
-    icon: <Sparkles className="w-5 h-5" />,
-    available: true,
-  },
-  {
-    id: "helping",
-    label: "도움 이야기",
-    desc: "사람들을 돕는 따뜻한 하루",
-    icon: <Sparkles className="w-5 h-5" />,
-    available: true,
-  },
-  {
-    id: "learning",
-    label: "배움 이야기",
-    desc: "직업에 대해 배우고 성장하는 이야기",
-    icon: <Sparkles className="w-5 h-5" />,
-    available: true,
-  },
-  {
-    id: "custom",
-    label: "직접 쓸래요",
-    desc: "나만의 줄거리를 직접 작성해요",
-    icon: <PenLine className="w-5 h-5" />,
-    available: true,
-  },
-];
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, PenLine, RefreshCw, Check, BookOpen, Ruler, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { apiClient, BookSpecItem, PlotCandidate } from "@/lib/api";
 
 interface StepPlotProps {
+  bookId: number;
   plotInput: string;
   jobName: string | null;
   onPlotChange: (plot: string) => void;
 }
 
-export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
-  const [selectedTheme, setSelectedTheme] = useState<string>(
-    plotInput ? "custom" : ""
-  );
-  const [toast, setToast] = useState<string | null>(null);
+export function StepPlot({ bookId, plotInput, jobName, onPlotChange }: StepPlotProps) {
+  const [plots, setPlots] = useState<PlotCandidate[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [isCustom, setIsCustom] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [generated, setGenerated] = useState(false);
+  const [regenUsed, setRegenUsed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [bookSpec, setBookSpec] = useState<BookSpecItem | null>(null);
 
+  // 책 사양 로드
   useEffect(() => {
     async function loadSpec() {
       const result = await apiClient.getBookSpecs();
@@ -78,19 +35,40 @@ export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
     loadSpec();
   }, []);
 
-  function handleThemeClick(theme: ThemeCard) {
-    if (!theme.available) {
-      setToast("곧 제공될 예정입니다");
-      setTimeout(() => setToast(null), 2000);
-      return;
-    }
-    setSelectedTheme(theme.id);
+  async function generatePlots() {
+    setLoading(true);
+    setError(null);
+    setSelectedIdx(null);
+    setIsCustom(false);
+    onPlotChange("");
 
-    // 테마 카드 클릭 시 해당 테마 줄거리를 plot_input에 설정
-    if (theme.id !== "custom" && THEME_PLOTS[theme.id]) {
-      const plot = THEME_PLOTS[theme.id](jobName || "직업");
-      onPlotChange(plot);
+    const result = await apiClient.generatePlots(bookId);
+    if (result.data) {
+      setPlots(result.data.plots);
+      setGenerated(true);
+    } else {
+      setError(result.error || "줄거리 생성에 실패했습니다");
     }
+    setLoading(false);
+  }
+
+  function handleSelectPlot(idx: number) {
+    setSelectedIdx(idx);
+    setIsCustom(false);
+    const plot = plots[idx];
+    onPlotChange(`${plot.title}: ${plot.description}`);
+  }
+
+  function handleCustom() {
+    setSelectedIdx(null);
+    setIsCustom(true);
+    onPlotChange("");
+  }
+
+  async function handleRegen() {
+    if (regenUsed) return;
+    setRegenUsed(true);
+    await generatePlots();
   }
 
   return (
@@ -102,11 +80,9 @@ export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
       className="space-y-6"
     >
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-text mb-2">줄거리 작성</h2>
+        <h2 className="text-xl font-bold text-text mb-2">줄거리를 선택해주세요</h2>
         <p className="text-sm text-text-light">
-          {jobName
-            ? `${jobName} 동화의 줄거리를 선택하거나 직접 써 보세요`
-            : "동화의 줄거리를 선택하거나 직접 써 보세요"}
+          {jobName ? `${jobName} 동화의 줄거리를 골라주세요` : "동화의 줄거리를 골라주세요"}
         </p>
       </div>
 
@@ -130,15 +106,6 @@ export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
           </div>
           <div className="flex items-center gap-2.5">
             <Layers className="w-4 h-4 text-primary flex-shrink-0" />
-            <div className="text-sm">
-              <span className="font-medium text-text">{bookSpec?.cover_type || "하드커버"}</span>
-              {bookSpec?.binding_type && (
-                <span className="text-text-light"> · {bookSpec.binding_type}</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <BookOpen className="w-4 h-4 text-primary flex-shrink-0" />
             <span className="text-sm text-text">
               <span className="font-medium">24페이지</span>
               <span className="text-text-light"> · 제목 1p + 이야기 11편 + 판권 1p</span>
@@ -147,110 +114,156 @@ export function StepPlot({ plotInput, jobName, onPlotChange }: StepPlotProps) {
         </div>
       </div>
 
-      {/* 테마 카드들 */}
-      <div className="grid grid-cols-2 gap-3">
-        {THEME_CARDS.map((theme) => {
-          const isSelected = selectedTheme === theme.id;
-          return (
+      {/* 초기 안내 — 아직 생성 안 했을 때 */}
+      {!generated && !loading && !error && (
+        <div className="text-center py-8 space-y-5">
+          <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-primary" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-text font-medium">
+              AI가 {jobName ? `${jobName}` : "선택한 직업"}에 맞는 줄거리를 만들어드려요
+            </p>
+            <p className="text-sm text-text-light">
+              4가지 줄거리 중 마음에 드는 걸 선택하거나, 직접 작성할 수도 있어요
+            </p>
+          </div>
+          <Button onClick={generatePlots} size="lg" className="gap-2">
+            <Sparkles className="w-4 h-4" />
+            줄거리 만들기
+          </Button>
+        </div>
+      )}
+
+      {/* 로딩 */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
+            <Sparkles className="w-8 h-8 text-primary" />
+          </motion.div>
+          <p className="text-sm text-text-light">AI가 줄거리를 만들고 있어요...</p>
+        </div>
+      )}
+
+      {/* 에러 */}
+      {error && !loading && (
+        <div className="p-4 bg-error/10 border border-error/30 rounded-2xl text-center">
+          <p className="text-sm text-error-dark">{error}</p>
+          <Button variant="ghost" onClick={generatePlots} className="mt-2 text-xs">
+            다시 시도
+          </Button>
+        </div>
+      )}
+
+      {/* 줄거리 카드 */}
+      {!loading && plots.length > 0 && (
+        <>
+          <div className="space-y-3">
+            {plots.map((plot, idx) => {
+              const isSelected = selectedIdx === idx && !isCustom;
+              return (
+                <motion.button
+                  key={idx}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => handleSelectPlot(idx)}
+                  className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-md"
+                      : "border-secondary/40 bg-white hover:border-primary/30"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                      isSelected ? "border-primary bg-primary" : "border-secondary"
+                    }`}>
+                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <div>
+                      <p className={`text-sm font-bold mb-1 ${isSelected ? "text-primary-dark" : "text-text"}`}>
+                        {plot.title}
+                      </p>
+                      <p className="text-sm text-text-light leading-relaxed">
+                        {plot.description}
+                      </p>
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+
+            {/* 직접 쓸래요 */}
             <motion.button
-              key={theme.id}
-              whileHover={{ scale: theme.available ? 1.02 : 1 }}
-              whileTap={{ scale: theme.available ? 0.98 : 1 }}
-              onClick={() => handleThemeClick(theme)}
-              className={`relative p-4 rounded-2xl border-2 text-left transition-all ${
-                isSelected
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={handleCustom}
+              className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${
+                isCustom
                   ? "border-primary bg-primary/5 shadow-md"
-                  : theme.available
-                  ? "border-secondary/40 bg-white hover:border-primary/30"
-                  : "border-secondary/20 bg-gray-50/50 cursor-not-allowed opacity-60"
+                  : "border-secondary/40 bg-white hover:border-primary/30"
               }`}
             >
-              {/* 준비 중 배지 */}
-              {!theme.available && (
-                <div className="absolute top-2 right-2 flex items-center gap-1 bg-warning/80 text-text text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  <Lock className="w-2.5 h-2.5" />
-                  준비 중
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                  isCustom ? "border-primary bg-primary" : "border-secondary"
+                }`}>
+                  {isCustom && <Check className="w-3 h-3 text-white" />}
                 </div>
-              )}
-              <div
-                className={`mb-2 ${
-                  isSelected ? "text-primary" : "text-text-light"
-                }`}
-              >
-                {theme.icon}
+                <div className="flex items-center gap-2">
+                  <PenLine className="w-4 h-4 text-text-light" />
+                  <span className="text-sm font-bold text-text">직접 쓸래요</span>
+                </div>
               </div>
-              <p
-                className={`font-bold text-sm ${
-                  isSelected ? "text-primary" : "text-text"
-                }`}
-              >
-                {theme.label}
-              </p>
-              <p className="text-xs text-text-lighter mt-1">{theme.desc}</p>
             </motion.button>
-          );
-        })}
-      </div>
-
-      {/* 토스트 메시지 */}
-      {toast && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="text-center py-2 px-4 bg-warning/20 rounded-xl text-sm text-text"
-        >
-          {toast}
-        </motion.div>
-      )}
-
-      {/* 테마 선택 시 선택된 줄거리 미리보기 */}
-      {selectedTheme && selectedTheme !== "custom" && plotInput && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          transition={{ duration: 0.3 }}
-          className="p-4 rounded-2xl bg-primary/5 border border-primary/20"
-        >
-          <p className="text-sm font-medium text-text mb-2">선택된 줄거리</p>
-          <p className="text-sm text-text-light leading-relaxed">{plotInput}</p>
-        </motion.div>
-      )}
-
-      {/* 직접 쓸래요 선택 시 textarea */}
-      {selectedTheme === "custom" && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          transition={{ duration: 0.3 }}
-          className="space-y-2"
-        >
-          <label className="text-sm font-medium text-text">
-            줄거리를 작성해 주세요
-          </label>
-          <textarea
-            value={plotInput}
-            onChange={(e) => onPlotChange(e.target.value)}
-            placeholder="예: 소방관이 되어 마을의 화재를 진압하고, 사람들에게 감사를 받는 이야기"
-            rows={5}
-            maxLength={1000}
-            className="w-full px-4 py-3 rounded-2xl border border-secondary/40 bg-white text-text placeholder:text-text-lighter text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-          />
-          <div className="text-right text-xs text-text-lighter">
-            {plotInput.length} / 1,000
           </div>
-        </motion.div>
+
+          {/* 다른 줄거리 보기 */}
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              onClick={handleRegen}
+              disabled={regenUsed || loading}
+              className="gap-2 text-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {regenUsed ? "재생성 사용 완료" : "다른 줄거리 보기"}
+            </Button>
+          </div>
+        </>
       )}
+
+      {/* 직접 입력 textarea */}
+      <AnimatePresence>
+        {isCustom && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-2"
+          >
+            <label className="text-sm font-medium text-text">줄거리를 작성해 주세요</label>
+            <textarea
+              value={plotInput}
+              onChange={(e) => onPlotChange(e.target.value)}
+              placeholder="예: 소방관이 되어 마을의 화재를 진압하고, 사람들에게 감사를 받는 이야기"
+              rows={4}
+              maxLength={500}
+              className="w-full px-4 py-3 rounded-2xl border border-secondary/40 bg-white text-text placeholder:text-text-lighter text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+              autoFocus
+            />
+            <div className="text-right text-xs text-text-lighter">
+              {plotInput.length} / 500
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
 
 export function validatePlot(plotInput: string) {
   if (!plotInput || plotInput.trim().length === 0) {
-    return { valid: false, error: "줄거리를 입력해주세요" };
-  }
-  if (plotInput.trim().length < 5) {
-    return { valid: false, error: "줄거리를 5자 이상 입력해주세요" };
+    return { valid: false, error: "줄거리를 선택하거나 입력해주세요" };
   }
   return { valid: true, error: null };
 }

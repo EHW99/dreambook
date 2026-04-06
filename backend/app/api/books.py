@@ -300,6 +300,37 @@ def generate_illustrations_endpoint(
     )
 
 
+@router.post("/{book_id}/generate-plots")
+def generate_plots_endpoint(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """줄거리 후보 4개 생성 (LLM)"""
+    book = _get_book_or_403(db, book_id, user)
+
+    from app.services.ai_plot import generate_plots
+    from app.services.generate import _calc_child_age
+
+    child_age = _calc_child_age(book.child_birth_date)
+    child_gender = book.child_gender or "male"
+
+    try:
+        result = generate_plots(
+            child_name=book.child_name,
+            job_name=book.job_name or "직업",
+            child_age=child_age,
+            child_gender=child_gender,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"줄거리 생성에 실패했습니다: {str(e)}",
+        )
+
+    return result
+
+
 @router.post("/{book_id}/generate-cover")
 def generate_cover_endpoint(
     book_id: int,
