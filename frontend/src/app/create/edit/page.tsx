@@ -158,7 +158,7 @@ function EditContent() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-text truncate max-w-[200px] sm:max-w-none">
+              <h1 className="text-lg font-bold text-text truncate max-w-[55vw] sm:max-w-none">
                 {book.title || "동화책 편집"}
               </h1>
               <p className="text-xs text-text-lighter">

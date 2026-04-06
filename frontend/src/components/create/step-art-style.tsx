@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Droplets, PenTool, Palette, Box, Zap } from "lucide-react";
+import { Droplets, Palette, Box, Zap } from "lucide-react";
 
 const ART_STYLES = [
   {
@@ -14,13 +14,13 @@ const ART_STYLES = [
     sampleColors: ["#A8DADC", "#B5EAD7", "#FCD5CE"],
   },
   {
-    id: "pencil",
-    title: "연필화",
-    description: "섬세하고 정교한 연필 스케치",
-    icon: PenTool,
-    color: "#9B9B9B",
-    bgGradient: "from-gray-100 to-gray-50",
-    sampleColors: ["#666666", "#999999", "#CCCCCC"],
+    id: "pastel",
+    title: "파스텔",
+    description: "몽환적이고 부드러운 파스텔 톤",
+    icon: Droplets,
+    color: "#D4A5D6",
+    bgGradient: "from-[#D4A5D6]/20 to-[#F0C4E8]/20",
+    sampleColors: ["#D4A5D6", "#F0C4E8", "#B5D6E8"],
   },
   {
     id: "crayon",

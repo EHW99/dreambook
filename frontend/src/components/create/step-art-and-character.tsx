@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Droplets, PenTool, Palette, Box, Zap,
+  Droplets, Palette, Box, Zap,
   RefreshCw, Check, User, ImageIcon, Camera, Plus, Maximize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,13 +25,13 @@ const ART_STYLES = [
     image: "/images/art-styles/watercolor.png",
   },
   {
-    id: "pencil",
-    title: "연필화",
-    description: "섬세한 연필 스케치",
-    icon: PenTool,
-    color: "#9B9B9B",
-    bg: "from-gray-100 to-gray-50",
-    image: "/images/art-styles/pencil.png",
+    id: "pastel",
+    title: "파스텔",
+    description: "몽환적이고 부드러운",
+    icon: Droplets,
+    color: "#D4A5D6",
+    bg: "from-[#D4A5D6]/20 to-[#F0C4E8]/20",
+    image: "/images/art-styles/pastel.png",
   },
   {
     id: "crayon",

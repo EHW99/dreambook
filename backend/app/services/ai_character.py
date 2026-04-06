@@ -25,38 +25,21 @@ class CharacterGenerationError(Exception):
 # ──────────────────────────────────────────────
 ART_STYLE_KEYWORDS = {
     "watercolor": "watercolor illustration, soft warm tones, gentle brushstrokes",
-    "pencil": "pencil sketch, hand-drawn, fine line art",
+    "pastel": "soft pastel illustration, dreamy muted tones, gentle chalky texture",
     "crayon": "crayon drawing, childlike texture, bold colors",
     "3d": "3D render, Pixar style, soft lighting, rounded shapes",
     "cartoon": "cartoon style, cel-shaded, vibrant colors, clean outlines",
 }
 
-# 직업명 → 영어 직업명 + 복장 묘사 매핑 (주요 직업)
-JOB_DESCRIPTIONS = {
-    "소방관": ("firefighter", "wearing a red firefighter helmet and yellow fireproof coat"),
-    "경찰관": ("police officer", "wearing a dark blue police uniform and cap"),
-    "의사": ("doctor", "wearing a white lab coat and stethoscope"),
-    "간호사": ("nurse", "wearing light blue scrubs and a nurse cap"),
-    "선생님": ("teacher", "holding a book and chalk, wearing smart casual clothes"),
-    "요리사": ("chef", "wearing a white chef hat and apron"),
-    "우주비행사": ("astronaut", "wearing a white space suit with helmet"),
-    "과학자": ("scientist", "wearing a lab coat and safety goggles"),
-    "수의사": ("veterinarian", "wearing a white coat and holding a small animal"),
-    "파일럿": ("pilot", "wearing a pilot uniform with cap and wings badge"),
-    "축구선수": ("soccer player", "wearing a soccer jersey and cleats"),
-    "발레리나": ("ballet dancer", "wearing a pink tutu and ballet shoes"),
-    "화가": ("artist", "holding a paintbrush and palette"),
-    "음악가": ("musician", "holding a musical instrument"),
-    "건축가": ("architect", "holding blueprints and wearing a hard hat"),
-}
+def _get_job_description(job_name: str, job_name_en: str = "", job_outfit: str = "") -> tuple:
+    """직업명에 대한 영어 이름과 복장 묘사를 반환한다.
 
-
-def _get_job_description(job_name: str) -> tuple:
-    """직업명에 대한 영어 이름과 복장 묘사를 반환한다."""
-    if job_name in JOB_DESCRIPTIONS:
-        return JOB_DESCRIPTIONS[job_name]
-    # 매핑에 없는 직업은 기본 묘사 사용
-    return (job_name, f"dressed as a {job_name}")
+    Book 테이블의 job_name_en, job_outfit 필드에서 가져온 값을 사용한다.
+    값이 없으면 한글 직업명으로 폴백한다.
+    """
+    en = job_name_en or job_name
+    outfit = job_outfit or f"dressed as a {job_name}"
+    return (en, outfit)
 
 
 def _build_character_prompt(
@@ -64,15 +47,17 @@ def _build_character_prompt(
     job_name: str,
     child_age: int = 6,
     child_gender: str = "male",
+    job_name_en: str = "",
+    job_outfit: str = "",
 ) -> str:
     """캐릭터 시트 생성용 프롬프트를 구성한다."""
     art_keywords = ART_STYLE_KEYWORDS.get(art_style, "illustration style")
-    job_en, job_outfit = _get_job_description(job_name)
+    job_en, job_outfit_desc = _get_job_description(job_name, job_name_en, job_outfit)
     gender_en = "boy" if child_gender == "male" else "girl"
 
     prompt = (
         f"Transform this child into a {art_keywords} storybook character illustration. "
-        f"The character is a {gender_en} (age {child_age}), a {job_en}, {job_outfit}. "
+        f"The character is a {gender_en} (age {child_age}), a {job_en}, {job_outfit_desc}. "
         f"Full body, front-facing pose. Solid pastel-colored background. "
         f"Preserve the child's facial features as much as possible while applying the illustration style. "
         f"The character should look like a {gender_en} (age {child_age}), not an adult. "
@@ -88,6 +73,8 @@ def generate_character_image(
     job_name: str,
     child_age: int = 6,
     child_gender: str = "male",
+    job_name_en: str = "",
+    job_outfit: str = "",
 ) -> bytes:
     """GPT Image images.edit을 사용하여 캐릭터 시트를 생성한다.
 
@@ -95,6 +82,8 @@ def generate_character_image(
         photo_path: 아이 원본 사진 파일 경로
         art_style: 그림체 스타일 (watercolor, pencil, crayon, 3d, cartoon)
         job_name: 직업명 (한글)
+        job_name_en: 영어 직업명 (DB에서 가져옴)
+        job_outfit: 복장 묘사 (DB에서 가져옴)
 
     Returns:
         생성된 캐릭터 시트 PNG 이미지 바이트
@@ -104,7 +93,7 @@ def generate_character_image(
     """
     settings = get_settings()
 
-    prompt = _build_character_prompt(art_style, job_name, child_age, child_gender)
+    prompt = _build_character_prompt(art_style, job_name, child_age, child_gender, job_name_en, job_outfit)
 
     try:
         client = OpenAI(

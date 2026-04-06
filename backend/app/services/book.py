@@ -34,6 +34,11 @@ def get_books_by_user(db: Session, user_id: int) -> List[Book]:
 
 def update_book(db: Session, book: Book, **kwargs) -> Book:
     """동화책 정보 업데이트"""
+    # 직업 변경 시 영어 번역 초기화 (캐릭터 생성 시 재번역)
+    if "job_name" in kwargs and kwargs["job_name"] != book.job_name:
+        book.job_name_en = None
+        book.job_outfit = None
+
     for key, value in kwargs.items():
         if value is not None and hasattr(book, key):
             setattr(book, key, value)

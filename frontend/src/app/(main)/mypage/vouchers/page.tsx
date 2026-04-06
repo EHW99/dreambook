@@ -301,7 +301,7 @@ function VouchersContent() {
           </div>
 
           {/* ━━━ 오른쪽: 보유현황 + 내역 (데스크톱 sticky) ━━━ */}
-          <div className="lg:w-[380px] lg:flex-shrink-0 lg:sticky lg:top-6 space-y-6">
+          <div className="lg:w-[380px] lg:flex-shrink-0 space-y-6">
 
             {/* 보유 이용권 카드 */}
             {summary && (

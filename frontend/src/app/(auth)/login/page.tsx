@@ -65,7 +65,7 @@ export default function LoginPage() {
         </div>
 
         <div className="flex items-center justify-center flex-1">
-          <div className="w-full max-w-md -mt-10">
+          <div className="w-full max-w-md sm:-mt-10">
             {/* 로고 */}
             <div className="text-center mb-8">
               <Link href="/" className="inline-block">

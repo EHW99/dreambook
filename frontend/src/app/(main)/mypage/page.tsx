@@ -23,7 +23,7 @@ function MypageContent() {
         <p className="text-sm text-text-light mb-6">{user?.email}</p>
 
         {/* 바로가기 메뉴 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
           {MYPAGE_LINKS.map((link) => {
             const Icon = link.icon;
             return (
@@ -46,7 +46,7 @@ function MypageContent() {
         </div>
 
         {/* 회원정보 */}
-        <div className="bg-white rounded-3xl shadow-card overflow-hidden p-6 sm:p-8">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card overflow-hidden p-4 sm:p-6 md:p-8">
           <h3 className="text-lg font-bold text-text mb-4">회원정보</h3>
           <ProfileTab />
         </div>

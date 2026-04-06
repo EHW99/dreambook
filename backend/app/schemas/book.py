@@ -8,7 +8,7 @@ class BookCreateRequest(BaseModel):
     voucher_id: int
 
 
-VALID_ART_STYLES = {"watercolor", "pencil", "crayon", "3d", "cartoon"}
+VALID_ART_STYLES = {"watercolor", "pastel", "crayon", "3d", "cartoon"}
 VALID_STATUSES = {"draft", "character_confirmed", "generating", "editing", "completed"}
 def _get_valid_book_spec_uids() -> set[str]:
     """캐시된 판형 UID 목록 반환"""

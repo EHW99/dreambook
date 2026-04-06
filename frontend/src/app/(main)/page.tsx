@@ -67,35 +67,35 @@ const ART_STYLES = [
     description: "부드럽고 따뜻한 수채화 느낌",
     bgColor: "bg-blue-50",
     borderColor: "border-blue-200",
-    placeholderColor: "from-blue-100 to-sky-100",
+    image: "/images/art-styles/watercolor.png",
   },
   {
-    name: "연필화",
-    description: "섬세한 연필 터치의 감성",
-    bgColor: "bg-gray-50",
-    borderColor: "border-gray-200",
-    placeholderColor: "from-gray-100 to-slate-100",
+    name: "파스텔",
+    description: "몽환적이고 부드러운 파스텔 톤",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    image: "/images/art-styles/pastel.png",
   },
   {
     name: "크레파스",
     description: "어린이 감성 가득한 크레파스 풍",
     bgColor: "bg-yellow-50",
     borderColor: "border-yellow-200",
-    placeholderColor: "from-yellow-100 to-orange-100",
+    image: "/images/art-styles/crayon.png",
   },
   {
     name: "3D",
     description: "입체적이고 생동감 넘치는 3D",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
-    placeholderColor: "from-purple-100 to-pink-100",
+    bgColor: "bg-indigo-50",
+    borderColor: "border-indigo-200",
+    image: "/images/art-styles/3d.png",
   },
   {
     name: "만화",
     description: "재미있고 역동적인 만화 스타일",
     bgColor: "bg-green-50",
     borderColor: "border-green-200",
-    placeholderColor: "from-green-100 to-emerald-100",
+    image: "/images/art-styles/cartoon.png",
   },
 ];
 
@@ -121,73 +121,121 @@ export default function LandingPage() {
   return (
     <>
         {/* ── 히어로 섹션 ── */}
-        <section className="relative overflow-hidden py-20 sm:py-28 lg:py-36">
-          {/* 배경 장식 */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-10 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-          </div>
+        <section className="relative overflow-hidden py-14 sm:py-24 lg:py-32">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-4">
 
-          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary-dark text-sm font-medium mb-6">
-                <Sparkles className="w-4 h-4" />
-                AI가 만드는 세상에 단 하나뿐인 동화책
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-display text-text leading-tight mb-6">
-                아이의 꿈을
-                <br />
-                <span className="text-primary">동화책</span>으로
-                <br />
-                만들어주세요
-              </h1>
-
-              <p className="text-lg sm:text-xl text-text-light max-w-2xl mx-auto mb-10 leading-relaxed">
-                아이의 이름과 꿈꾸는 직업을 알려주세요.
-                <br className="hidden sm:block" />
-                AI가 아이만의 특별한 동화 이야기와 그림을 만들어 드려요.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={startCreate}
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary text-white text-lg font-bold shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200 hover:scale-105"
-                >
-                  <BookOpen className="w-5 h-5" />
-                  동화책 만들기
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </motion.div>
-
-            {/* 하단 스크롤 안내 */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2, duration: 0.6 }}
-              className="mt-16 flex justify-center"
-            >
+              {/* 왼쪽 이미지 */}
               <motion.div
-                animate={{ y: [0, 10, 0] }}
-                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                className="text-text-lighter text-sm flex flex-col items-center gap-2"
+                initial={{ opacity: 0, x: -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="hidden lg:block lg:flex-1 lg:max-w-[340px] xl:max-w-[420px]"
               >
-                <span>아래로 스크롤</span>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 5v14M19 12l-7 7-7-7" />
-                </svg>
+                <img
+                  src="/images/hero/hero-left.png"
+                  alt="동화책에서 튀어나오는 아이들"
+                  className="w-full h-auto"
+                />
               </motion.div>
-            </motion.div>
+
+              {/* 중앙 텍스트 */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="flex-1 text-center max-w-2xl mx-auto lg:mx-0"
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary-dark text-sm font-medium mb-6">
+                  <Sparkles className="w-4 h-4" />
+                  AI가 만드는 세상에 단 하나뿐인 동화책
+                </div>
+
+                <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold font-display text-text leading-tight mb-6">
+                  아이의 꿈을
+                  <br />
+                  <span className="text-primary">동화책</span>으로
+                  <br />
+                  만들어주세요
+                </h1>
+
+                <p className="text-base sm:text-lg lg:text-xl text-text-light max-w-xl mx-auto mb-10 leading-relaxed">
+                  아이의 이름과 꿈꾸는 직업을 알려주세요.
+                  <br className="hidden sm:block" />
+                  AI가 아이만의 특별한 동화 이야기와 그림을 만들어 드려요.
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button
+                    onClick={startCreate}
+                    className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl bg-primary text-white text-base sm:text-lg font-bold shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200 hover:scale-105"
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    동화책 만들기
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* 모바일: 이미지 2장 가로 배치 */}
+                <div className="flex gap-4 mt-10 lg:hidden justify-center">
+                  <motion.img
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                    src="/images/hero/hero-left.png"
+                    alt="동화책에서 튀어나오는 아이들"
+                    className="w-44 sm:w-60 h-auto"
+                  />
+                  <motion.img
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                    src="/images/hero/hero-right.png"
+                    alt="꿈의 세계들"
+                    className="w-44 sm:w-60 h-auto"
+                  />
+                </div>
+
+                {/* 하단 스크롤 안내 */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.2, duration: 0.6 }}
+                  className="mt-12 flex justify-center"
+                >
+                  <motion.div
+                    animate={{ y: [0, 10, 0] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    className="text-text-lighter text-sm flex flex-col items-center gap-2"
+                  >
+                    <span>아래로 스크롤</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 5v14M19 12l-7 7-7-7" />
+                    </svg>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+
+              {/* 오른쪽 이미지 */}
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="hidden lg:block lg:flex-1 lg:max-w-[340px] xl:max-w-[420px]"
+              >
+                <img
+                  src="/images/hero/hero-right.png"
+                  alt="꿈의 세계들"
+                  className="w-full h-auto"
+                />
+              </motion.div>
+
+            </div>
           </div>
         </section>
 
         {/* ── 샘플 동화책 섹션 ── */}
-        <section className="py-20 bg-white/50">
+        <section className="py-14 sm:py-20 bg-white/50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeInSection className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-4">
@@ -256,7 +304,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── 그림체 샘플 섹션 ── */}
-        <section className="py-20">
+        <section className="py-14 sm:py-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeInSection className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent-dark text-sm font-medium mb-4">
@@ -271,16 +319,19 @@ export default function LandingPage() {
               </p>
             </FadeInSection>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
+            <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
               {ART_STYLES.map((style, index) => (
                 <FadeInSection key={style.name} delay={index * 0.1}>
                   <div
-                    className={`group ${style.bgColor} border-2 ${style.borderColor} rounded-2xl p-4 text-center hover:shadow-card transition-all duration-300 hover:-translate-y-1`}
+                    className={`group ${style.bgColor} border-2 ${style.borderColor} rounded-2xl p-3 sm:p-4 text-center hover:shadow-card transition-all duration-300 hover:-translate-y-1`}
                   >
-                    {/* placeholder 이미지 영역 */}
-                    <div className={`w-full aspect-[4/3] rounded-xl bg-gradient-to-br ${style.placeholderColor} mb-3 flex flex-col items-center justify-center gap-1`}>
-                      <Palette className="w-8 h-8 text-text-lighter group-hover:text-text-light transition-colors" />
-                      <span className="text-xs text-text-lighter/70 font-medium">{style.name} 스타일</span>
+                    <div className="w-full aspect-square rounded-xl overflow-hidden mb-3">
+                      <img
+                        src={style.image}
+                        alt={`${style.name} 스타일`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
                     </div>
                     <h3 className="font-bold text-text text-sm sm:text-base mb-1">{style.name}</h3>
                     <p className="text-xs text-text-light hidden sm:block">{style.description}</p>
@@ -292,7 +343,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── 만드는 과정 섹션 ── */}
-        <section className="py-20 bg-white/50">
+        <section className="py-14 sm:py-20 bg-white/50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeInSection className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-4">
@@ -326,7 +377,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── 가격/이용권 섹션 ── */}
-        <section className="py-20">
+        <section className="py-14 sm:py-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeInSection className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary-dark text-sm font-medium mb-4">
@@ -347,7 +398,7 @@ export default function LandingPage() {
                   <h3 className="text-lg font-bold text-text mb-2">{PRICING.name}</h3>
                   <p className="text-sm text-text-light mb-4">{PRICING.description}</p>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold text-text">{PRICING.price}</span>
+                    <span className="text-3xl sm:text-4xl font-bold text-text">{PRICING.price}</span>
                     <span className="text-text-light ml-1">원</span>
                   </div>
                   <ul className="space-y-3 mb-8">
@@ -374,7 +425,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── 최종 CTA 섹션 ── */}
-        <section className="py-20 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+        <section className="py-14 sm:py-20 pb-24 md:pb-20 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <FadeInSection>
               <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-4">

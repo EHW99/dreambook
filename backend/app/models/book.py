@@ -18,6 +18,8 @@ class Book(Base):
     photo_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("photos.id"), nullable=True)
     job_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     job_name: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    job_name_en: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    job_outfit: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     story_style: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     art_style: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     page_count: Mapped[int] = mapped_column(Integer, default=24)

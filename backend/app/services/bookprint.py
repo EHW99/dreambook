@@ -326,7 +326,12 @@ class BookPrintService:
     # === Contents API ===
 
     async def insert_content(self, book_uid: str, template_uid: str, parameters: dict, break_before: str = "page") -> dict:
-        """내지 삽입"""
+        """내지 삽입
+
+        Returns:
+            API 응답 data + cursor 정보 (pageNum, pageSide).
+            pageSide는 삽입된 콘텐츠가 left/right 중 어디에 배치됐는지 나타냄.
+        """
         form_data = {
             "templateUid": template_uid,
             "parameters": json.dumps(parameters),
@@ -340,7 +345,15 @@ class BookPrintService:
             files=multipart_fields,
             params={"breakBefore": break_before},
         )
-        return result.get("data", {})
+        data = result.get("data", {})
+
+        # cursor 정보 병합 (pageNum, pageSide)
+        cursor = result.get("cursor", {})
+        if cursor:
+            data["pageNum"] = cursor.get("pageNum")
+            data["pageSide"] = cursor.get("pageSide")
+
+        return data
 
     # === Finalization ===
 
@@ -523,8 +536,13 @@ class BookPrintService:
         logger.info("[bookprint] 표지 생성 완료")
 
         # 5. 페이지별 내지 삽입
+        #    colophon(발행면)은 따로 처리 — pageSide 체크 후 삽입
         inserted_count = 0
-        for page in pages_data:
+        last_result: dict = {}
+        content_pages = [p for p in pages_data if p.get("page_type") != "colophon"]
+        colophon_page = next((p for p in pages_data if p.get("page_type") == "colophon"), None)
+
+        for page in content_pages:
             page_type = page.get("page_type", "")
             page_num = page.get("page_number", 0)
             text = page.get("text", "")
@@ -532,8 +550,8 @@ class BookPrintService:
 
             try:
                 if page_type == "title":
-                    # p1: 간지 (제목 페이지)
-                    await self.insert_content(book_uid, TPL_TITLE_PAGE, {
+                    # p1: 간지 (제목 페이지, templateKind=divider)
+                    last_result = await self.insert_content(book_uid, TPL_TITLE_PAGE, {
                         "monthYearTitle": title,
                         "author": child_name or "",
                     }, break_before="page")
@@ -542,31 +560,21 @@ class BookPrintService:
                     # 그림 페이지 (왼쪽)
                     img_file = uploaded_files.get(img_path, "")
                     params = {"photo": img_file} if img_file else {}
-                    await self.insert_content(book_uid, TPL_ILLUSTRATION, params, break_before="page")
+                    last_result = await self.insert_content(book_uid, TPL_ILLUSTRATION, params, break_before="page")
 
                 elif page_type == "story":
                     # 스토리 페이지 (오른쪽)
-                    await self.insert_content(book_uid, TPL_STORY, {
+                    last_result = await self.insert_content(book_uid, TPL_STORY, {
                         "storyText": text,
-                    }, break_before="page")
-
-                elif page_type == "colophon":
-                    # 발행면 (마지막 페이지)
-                    now = datetime.now()
-                    await self.insert_content(book_uid, TPL_PUBLISH, {
-                        "title": title,
-                        "publishDate": now.strftime("%Y년 %m월 %d일"),
-                        "author": child_name or "AI 동화작가",
-                        "hashtags": "#AI동화 #꿈꾸는나 #스위트북",
-                        "publisher": "(주)스위트북",
                     }, break_before="page")
 
                 else:
                     # 알 수 없는 타입 → 빈내지
-                    await self.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
+                    last_result = await self.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
 
                 inserted_count += 1
-                logger.info(f"[bookprint] 내지 삽입 완료: p{page_num} ({page_type})")
+                page_side = last_result.get("pageSide", "?")
+                logger.info(f"[bookprint] 내지 삽입 완료: p{page_num} ({page_type}) → pageSide={page_side}")
 
             except BookPrintAPIError as e:
                 logger.error(f"[bookprint] 내지 삽입 실패 (p{page_num} {page_type}): {e.message}")
@@ -574,6 +582,34 @@ class BookPrintService:
                     f"내지 삽입 실패 (p{page_num} {page_type}): {e.message}",
                     status_code=e.status_code,
                 )
+
+        # 5b. 발행면 삽입 — pageSide 체크 후 위치 보장
+        #     발행면(templateKind=publish)은 left에 와야 함.
+        #     마지막 내지가 left에 있으면 빈내지를 끼워서 발행면이 left에 오게 함.
+        if colophon_page:
+            last_side = last_result.get("pageSide", "right")
+            if last_side == "left":
+                logger.info("[bookprint] 발행면 위치 조정: 빈내지 삽입 (마지막 내지가 left)")
+                last_result = await self.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
+                inserted_count += 1
+
+            now = datetime.now()
+            last_result = await self.insert_content(book_uid, TPL_PUBLISH, {
+                "title": title,
+                "publishDate": now.strftime("%Y년 %m월 %d일"),
+                "author": child_name or "AI 동화작가",
+                "hashtags": "#AI동화 #꿈꾸는나 #스위트북",
+                "publisher": "(주)스위트북",
+            }, break_before="page")
+            inserted_count += 1
+            logger.info(f"[bookprint] 발행면 삽입 완료: pageSide={last_result.get('pageSide', '?')}")
+
+        # 5c. 삽입 검증 — 예상 페이지 수와 실제 삽입 수 비교
+        expected_count = len(pages_data)
+        if inserted_count < expected_count:
+            logger.warning(
+                f"[bookprint] 페이지 삽입 불일치: 예상 {expected_count}개, 실제 {inserted_count}개"
+            )
 
         # 6. 최종화
         finalize_result = await self.finalize_book(book_uid)

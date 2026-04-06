@@ -20,7 +20,7 @@ interface WizardProgressProps {
 export function WizardProgress({ currentStep }: WizardProgressProps) {
   return (
     <div className="w-full overflow-x-auto pb-2 -mx-2 px-2">
-      <div className="flex items-center justify-between min-w-[360px] sm:min-w-0">
+      <div className="flex items-center justify-between min-w-full">
         {STEPS.map((step, index) => {
           const isCompleted = currentStep > step.number;
           const isCurrent = currentStep === step.number;

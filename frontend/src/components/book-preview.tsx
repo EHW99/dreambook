@@ -179,7 +179,7 @@ function EditModal({ text, onSave, onClose }: {
       <motion.div
         initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 16 }}
-        className="bg-white rounded-3xl p-7 w-full max-w-[560px] shadow-hover"
+        className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 w-[92vw] sm:w-full max-w-[560px] shadow-hover"
       >
         <div className="flex items-center gap-3 mb-5">
           <div className="w-9 h-9 rounded-xl bg-primary-light flex items-center justify-center">
@@ -295,7 +295,7 @@ export default function BookPreview({ pages, title, childName, onTextSave }: Boo
         .__thumbs { scrollbar-width: none; }
       `}</style>
 
-      <div style={{ display: "flex", gap: 16, width: "100%", height: "calc(100vh - 200px)", minHeight: 400 }}>
+      <div style={{ display: "flex", gap: 16, width: "100%", height: "calc(100vh - 200px)", minHeight: 300 }}>
         {/* 썸네일 */}
         <div className="__thumbs" style={{
           display: "flex", flexDirection: "column", gap: 6,

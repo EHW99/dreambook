@@ -28,7 +28,7 @@ class TestBuildIllustrationPrompt:
     def test_prompt_includes_scene_description(self):
         from app.services.ai_illustration import _build_illustration_prompt
         prompt = _build_illustration_prompt(
-            art_style="pencil",
+            art_style="pastel",
             scene_description="A child holding a stethoscope in a hospital",
             child_name="서연",
             job_name="의사",

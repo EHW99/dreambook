@@ -45,7 +45,7 @@ class StoryOutput(BaseModel):
 # ──────────────────────────────────────────────
 ART_STYLE_KEYWORDS = {
     "watercolor": "watercolor illustration, soft warm tones, gentle brushstrokes",
-    "pencil": "pencil sketch, hand-drawn, fine line art",
+    "pastel": "soft pastel illustration, dreamy muted tones, gentle chalky texture",
     "crayon": "crayon drawing, childlike texture, bold colors",
     "3d": "3D render, Pixar style, soft lighting, rounded shapes",
     "cartoon": "cartoon style, cel-shaded, vibrant colors, clean outlines",

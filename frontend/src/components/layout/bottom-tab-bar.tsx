@@ -27,7 +27,7 @@ export function BottomTabBar() {
   return (
     <>
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-secondary/50 safe-area-bottom">
-        <div className="flex items-center justify-around h-14 px-1">
+        <div className="flex items-center justify-around h-16 px-1">
           {TABS.map((tab) => {
             const isActive = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href));
             const Icon = tab.icon;

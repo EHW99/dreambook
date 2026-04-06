@@ -279,7 +279,7 @@ class TestAICharacterService:
         """모든 그림체 스타일에 대해 키워드가 정의되어 있는지"""
         from app.services.ai_character import ART_STYLE_KEYWORDS
 
-        expected_styles = ["watercolor", "pencil", "crayon", "3d", "cartoon"]
+        expected_styles = ["watercolor", "pastel", "crayon", "3d", "cartoon"]
         for style in expected_styles:
             assert style in ART_STYLE_KEYWORDS, f"'{style}' 스타일 키워드 미정의"
             assert len(ART_STYLE_KEYWORDS[style]) > 0

@@ -238,7 +238,7 @@ function AudiobookContent() {
             {/* 텍스트 영역 */}
             <div className="w-full px-2">
               <p
-                className={`text-center text-base sm:text-lg leading-relaxed font-medium transition-colors duration-300 ${
+                className={`text-center text-base sm:text-lg leading-relaxed font-medium break-words transition-colors duration-300 ${
                   isSpeaking ? "text-white" : "text-white/80"
                 }`}
                 style={{ fontFamily: "'Pretendard', sans-serif" }}
@@ -284,7 +284,7 @@ function AudiobookContent() {
           {/* 재생/일시정지 */}
           <button
             onClick={handlePlayPause}
-            className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
               isPlaying
                 ? "bg-primary hover:bg-primary/80"
                 : "bg-primary hover:bg-primary/80"

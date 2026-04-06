@@ -67,6 +67,15 @@ def _generate_ai_character(db: Session, book: Book) -> Optional[str]:
     art_style = book.art_style or "watercolor"
     job_name = book.job_name or "소방관"
 
+    # 직업 영어 번역 (없으면 이 시점에 생성하여 DB 저장)
+    if not book.job_name_en:
+        from app.services.ai_job import translate_job
+        job_translation = translate_job(job_name)
+        book.job_name_en = job_translation["job_name_en"]
+        book.job_outfit = job_translation["job_outfit"]
+        db.commit()
+        logger.info(f"직업 번역 완료: {job_name} → {book.job_name_en}")
+
     try:
         from app.services.ai_character import generate_character_image, CharacterGenerationError
 
@@ -80,6 +89,8 @@ def _generate_ai_character(db: Session, book: Book) -> Optional[str]:
             job_name=job_name,
             child_age=child_age,
             child_gender=child_gender,
+            job_name_en=book.job_name_en or "",
+            job_outfit=book.job_outfit or "",
         )
 
         # 파일 저장

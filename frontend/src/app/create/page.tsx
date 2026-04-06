@@ -310,7 +310,7 @@ function CreateWizardContent() {
       </div>
 
       {/* 본문 */}
-      <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
+      <div className="flex-1 max-w-2xl mx-auto w-full px-3 sm:px-4 py-6 sm:py-8">
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}

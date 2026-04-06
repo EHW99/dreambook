@@ -625,8 +625,11 @@ function OrderContent() {
           </div>
         </div>
 
+        {/* 주문 버튼 spacer (모바일 키보드/sticky 여백) */}
+        <div className="h-4 md:h-0" />
+
         {/* 주문 버튼 */}
-        <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm border-t border-secondary/30 -mx-4 px-4 py-4">
+        <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm border-t border-secondary/30 -mx-3 sm:-mx-4 px-3 sm:px-4 py-4">
           <Button
             onClick={handleOrder}
             disabled={ordering}

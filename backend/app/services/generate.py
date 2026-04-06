@@ -135,6 +135,8 @@ def _generate_single_illustration(
             job_name=book.job_name or "직업",
             child_age=child_age,
             child_gender=child_gender,
+            job_name_en=book.job_name_en or "",
+            job_outfit=book.job_outfit or "",
         )
         if ai_bytes:
             filename = f"ai_illust_book{book.id}_page{page_number}.png"

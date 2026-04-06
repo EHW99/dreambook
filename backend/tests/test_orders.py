@@ -948,9 +948,9 @@ class TestWorkflowValidation:
         )
         service.finalize_book = AsyncMock()  # 이건 호출되면 안됨
 
-        pages_data = [{"text": f"page {i}", "image_path": ""} for i in range(24)]
+        pages_data = [{"text": f"page {i}", "image_path": "", "page_type": "story", "page_number": i} for i in range(24)]
 
-        with pytest.raises(BookPrintAPIError, match="내지 삽입 실패.*워크플로우를 중단"):
+        with pytest.raises(BookPrintAPIError, match="내지 삽입 실패"):
             await service.execute_order_workflow(
                 title="테스트",
                 book_spec_uid="SQUAREBOOK_HC",

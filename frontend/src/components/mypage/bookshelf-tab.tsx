@@ -26,7 +26,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 const ART_STYLE_LABELS: Record<string, string> = {
   watercolor: "수채화",
-  pencil: "연필화",
+  pastel: "파스텔",
   crayon: "크레파스",
   "3d": "3D",
   cartoon: "만화",
