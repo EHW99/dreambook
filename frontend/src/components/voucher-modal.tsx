@@ -81,7 +81,6 @@ export function VoucherModal({ open, onClose, onPurchased }: VoucherModalProps) 
                 "AI 일러스트 생성",
                 "5가지 그림체 선택",
                 "디지털 동화책 뷰어",
-                "오디오북 기능",
               ].map((feature) => (
                 <li key={feature} className="flex items-center gap-2 text-sm text-text">
                   <Check className="w-4 h-4 text-green-500 flex-shrink-0" />

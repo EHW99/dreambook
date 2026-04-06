@@ -102,13 +102,12 @@ const ART_STYLES = [
 const PRICING = {
   name: "동화책 이용권",
   price: "9,900",
-  description: "AI가 만드는 나만의 동화책",
+  description: "아이의 꿈이 동화 속 주인공이 됩니다",
   features: [
     "AI 맞춤 동화 스토리 11편",
     "AI 일러스트 생성",
     "5가지 그림체 선택",
     "디지털 동화책 뷰어",
-    "오디오북 기능",
   ],
   note: "실물 책 인쇄 및 배송은 별도 요금이 발생합니다",
 };
@@ -148,21 +147,21 @@ export default function LandingPage() {
               >
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary-dark text-sm font-medium mb-6">
                   <Sparkles className="w-4 h-4" />
-                  AI가 만드는 세상에 단 하나뿐인 동화책
+                  우리 아이의 미래를 먼저 만나보세요
                 </div>
 
                 <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold font-display text-text leading-tight mb-6">
-                  아이의 꿈을
+                  아이가 꿈꾸는 내일,
                   <br />
-                  <span className="text-primary">동화책</span>으로
+                  <span className="text-primary">동화책</span>에서
                   <br />
-                  만들어주세요
+                  먼저 만나요
                 </h1>
 
                 <p className="text-base sm:text-lg lg:text-xl text-text-light max-w-xl mx-auto mb-10 leading-relaxed">
-                  아이의 이름과 꿈꾸는 직업을 알려주세요.
+                  커서 뭐가 되고 싶어?
                   <br className="hidden sm:block" />
-                  AI가 아이만의 특별한 동화 이야기와 그림을 만들어 드려요.
+                  그 대답이 한 권의 동화책이 됩니다.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -239,10 +238,10 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeInSection className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-4">
-                샘플 동화책 미리보기
+                이미 많은 아이들이 꿈을 펼치고 있어요
               </h2>
               <p className="text-text-light text-lg max-w-2xl mx-auto">
-                이런 동화책이 만들어져요! 아이의 이름과 직업으로 특별한 이야기가 탄생합니다.
+                아이의 이름과 꿈꾸는 직업이 세상에 단 하나뿐인 동화가 됩니다.
               </p>
             </FadeInSection>
 
@@ -347,19 +346,19 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeInSection className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-4">
-                이렇게 만들어져요
+                꿈이 동화책이 되기까지
               </h2>
               <p className="text-text-light text-lg">
-                간단한 4단계로 세상에 단 하나뿐인 동화책 완성!
+                아이의 이름과 사진 하나면 충분해요
               </p>
             </FadeInSection>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { icon: <Sparkles className="w-6 h-6" />, step: "1", title: "정보 입력", desc: "아이 이름과 사진, 꿈꾸는 직업을 알려주세요" },
-                { icon: <Palette className="w-6 h-6" />, step: "2", title: "스타일 선택", desc: "원하는 그림체와 동화 스타일을 선택해요" },
-                { icon: <BookOpen className="w-6 h-6" />, step: "3", title: "AI 동화 생성", desc: "AI가 아이만의 특별한 동화를 만들어요" },
-                { icon: <Printer className="w-6 h-6" />, step: "4", title: "실물 책 배송", desc: "하드커버 동화책으로 인쇄하여 배송해요" },
+                { icon: <Sparkles className="w-6 h-6" />, step: "1", title: "꿈 알려주기", desc: "아이의 이름, 사진, 되고 싶은 직업을 알려주세요" },
+                { icon: <Palette className="w-6 h-6" />, step: "2", title: "그림체 고르기", desc: "수채화, 크레파스, 3D 등 아이가 좋아할 스타일을 골라요" },
+                { icon: <BookOpen className="w-6 h-6" />, step: "3", title: "동화 탄생", desc: "AI가 아이의 꿈을 11편의 동화 이야기로 만들어요" },
+                { icon: <Printer className="w-6 h-6" />, step: "4", title: "책으로 만나기", desc: "세상에 단 하나뿐인 동화책이 우리 집으로 찾아와요" },
               ].map((item, index) => (
                 <FadeInSection key={item.step} delay={index * 0.15}>
                   <div className="bg-white rounded-3xl shadow-soft p-6 text-center hover:shadow-card transition-all duration-300">
@@ -385,10 +384,10 @@ export default function LandingPage() {
                 합리적인 가격
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-4">
-                이용권 안내
+                꿈에 가격을 매길 순 없지만
               </h2>
               <p className="text-text-light text-lg max-w-2xl mx-auto">
-                아이의 꿈을 담은 동화책, 부담 없는 가격으로 만나보세요.
+                한 권의 동화책으로, 아이의 눈이 반짝이는 순간을 선물하세요.
               </p>
             </FadeInSection>
 
@@ -429,17 +428,17 @@ export default function LandingPage() {
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <FadeInSection>
               <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-4">
-                지금 바로 시작하세요
+                우리 아이의 꿈, 동화책으로 만나볼까요?
               </h2>
               <p className="text-text-light text-lg mb-8">
-                아이의 꿈이 동화책이 되는 마법같은 경험을 선물해 주세요.
+                오늘 아이가 꿈꾸는 미래의 모습을, 동화책에서 먼저 만나보세요.
               </p>
               <button
                 onClick={startCreate}
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary text-white text-lg font-bold shadow-soft hover:bg-primary-dark hover:shadow-hover transition-all duration-200 hover:scale-105"
               >
                 <BookOpen className="w-5 h-5" />
-                동화책 만들기
+                우리 아이 동화책 만들기
                 <ArrowRight className="w-5 h-5" />
               </button>
             </FadeInSection>

@@ -115,7 +115,7 @@ def generate_illustration_image(
         photo_file = open(character_sheet_path, "rb")
         try:
             response = client.images.edit(
-                model="gpt-image-1",
+                model="gpt-image-1-mini",
                 image=photo_file,
                 prompt=prompt,
                 size="1024x1024",
@@ -194,4 +194,141 @@ def generate_illustration_or_dummy(
         )
     except IllustrationGenerationError as e:
         logger.warning(f"AI 일러스트 생성 실패, 더미 폴백: {e}")
+        return None
+
+
+# ──────────────────────────────────────────────
+# 표지 전용
+# ──────────────────────────────────────────────
+
+def _build_cover_prompt(
+    art_style: str,
+    child_name: str,
+    job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
+    job_name_en: str = "",
+    job_outfit: str = "",
+) -> str:
+    """표지 이미지 생성용 프롬프트를 구성한다.
+
+    내지와 달리:
+    - scene_description 없음 (장면이 아니라 캐릭터 포트레이트)
+    - 정면 포즈, 자신감 있는 표정
+    - 단순하고 밝은 배경
+    - 이미지 안에 텍스트 금지 (제목/저자는 템플릿이 배치)
+    """
+    art_keywords = ART_STYLE_KEYWORDS.get(art_style, "illustration style")
+    job_en, job_outfit_desc = _get_job_description(job_name, job_name_en, job_outfit)
+    gender_en = "boy" if child_gender == "male" else "girl"
+
+    prompt = (
+        f"{art_keywords} children's book cover illustration. "
+        f"Character: A {gender_en} named {child_name} (age {child_age}), a {job_en}, {job_outfit_desc}. "
+        f"The character should look like the reference image ({gender_en}, age {child_age}). "
+        f"The character stands front-facing in the center with a confident, happy smile. "
+        f"Simple, bright, colorful background with soft gradients. "
+        f"High quality children's storybook cover portrait. "
+        f"No text, no letters, no words in the image."
+    )
+
+    return prompt
+
+
+def generate_cover_image_ai(
+    character_sheet_path: str,
+    art_style: str,
+    child_name: str,
+    job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
+    job_name_en: str = "",
+    job_outfit: str = "",
+) -> bytes:
+    """표지 전용 이미지를 생성한다.
+
+    내지 일러스트와 동일한 API(images.edit)를 사용하지만,
+    표지 전용 프롬프트(_build_cover_prompt)를 사용한다.
+    """
+    settings = get_settings()
+
+    prompt = _build_cover_prompt(art_style, child_name, job_name, child_age, child_gender, job_name_en, job_outfit)
+
+    try:
+        client = OpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            timeout=120.0,
+        )
+
+        photo_file = open(character_sheet_path, "rb")
+        try:
+            response = client.images.edit(
+                model="gpt-image-1-mini",
+                image=photo_file,
+                prompt=prompt,
+                size="1024x1024",
+                quality="medium",
+                output_format="png",
+            )
+        finally:
+            photo_file.close()
+
+        b64_data = response.data[0].b64_json
+        image_bytes = base64.b64decode(b64_data)
+
+        from app.services.cost_monitor import get_cost_monitor
+        get_cost_monitor().log_illustration_call(image_count=1, success=True)
+
+        return image_bytes
+
+    except BadRequestError as e:
+        from app.services.cost_monitor import get_cost_monitor
+        get_cost_monitor().log_illustration_call(success=False, error=str(e))
+        error_msg = str(e)
+        if "content_policy" in error_msg.lower() or "safety" in error_msg.lower():
+            logger.warning(f"표지 생성 콘텐츠 정책 위반: {error_msg}")
+            raise IllustrationGenerationError("콘텐츠 정책에 의해 표지를 생성할 수 없습니다.")
+        logger.error(f"GPT Image API 오류 (표지): {error_msg}")
+        raise IllustrationGenerationError(f"표지 생성 중 오류가 발생했습니다: {error_msg}")
+
+    except IllustrationGenerationError:
+        raise
+
+    except Exception as e:
+        from app.services.cost_monitor import get_cost_monitor
+        get_cost_monitor().log_illustration_call(success=False, error=str(e))
+        logger.error(f"GPT Image API 호출 실패 (표지): {e}")
+        raise IllustrationGenerationError(f"표지 생성 중 오류가 발생했습니다: {e}")
+
+
+def generate_cover_or_dummy(
+    character_sheet_path: str,
+    art_style: str,
+    child_name: str,
+    job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
+    job_name_en: str = "",
+    job_outfit: str = "",
+) -> bytes | None:
+    """표지 생성 — API 키 있으면 GPT, 없거나 실패하면 None."""
+    settings = get_settings()
+
+    if not settings.OPENAI_API_KEY:
+        logger.info("OPENAI_API_KEY 미설정 — 표지 더미 폴백")
+        return None
+
+    try:
+        return generate_cover_image_ai(
+            character_sheet_path=character_sheet_path,
+            art_style=art_style,
+            child_name=child_name,
+            job_name=job_name,
+            child_age=child_age,
+            child_gender=child_gender,
+            job_name_en=job_name_en,
+            job_outfit=job_outfit,
+        )
+    except IllustrationGenerationError as e:
+        logger.warning(f"AI 표지 생성 실패, 더미 폴백: {e}")
         return None

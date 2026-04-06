@@ -1,0 +1,277 @@
+{
+  "(none)": [
+    {
+      "kind": "content",
+      "name": "구글포토북C-내지_monthHeader(복사)",
+      "uid": "5TLmcVySw3Ca"
+    },
+    {
+      "kind": "content",
+      "name": "알림장B_내지_fill",
+      "uid": "4slyauW5rkUE"
+    }
+  ],
+  "일기장B": [
+    {
+      "kind": "content",
+      "name": "내지a_contain",
+      "uid": "3FhSEhJ94c0T"
+    },
+    {
+      "kind": "publish",
+      "name": "발행면",
+      "uid": "75vMl9IeyPMI"
+    },
+    {
+      "kind": "content",
+      "name": "내지_gallery",
+      "uid": "y5Ih0Uo7tuQ3"
+    },
+    {
+      "kind": "content",
+      "name": "내지b",
+      "uid": "vHA59XPPKqak"
+    },
+    {
+      "kind": "content",
+      "name": "내지a_cover",
+      "uid": "2R8uMwVgTrpc"
+    },
+    {
+      "kind": "divider",
+      "name": "간지",
+      "uid": "1N8i0MR6Ro1D"
+    },
+    {
+      "kind": "cover",
+      "name": "표지",
+      "uid": "4MY2fokVjkeY"
+    }
+  ],
+  "일기장A": [
+    {
+      "kind": "publish",
+      "name": "발행면",
+      "uid": "5nhOVBjTnIVE"
+    },
+    {
+      "kind": "content",
+      "name": "내지_gallery",
+      "uid": "6c2HU8tipz1l"
+    },
+    {
+      "kind": "content",
+      "name": "내지b",
+      "uid": "5B4ds6i0Rywx"
+    },
+    {
+      "kind": "content",
+      "name": "내지a",
+      "uid": "46VqZhVNOfAp"
+    },
+    {
+      "kind": "divider",
+      "name": "간지",
+      "uid": "5M3oo7GlWKGO"
+    },
+    {
+      "kind": "cover",
+      "name": "표지",
+      "uid": "79yjMH3qRPly"
+    }
+  ],
+  "공용": [
+    {
+      "kind": "content",
+      "name": "빈내지",
+      "uid": "2mi1ao0Z4Vxl"
+    }
+  ],
+  "알림장C": [
+    {
+      "kind": "content",
+      "name": "빈내지",
+      "uid": "6grRwZsJ0GJk"
+    },
+    {
+      "kind": "publish",
+      "name": "발행면",
+      "uid": "6FvMytZPljyZ"
+    },
+    {
+      "kind": "content",
+      "name": "내지_월시작",
+      "uid": "22cuXuCxZiD0"
+    },
+    {
+      "kind": "content",
+      "name": "내지",
+      "uid": "24i8WZm836UJ"
+    },
+    {
+      "kind": "divider",
+      "name": "간지",
+      "uid": "7NlwVUuVzKLb"
+    },
+    {
+      "kind": "cover",
+      "name": "표지",
+      "uid": "7ku8dliMDsch"
+    }
+  ],
+  "알림장B": [
+    {
+      "kind": "content",
+      "name": "빈내지",
+      "uid": "1GtF7gRSeKAX"
+    },
+    {
+      "kind": "publish",
+      "name": "발행면",
+      "uid": "16CwXBtvmgVN"
+    },
+    {
+      "kind": "content",
+      "name": "내지_월시작",
+      "uid": "1Tjgb7UpvetN"
+    },
+    {
+      "kind": "content",
+      "name": "내지",
+      "uid": "2rSDdrabgqlr"
+    },
+    {
+      "kind": "divider",
+      "name": "간지",
+      "uid": "3s2cjqIuh1vi"
+    },
+    {
+      "kind": "cover",
+      "name": "표지",
+      "uid": "idbMArRHrKTo"
+    }
+  ],
+  "알림장A": [
+    {
+      "kind": "content",
+      "name": "빈내지",
+      "uid": "3tQ8WjQZOgId"
+    },
+    {
+      "kind": "publish",
+      "name": "발행면",
+      "uid": "2DnDyL20yo5Y"
+    },
+    {
+      "kind": "content",
+      "name": "내지_월시작",
+      "uid": "1aHHt1g7uHjw"
+    },
+    {
+      "kind": "content",
+      "name": "내지",
+      "uid": "4OfPX6DXS0zU"
+    },
+    {
+      "kind": "divider",
+      "name": "간지",
+      "uid": "6UxZUzLqtdk2"
+    },
+    {
+      "kind": "cover",
+      "name": "표지",
+      "uid": "39kySqmyRhhs"
+    }
+  ],
+  "구글포토북C": [
+    {
+      "kind": "content",
+      "name": "빈내지",
+      "uid": "6dyq4m8nFCcd"
+    },
+    {
+      "kind": "publish",
+      "name": "발행면",
+      "uid": "5oRDpEfVerdC"
+    },
+    {
+      "kind": "content",
+      "name": "내지_photo",
+      "uid": "79LHkH32MLH1"
+    },
+    {
+      "kind": "content",
+      "name": "내지_monthHeader",
+      "uid": "4B0Nc4myZ17u"
+    },
+    {
+      "kind": "divider",
+      "name": "간지",
+      "uid": "PorGJvT0oO7m"
+    },
+    {
+      "kind": "cover",
+      "name": "표지",
+      "uid": "4Fy1mpIlm1ek"
+    }
+  ],
+  "구글포토북B": [
+    {
+      "kind": "content",
+      "name": "빈내지",
+      "uid": "6qlvRxFJRX5q"
+    },
+    {
+      "kind": "publish",
+      "name": "발행면",
+      "uid": "5LgRgkQPRofX"
+    },
+    {
+      "kind": "content",
+      "name": "내지",
+      "uid": "6vUcK4Efowmh"
+    },
+    {
+      "kind": "divider",
+      "name": "간지",
+      "uid": "1VR1XHEuXuQx"
+    },
+    {
+      "kind": "cover",
+      "name": "표지",
+      "uid": "6OhURGHdlI6y"
+    }
+  ],
+  "구글포토북A": [
+    {
+      "kind": "content",
+      "name": "빈내지",
+      "uid": "1zWsJbGghVO4"
+    },
+    {
+      "kind": "publish",
+      "name": "발행면",
+      "uid": "6rXIB08mfqdb"
+    },
+    {
+      "kind": "content",
+      "name": "내지_dateB",
+      "uid": "3T09l6GEd0AL"
+    },
+    {
+      "kind": "content",
+      "name": "내지_dateA",
+      "uid": "1vuzMfUnCkXS"
+    },
+    {
+      "kind": "divider",
+      "name": "간지",
+      "uid": "1ulGtuGsatHD"
+    },
+    {
+      "kind": "cover",
+      "name": "표지",
+      "uid": "1Es0DP4oARn8"
+    }
+  ]
+}

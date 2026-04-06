@@ -24,7 +24,7 @@ from app.services.ai_story import (
     STORY_PAGE_COUNT,
     TOTAL_BOOK_PAGES,
 )
-from app.services.ai_illustration import generate_illustration_or_dummy
+from app.services.ai_illustration import generate_illustration_or_dummy, generate_cover_or_dummy
 
 logger = logging.getLogger(__name__)
 
@@ -394,37 +394,42 @@ def generate_cover_image(
 ) -> Optional[str]:
     """표지 전용 이미지를 생성한다.
 
-    첫 번째 일러스트의 scene_description을 기반으로
-    표지에 적합한 이미지를 생성한다.
+    캐릭터 시트를 참조하여 표지 전용 프롬프트로 생성한다.
+    내지 일러스트와 달리 scene_description을 사용하지 않고,
+    캐릭터 중심의 정면 포트레이트를 생성한다.
 
     Returns:
         생성된 이미지 파일 경로 (또는 None)
     """
+    ensure_upload_dir()
     character_sheet_path = _get_selected_character_sheet_path(db, book.id)
 
-    # 첫 번째 illustration 페이지의 scene을 표지용으로 사용
-    first_illust = db.query(Page).filter(
-        Page.book_id == book.id,
-        Page.page_type == "illustration",
-    ).order_by(Page.page_number).first()
+    if SKIP_AI_ILLUSTRATION:
+        logger.info("[SKIP] 표지 AI 생성 스킵")
+        return _create_placeholder_image(0, book.title or "표지", book.id)
 
-    scene_desc = first_illust.scene_description if first_illust else ""
+    child_age = _calc_child_age(book.child_birth_date)
+    child_gender = book.child_gender or "male"
 
-    if not scene_desc:
-        # scene이 없으면 기본 표지 scene 생성
-        scene_desc = (
-            f"A cheerful child (age 6) dressed as a {book.job_name or 'professional'}, "
-            f"standing confidently with a warm smile. "
-            f"Background: colorful and inviting, suitable for a children's book cover."
-        )
-
-    image_path = _generate_single_illustration(
-        book=book,
-        page_number=0,  # 표지는 page 0
-        scene_description=scene_desc,
-        text_content=book.title or "",
-        character_sheet_path=character_sheet_path,
+    ai_bytes = generate_cover_or_dummy(
+        character_sheet_path=character_sheet_path or "",
+        art_style=book.art_style or "watercolor",
+        child_name=book.child_name,
+        job_name=book.job_name or "직업",
+        child_age=child_age,
+        child_gender=child_gender,
+        job_name_en=book.job_name_en or "",
+        job_outfit=book.job_outfit or "",
     )
+
+    if ai_bytes:
+        filename = f"ai_cover_book{book.id}.png"
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        with open(filepath, "wb") as f:
+            f.write(ai_bytes)
+        image_path = filepath
+    else:
+        image_path = _create_placeholder_image(0, book.title or "표지", book.id)
 
     logger.info(f"[generate] 표지 이미지 생성 완료: {image_path}")
     return image_path

@@ -115,6 +115,8 @@ function CreateWizardContent() {
     if (voucherIdParam) {
       const result = await apiClient.createBook(Number(voucherIdParam));
       if (result.data) {
+        // URL을 book_id 기반으로 교체 (새로고침 시 이용권 재사용 방지)
+        router.replace(`/create?book_id=${result.data.id}`);
         loadBookState(result.data);
         setLoading(false);
         return;
