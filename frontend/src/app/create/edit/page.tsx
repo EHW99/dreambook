@@ -79,6 +79,10 @@ function EditContent() {
       showToast("스토리 재생성 횟수를 모두 사용했습니다");
       return;
     }
+    const confirmed = window.confirm(
+      "스토리를 재생성하면 현재 텍스트와 그림이 모두 초기화됩니다.\n재생성 후 일러스트를 다시 생성해야 합니다.\n\n계속하시겠습니까?"
+    );
+    if (!confirmed) return;
     setRegeneratingStory(true);
     const res = await apiClient.regenerateStory(book.id);
     if (res.data) {

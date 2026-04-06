@@ -342,6 +342,10 @@ def generate_cover_endpoint(
 
     image_path = generate_cover_image(db, book)
 
+    if image_path:
+        book.cover_image_path = image_path
+        db.commit()
+
     return {
         "image_path": image_path,
         "message": "표지 이미지가 생성되었습니다",
@@ -430,6 +434,7 @@ def regenerate_story(
     book.story_regen_count += 1
 
     # 스토리 텍스트만 재생성 (일러스트는 별도 단계에서)
+    prev_status = book.status
     try:
         pages = generate_story_only(db, book)
     except StoryGenerationError as e:
@@ -440,6 +445,12 @@ def regenerate_story(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"스토리 생성에 실패했습니다: {str(e)}",
         )
+
+    # 편집 페이지에서 재생성한 경우 status를 editing으로 복원
+    # (generate_story_only가 "story_generated"로 바꾸므로)
+    if prev_status == "editing":
+        book.status = "editing"
+        db.commit()
 
     return RegenerateStoryResponse(
         status=book.status,
