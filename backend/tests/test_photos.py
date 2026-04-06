@@ -18,7 +18,7 @@ def create_test_image(width=1024, height=1024, fmt="PNG"):
 
 def signup_and_login(client, email="photo@test.com", password="password123"):
     """회원가입 + 로그인 → access_token 반환"""
-    client.post("/api/auth/signup", json={"email": email, "password": password})
+    client.post("/api/auth/signup", json={"email": email, "password": password, "name": "테스트", "phone": "01012345678"})
     res = client.post("/api/auth/login", json={"email": email, "password": password})
     return res.json()["access_token"]
 

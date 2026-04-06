@@ -17,6 +17,8 @@ class TestSignup:
         res = client.post("/api/auth/signup", json={
             "email": "test@example.com",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         assert res.status_code == 201
         data = res.json()
@@ -30,10 +32,14 @@ class TestSignup:
         client.post("/api/auth/signup", json={
             "email": "dup@example.com",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         res = client.post("/api/auth/signup", json={
             "email": "dup@example.com",
             "password": "password456",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         assert res.status_code == 409
         assert "이미 가입된 이메일입니다" in res.json()["detail"]
@@ -43,6 +49,8 @@ class TestSignup:
         res = client.post("/api/auth/signup", json={
             "email": "not-an-email",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         assert res.status_code == 422
         assert "유효하지 않은 이메일 형식입니다" in res.json()["detail"]
@@ -52,6 +60,8 @@ class TestSignup:
         res = client.post("/api/auth/signup", json={
             "email": "test@example.com",
             "password": "short",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         assert res.status_code == 422
         assert "비밀번호는 8자 이상이어야 합니다" in res.json()["detail"]
@@ -61,6 +71,8 @@ class TestSignup:
         res = client.post("/api/auth/signup", json={
             "email": "",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         assert res.status_code == 422
 
@@ -69,6 +81,8 @@ class TestSignup:
         client.post("/api/auth/signup", json={
             "email": "hash@example.com",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         from app.models.user import User
         user = db_session.query(User).filter_by(email="hash@example.com").first()
@@ -88,6 +102,8 @@ class TestLogin:
         client.post("/api/auth/signup", json={
             "email": "user@example.com",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
 
     def test_login_success(self, client):
@@ -139,6 +155,8 @@ class TestRefresh:
         client.post("/api/auth/signup", json={
             "email": "refresh@example.com",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         res = client.post("/api/auth/login", json={
             "email": "refresh@example.com",
@@ -168,6 +186,8 @@ class TestRefresh:
         client.post("/api/auth/signup", json={
             "email": "tokentype@example.com",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         login_res = client.post("/api/auth/login", json={
             "email": "tokentype@example.com",
@@ -208,6 +228,8 @@ class TestMe:
         client.post("/api/auth/signup", json={
             "email": "me@example.com",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         res = client.post("/api/auth/login", json={
             "email": "me@example.com",
@@ -246,6 +268,8 @@ class TestMe:
         client.post("/api/auth/signup", json={
             "email": "reftok@example.com",
             "password": "password123",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         login_res = client.post("/api/auth/login", json={
             "email": "reftok@example.com",

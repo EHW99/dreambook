@@ -265,6 +265,8 @@ class TestOrderEndpoints:
         client.post("/api/auth/signup", json={
             "email": "order@test.com",
             "password": "test1234",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         res = client.post("/api/auth/login", json={
             "email": "order@test.com",
@@ -660,6 +662,8 @@ class TestUpdateShippingEndpoint:
         client.post("/api/auth/signup", json={
             "email": "shipping@test.com",
             "password": "test1234",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         res = client.post("/api/auth/login", json={
             "email": "shipping@test.com",
@@ -804,6 +808,8 @@ class TestUpdateShippingEndpoint:
         client.post("/api/auth/signup", json={
             "email": "other@test.com",
             "password": "test1234",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         other_res = client.post("/api/auth/login", json={
             "email": "other@test.com",
@@ -966,6 +972,8 @@ class TestCancelEdgeCases:
         client.post("/api/auth/signup", json={
             "email": "cancel@test.com",
             "password": "test1234",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         res = client.post("/api/auth/login", json={
             "email": "cancel@test.com",
@@ -1032,7 +1040,7 @@ class TestCancelEdgeCases:
         order_id = self._create_order_helper(client, headers, db_session, MockService)
 
         # 다른 사용자 생성
-        client.post("/api/auth/signup", json={"email": "other_cancel@test.com", "password": "test1234"})
+        client.post("/api/auth/signup", json={"email": "other_cancel@test.com", "password": "test1234", "name": "테스트", "phone": "01012345678"})
         other_res = client.post("/api/auth/login", json={"email": "other_cancel@test.com", "password": "test1234"})
         other_headers = {"Authorization": f"Bearer {other_res.json()['access_token']}"}
 
@@ -1049,6 +1057,8 @@ class TestBookshelfEndpoints:
         client.post("/api/auth/signup", json={
             "email": "bookshelf@test.com",
             "password": "test1234",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         res = client.post("/api/auth/login", json={
             "email": "bookshelf@test.com",
@@ -1190,6 +1200,8 @@ class TestOrderListBookTitle:
         client.post("/api/auth/signup", json={
             "email": "ordertitle@test.com",
             "password": "test1234",
+            "name": "테스트",
+            "phone": "01012345678",
         })
         res = client.post("/api/auth/login", json={
             "email": "ordertitle@test.com",

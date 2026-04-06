@@ -40,45 +40,24 @@ export function StepGenerating({
   }, []);
 
   async function startGeneration() {
-    // 진행률 애니메이션 (0 → 90% 빠르게, 90 → 100은 완료 후)
-    const stages = [
-      { target: 20, text: "스토리를 만들고 있어요...", delay: 300 },
-      { target: 45, text: "장면을 구성하고 있어요...", delay: 500 },
-      { target: 70, text: "일러스트를 그리고 있어요...", delay: 400 },
-      { target: 90, text: "마무리하고 있어요...", delay: 300 },
-    ];
-
-    // 진행률 애니메이션 시작
-    let currentStage = 0;
-    const progressInterval = setInterval(() => {
-      if (currentStage < stages.length) {
-        setProgress(stages[currentStage].target);
-        setStatusText(stages[currentStage].text);
-        currentStage++;
-      } else {
-        clearInterval(progressInterval);
-      }
-    }, 400);
-
+    // 스토리 텍스트만 생성 → 편집 화면에서 텍스트 수정 후 일러스트 별도 생성
     try {
-      // API에서 import하기
       const { apiClient } = await import("@/lib/api");
-      const result = await apiClient.generateBook(bookId);
 
-      clearInterval(progressInterval);
+      setProgress(30);
+      setStatusText("스토리를 만들고 있어요...");
 
-      if (result.data) {
-        setProgress(100);
-        setStatusText("완성되었어요!");
-        // 약간의 딜레이 후 완료 콜백
-        setTimeout(() => {
-          onComplete();
-        }, 800);
-      } else {
-        onError(result.error || "생성에 실패했습니다");
+      const storyResult = await apiClient.generateStoryOnly(bookId);
+
+      if (!storyResult.data) {
+        onError(storyResult.error || "스토리 생성에 실패했습니다");
+        return;
       }
+
+      setProgress(100);
+      setStatusText("스토리가 완성되었어요!");
+      setTimeout(() => onComplete(), 800);
     } catch {
-      clearInterval(progressInterval);
       onError("생성 중 오류가 발생했습니다");
     }
   }

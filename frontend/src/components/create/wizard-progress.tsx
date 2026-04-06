@@ -8,8 +8,9 @@ const STEPS = [
   { number: 2, label: "직업" },
   { number: 3, label: "스타일" },
   { number: 4, label: "줄거리" },
-  { number: 5, label: "생성" },
-  { number: 6, label: "편집" },
+  { number: 5, label: "스토리" },
+  { number: 6, label: "글 편집" },
+  { number: 7, label: "그림" },
 ];
 
 interface WizardProgressProps {

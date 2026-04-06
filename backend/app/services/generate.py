@@ -1,7 +1,11 @@
 """동화책 스토리/이미지 생성 서비스
 
-Phase 3: GPT-4o 스토리 + GPT Image 일러스트 생성
-폴백: API 키 없으면 더미 스토리 + placeholder 이미지
+2단계 분리 구조:
+  1단계: generate_story_only() — 스토리 텍스트만 생성 (빠름, ~10초)
+  2단계: generate_illustrations() — 확정된 텍스트 기반 일러스트 생성
+  + generate_cover_image() — 표지 전용 이미지 생성
+
+기존 generate_story()는 하위 호환성을 위해 유지 (1+2단계 한번에).
 """
 import logging
 import os
@@ -28,8 +32,6 @@ logger = logging.getLogger(__name__)
 # [AI 이미지 생성 스킵 플래그]
 # True로 설정하면 일러스트 생성 시 AI(GPT Image)를 호출하지 않고
 # 항상 placeholder 이미지를 사용합니다.
-# 스토리(GPT-4o 텍스트)는 이 플래그와 무관하게 정상 동작합니다.
-#
 # → 일러스트 AI 생성을 활성화하려면 False로 변경하세요.
 # ============================================================
 SKIP_AI_ILLUSTRATION = True
@@ -63,86 +65,23 @@ def _get_selected_character_sheet_path(db: Session, book_id: int) -> Optional[st
     return None
 
 
-def _generate_page_illustration(
-    book: Book,
-    page_number: int,
-    scene_description: str,
-    text_content: str,
-    character_sheet_path: Optional[str],
-) -> str:
-    """AI 일러스트를 시도하고, 실패하면 placeholder를 생성한다.
-
-    Returns:
-        저장된 이미지의 파일 경로
-    """
-    ensure_upload_dir()
-
-    # ── SKIP_AI_ILLUSTRATION=True이면 AI 호출 없이 placeholder 사용 ──
-    if SKIP_AI_ILLUSTRATION:
-        logger.info(f"[SKIP] 일러스트 AI 생성 스킵 (p{page_number}) — SKIP_AI_ILLUSTRATION=True")
-        label = text_content[:30] if text_content else f"Page {page_number}"
-        return _create_placeholder_image(page_number, label, book.id)
-
-    # 캐릭터 시트가 있고 scene_description이 있으면 AI 일러스트 시도
-    if character_sheet_path and scene_description and os.path.exists(character_sheet_path):
-        ai_bytes = generate_illustration_or_dummy(
-            character_sheet_path=character_sheet_path,
-            scene_description=scene_description,
-            art_style=book.art_style or "watercolor",
-            child_name=book.child_name,
-            job_name=book.job_name or "직업",
-        )
-
-        if ai_bytes:
-            filename = f"ai_illust_book{book.id}_page{page_number}.png"
-            filepath = os.path.join(UPLOAD_DIR, filename)
-            with open(filepath, "wb") as f:
-                f.write(ai_bytes)
-            return filepath
-    else:
-        if scene_description:
-            ai_bytes = generate_illustration_or_dummy(
-                character_sheet_path=character_sheet_path or "",
-                scene_description=scene_description,
-                art_style=book.art_style or "watercolor",
-                child_name=book.child_name,
-                job_name=book.job_name or "직업",
-            )
-            if ai_bytes:
-                filename = f"ai_illust_book{book.id}_page{page_number}.png"
-                filepath = os.path.join(UPLOAD_DIR, filename)
-                with open(filepath, "wb") as f:
-                    f.write(ai_bytes)
-                return filepath
-
-    # 폴백: placeholder 이미지
-    label = text_content[:30] if text_content else f"Page {page_number}"
-    return _create_placeholder_image(page_number, label, book.id)
-
-
 def _create_placeholder_image(page_number: int, label: str, book_id: int) -> str:
-    """실제 PNG 파일로 placeholder 이미지를 생성하여 uploads/ 디렉토리에 저장.
-
-    Returns:
-        생성된 이미지의 절대 경로
-    """
+    """실제 PNG 파일로 placeholder 이미지를 생성하여 uploads/ 디렉토리에 저장."""
     from PIL import Image, ImageDraw, ImageFont
 
     ensure_upload_dir()
 
-    width, height = 800, 800
+    width, height = 1024, 1024
     color = PLACEHOLDER_COLORS[(page_number - 1) % len(PLACEHOLDER_COLORS)]
     img = Image.new("RGB", (width, height), color)
 
     draw = ImageDraw.Draw(img)
-    # 간단한 텍스트 표기 (폰트가 없어도 기본 폰트 사용)
     text = f"Page {page_number}\n{label}"
     try:
         font = ImageFont.truetype("arial.ttf", 36)
     except (IOError, OSError):
         font = ImageFont.load_default()
 
-    # 텍스트를 중앙에 배치
     bbox = draw.textbbox((0, 0), text, font=font)
     text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
@@ -157,32 +96,68 @@ def _create_placeholder_image(page_number: int, label: str, book_id: int) -> str
     return filepath
 
 
-def generate_story(
+def _generate_single_illustration(
+    book: Book,
+    page_number: int,
+    scene_description: str,
+    text_content: str,
+    character_sheet_path: Optional[str],
+) -> str:
+    """AI 일러스트를 시도하고, 실패하면 placeholder를 생성한다."""
+    ensure_upload_dir()
+
+    if SKIP_AI_ILLUSTRATION:
+        logger.info(f"[SKIP] 일러스트 AI 생성 스킵 (p{page_number})")
+        label = text_content[:30] if text_content else f"Page {page_number}"
+        return _create_placeholder_image(page_number, label, book.id)
+
+    if scene_description:
+        ai_bytes = generate_illustration_or_dummy(
+            character_sheet_path=character_sheet_path or "",
+            scene_description=scene_description,
+            art_style=book.art_style or "watercolor",
+            child_name=book.child_name,
+            job_name=book.job_name or "직업",
+        )
+        if ai_bytes:
+            filename = f"ai_illust_book{book.id}_page{page_number}.png"
+            filepath = os.path.join(UPLOAD_DIR, filename)
+            with open(filepath, "wb") as f:
+                f.write(ai_bytes)
+            return filepath
+
+    label = text_content[:30] if text_content else f"Page {page_number}"
+    return _create_placeholder_image(page_number, label, book.id)
+
+
+# ============================================================
+# 1단계: 스토리 텍스트만 생성
+# ============================================================
+
+def generate_story_only(
     db: Session,
     book: Book,
 ) -> List[Page]:
-    """AI 또는 더미 스토리를 생성하여 pages + page_images 테이블에 삽입.
+    """스토리 텍스트만 생성하여 DB에 저장. 이미지는 생성하지 않음.
 
-    24페이지 고정 구성:
-      p1: 제목 페이지 (title)
-      p2: 그림1, p3: 이야기1
-      p4: 그림2, p5: 이야기2
+    24페이지 구조:
+      p1: 제목 (title) — 텍스트만
+      p2: 그림1 (illustration) — 텍스트 없음, 이미지 없음
+      p3: 이야기1 (story) — 텍스트만
       ...
-      p22: 그림11, p23: 이야기11
+      p22: 그림11 (illustration)
+      p23: 이야기11 (story)
       p24: 판권 (colophon)
 
-    LLM이 생성한 stories(11개)를 위 구조로 펼친다.
-    그림 페이지(짝수)에만 AI 일러스트를 생성한다.
-
-    Raises:
-        StoryGenerationError: AI 스토리 생성 실패 시
+    이 함수 후 사용자가 텍스트를 편집하고,
+    그 다음 generate_illustrations()를 호출하여 이미지를 생성한다.
     """
     child_name = book.child_name
     job_name = book.job_name or "직업"
     art_style = book.art_style
     plot_input = book.plot_input or ""
 
-    # AI 또는 더미 스토리 생성 (이야기 11개)
+    # AI 또는 더미 스토리 생성
     story_data = generate_story_with_gpt_or_dummy(
         child_name=child_name,
         job_name=job_name,
@@ -194,15 +169,12 @@ def generate_story(
     db.query(Page).filter(Page.book_id == book.id).delete()
     db.flush()
 
-    # 확정된 캐릭터 시트 경로 조회
-    character_sheet_path = _get_selected_character_sheet_path(db, book.id)
-
     pages = []
     now = datetime.now(timezone.utc)
     title = story_data.get("title", f"{child_name}의 꿈 — 멋진 {job_name}")
     stories = story_data.get("stories", [])
 
-    # ── p1: 제목 페이지 ──
+    # p1: 제목 페이지
     title_page = Page(
         book_id=book.id,
         page_number=1,
@@ -214,36 +186,17 @@ def generate_story(
     )
     db.add(title_page)
     db.flush()
-
-    # 제목 페이지 이미지: 첫 번째 이야기의 scene_description 활용
-    first_scene = stories[0]["scene_description"] if stories else ""
-    title_image_path = _generate_page_illustration(
-        book=book,
-        page_number=1,
-        scene_description=first_scene,
-        text_content=title,
-        character_sheet_path=character_sheet_path,
-    )
-    db.add(PageImage(
-        page_id=title_page.id,
-        image_path=title_image_path,
-        generation_index=0,
-        is_selected=True,
-        created_at=now,
-    ))
     pages.append(title_page)
-    logger.info(f"페이지 1/{TOTAL_BOOK_PAGES} (제목) 완료")
 
-    # ── p2~p23: [그림+이야기] × 11 ──
+    # p2~p23: [그림+이야기] × 11
     for i, entry in enumerate(stories[:STORY_PAGE_COUNT]):
-        story_num = i + 1
         illust_page_num = 2 + i * 2      # 2, 4, 6, ..., 22
         text_page_num = 3 + i * 2        # 3, 5, 7, ..., 23
 
         scene_desc = entry.get("scene_description", "")
         text_content = entry.get("text", "")
 
-        # 그림 페이지 (짝수)
+        # 그림 페이지 (짝수) — 이미지 없이 scene_description만 저장
         illust_page = Page(
             book_id=book.id,
             page_number=illust_page_num,
@@ -255,24 +208,9 @@ def generate_story(
         )
         db.add(illust_page)
         db.flush()
-
-        image_path = _generate_page_illustration(
-            book=book,
-            page_number=illust_page_num,
-            scene_description=scene_desc,
-            text_content=text_content,
-            character_sheet_path=character_sheet_path,
-        )
-        db.add(PageImage(
-            page_id=illust_page.id,
-            image_path=image_path,
-            generation_index=0,
-            is_selected=True,
-            created_at=now,
-        ))
         pages.append(illust_page)
 
-        # 이야기 페이지 (홀수)
+        # 이야기 페이지 (홀수) — 텍스트만
         story_page = Page(
             book_id=book.id,
             page_number=text_page_num,
@@ -284,20 +222,9 @@ def generate_story(
         )
         db.add(story_page)
         db.flush()
-
-        # 이야기 페이지에도 같은 일러스트를 참조 (편집 시 배경으로 사용 가능)
-        db.add(PageImage(
-            page_id=story_page.id,
-            image_path=image_path,
-            generation_index=0,
-            is_selected=True,
-            created_at=now,
-        ))
         pages.append(story_page)
 
-        logger.info(f"이야기 {story_num}/{STORY_PAGE_COUNT} (p{illust_page_num}-{text_page_num}) 완료")
-
-    # ── p24: 판권 페이지 ──
+    # p24: 판권 페이지
     colophon_text = f"{title}\n\n지은이: {child_name}\n제작: AI 동화책 서비스 Dreambook"
     colophon_page = Page(
         book_id=book.id,
@@ -310,21 +237,10 @@ def generate_story(
     )
     db.add(colophon_page)
     db.flush()
-
-    colophon_image_path = _create_placeholder_image(TOTAL_BOOK_PAGES, "판권", book.id)
-    db.add(PageImage(
-        page_id=colophon_page.id,
-        image_path=colophon_image_path,
-        generation_index=0,
-        is_selected=True,
-        created_at=now,
-    ))
     pages.append(colophon_page)
-    logger.info(f"페이지 {TOTAL_BOOK_PAGES}/{TOTAL_BOOK_PAGES} (판권) 완료")
 
-    # 책 상태 업데이트
-    book.status = "editing"
-    book.current_step = 6
+    # 책 상태 업데이트 — "story_generated" (스토리만 완료, 이미지 대기)
+    book.status = "story_generated"
     book.title = title
     book.page_count = TOTAL_BOOK_PAGES
     book.updated_at = now
@@ -334,6 +250,174 @@ def generate_story(
     for page in pages:
         db.refresh(page)
 
+    logger.info(f"[generate] 스토리 텍스트 생성 완료: {len(pages)}페이지")
+    return pages
+
+
+# ============================================================
+# 2단계: 일러스트 생성 (확정된 텍스트 기반)
+# ============================================================
+
+def generate_illustrations(
+    db: Session,
+    book: Book,
+) -> List[Page]:
+    """확정된 스토리 텍스트를 기반으로 일러스트를 생성한다.
+
+    illustration 타입 페이지 + title 페이지에 이미지를 생성/연결한다.
+    story 페이지에도 같은 이미지를 참조로 연결한다.
+    """
+    character_sheet_path = _get_selected_character_sheet_path(db, book.id)
+    now = datetime.now(timezone.utc)
+
+    pages = db.query(Page).filter(Page.book_id == book.id).order_by(Page.page_number).all()
+
+    # illustration 페이지와 대응하는 story 페이지를 매칭
+    illust_pages = [p for p in pages if p.page_type == "illustration"]
+    story_pages = [p for p in pages if p.page_type == "story"]
+
+    generated_count = 0
+
+    for i, illust_page in enumerate(illust_pages):
+        # 대응하는 스토리 페이지의 텍스트를 참조
+        story_text = story_pages[i].text_content if i < len(story_pages) else ""
+        scene_desc = illust_page.scene_description or ""
+
+        # AI 일러스트 생성
+        image_path = _generate_single_illustration(
+            book=book,
+            page_number=illust_page.page_number,
+            scene_description=scene_desc,
+            text_content=story_text,
+            character_sheet_path=character_sheet_path,
+        )
+
+        # 기존 이미지 삭제 후 새로 추가
+        db.query(PageImage).filter(PageImage.page_id == illust_page.id).delete()
+        db.add(PageImage(
+            page_id=illust_page.id,
+            image_path=image_path,
+            generation_index=0,
+            is_selected=True,
+            created_at=now,
+        ))
+
+        # 대응하는 스토리 페이지에도 같은 이미지 참조
+        if i < len(story_pages):
+            db.query(PageImage).filter(PageImage.page_id == story_pages[i].id).delete()
+            db.add(PageImage(
+                page_id=story_pages[i].id,
+                image_path=image_path,
+                generation_index=0,
+                is_selected=True,
+                created_at=now,
+            ))
+
+        generated_count += 1
+        logger.info(f"[generate] 일러스트 {generated_count}/{len(illust_pages)} (p{illust_page.page_number}) 완료")
+
+    # 제목 페이지 이미지 — 첫 일러스트 재사용
+    title_page = next((p for p in pages if p.page_type == "title"), None)
+    if title_page and illust_pages:
+        first_illust_image = db.query(PageImage).filter(
+            PageImage.page_id == illust_pages[0].id,
+            PageImage.is_selected == True,
+        ).first()
+        if first_illust_image:
+            db.query(PageImage).filter(PageImage.page_id == title_page.id).delete()
+            db.add(PageImage(
+                page_id=title_page.id,
+                image_path=first_illust_image.image_path,
+                generation_index=0,
+                is_selected=True,
+                created_at=now,
+            ))
+
+    # 판권 페이지 — placeholder
+    colophon_page = next((p for p in pages if p.page_type == "colophon"), None)
+    if colophon_page:
+        existing = db.query(PageImage).filter(PageImage.page_id == colophon_page.id).first()
+        if not existing:
+            colophon_image = _create_placeholder_image(TOTAL_BOOK_PAGES, "판권", book.id)
+            db.add(PageImage(
+                page_id=colophon_page.id,
+                image_path=colophon_image,
+                generation_index=0,
+                is_selected=True,
+                created_at=now,
+            ))
+
+    # 책 상태 업데이트
+    book.status = "editing"
+    book.current_step = 6
+    book.updated_at = now
+
+    db.commit()
+
+    for page in pages:
+        db.refresh(page)
+
+    logger.info(f"[generate] 일러스트 생성 완료: {generated_count}장")
+    return pages
+
+
+# ============================================================
+# 표지 이미지 생성
+# ============================================================
+
+def generate_cover_image(
+    db: Session,
+    book: Book,
+) -> Optional[str]:
+    """표지 전용 이미지를 생성한다.
+
+    첫 번째 일러스트의 scene_description을 기반으로
+    표지에 적합한 이미지를 생성한다.
+
+    Returns:
+        생성된 이미지 파일 경로 (또는 None)
+    """
+    character_sheet_path = _get_selected_character_sheet_path(db, book.id)
+
+    # 첫 번째 illustration 페이지의 scene을 표지용으로 사용
+    first_illust = db.query(Page).filter(
+        Page.book_id == book.id,
+        Page.page_type == "illustration",
+    ).order_by(Page.page_number).first()
+
+    scene_desc = first_illust.scene_description if first_illust else ""
+
+    if not scene_desc:
+        # scene이 없으면 기본 표지 scene 생성
+        scene_desc = (
+            f"A cheerful child (age 6) dressed as a {book.job_name or 'professional'}, "
+            f"standing confidently with a warm smile. "
+            f"Background: colorful and inviting, suitable for a children's book cover."
+        )
+
+    image_path = _generate_single_illustration(
+        book=book,
+        page_number=0,  # 표지는 page 0
+        scene_description=scene_desc,
+        text_content=book.title or "",
+        character_sheet_path=character_sheet_path,
+    )
+
+    logger.info(f"[generate] 표지 이미지 생성 완료: {image_path}")
+    return image_path
+
+
+# ============================================================
+# 하위 호환: 한번에 생성 (1+2단계)
+# ============================================================
+
+def generate_story(
+    db: Session,
+    book: Book,
+) -> List[Page]:
+    """스토리 + 일러스트를 한번에 생성 (기존 호환성 유지)."""
+    pages = generate_story_only(db, book)
+    pages = generate_illustrations(db, book)
     return pages
 
 

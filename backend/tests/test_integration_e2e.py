@@ -12,7 +12,7 @@ from unittest.mock import patch, MagicMock
 # ──────────────────────────────────────────────
 
 def _signup_and_login(client, email="e2e@example.com"):
-    client.post("/api/auth/signup", json={"email": email, "password": "password123"})
+    client.post("/api/auth/signup", json={"email": email, "password": "password123", "name": "테스트", "phone": "01012345678"})
     res = client.post("/api/auth/login", json={"email": email, "password": "password123"})
     return res.json()["access_token"]
 

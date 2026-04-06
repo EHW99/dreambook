@@ -344,6 +344,30 @@ class ApiClient {
     );
   }
 
+  async generateStoryOnly(bookId: number) {
+    return this.request<GenerateResult>(
+      `/api/books/${bookId}/generate-story`,
+      { method: "POST" },
+      true
+    );
+  }
+
+  async generateIllustrations(bookId: number) {
+    return this.request<GenerateResult>(
+      `/api/books/${bookId}/generate-illustrations`,
+      { method: "POST" },
+      true
+    );
+  }
+
+  async generateCover(bookId: number) {
+    return this.request<{ image_path: string; message: string }>(
+      `/api/books/${bookId}/generate-cover`,
+      { method: "POST" },
+      true
+    );
+  }
+
   async getPages(bookId: number) {
     return this.request<PageItem[]>(
       `/api/books/${bookId}/pages`,

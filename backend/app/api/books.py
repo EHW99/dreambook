@@ -16,7 +16,7 @@ from app.schemas.book import (
 )
 from app.schemas.audiobook import AudioBookData, AudioPageData
 from app.services.book import create_book, get_book_by_id, get_books_by_user, update_book, delete_book
-from app.services.generate import generate_story
+from app.services.generate import generate_story, generate_story_only, generate_illustrations, generate_cover_image
 from app.services.ai_story import StoryGenerationError
 from app.services.ai_illustration import generate_illustration_or_dummy
 from app.services.voucher import get_voucher_by_id, use_voucher
@@ -236,6 +236,85 @@ def generate(
         status=book.status,
         pages=[PageResponse.model_validate(p) for p in pages],
     )
+
+
+@router.post("/{book_id}/generate-story", response_model=GenerateResponse)
+def generate_story_only_endpoint(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """1단계: 스토리 텍스트만 생성 (이미지 없이, 빠름)"""
+    book = _get_book_or_403(db, book_id, user)
+
+    if book.status not in ("draft", "character_confirmed"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="이미 생성된 동화책입니다",
+        )
+    if not book.child_name or not book.child_name.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="아이 이름이 입력되지 않았습니다",
+        )
+    if not book.job_name:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="직업이 선택되지 않았습니다",
+        )
+
+    try:
+        pages = generate_story_only(db, book)
+    except StoryGenerationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"스토리 생성에 실패했습니다: {str(e)}",
+        )
+
+    return GenerateResponse(
+        status=book.status,
+        pages=[PageResponse.model_validate(p) for p in pages],
+    )
+
+
+@router.post("/{book_id}/generate-illustrations", response_model=GenerateResponse)
+def generate_illustrations_endpoint(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """2단계: 확정된 텍스트 기반으로 일러스트 생성"""
+    book = _get_book_or_403(db, book_id, user)
+
+    if book.status not in ("story_generated", "editing"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="스토리가 먼저 생성되어야 합니다",
+        )
+
+    pages = generate_illustrations(db, book)
+
+    return GenerateResponse(
+        status=book.status,
+        pages=[PageResponse.model_validate(p) for p in pages],
+    )
+
+
+@router.post("/{book_id}/generate-cover")
+def generate_cover_endpoint(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """표지 이미지 생성"""
+    book = _get_book_or_403(db, book_id, user)
+
+    image_path = generate_cover_image(db, book)
+
+    return {
+        "image_path": image_path,
+        "message": "표지 이미지가 생성되었습니다",
+    }
 
 
 @router.get("/{book_id}/pages", response_model=List[PageResponse])

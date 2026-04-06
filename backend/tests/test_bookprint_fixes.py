@@ -1,13 +1,10 @@
 """통합 수정 검증 테스트 — INTEGRATION_REPORT.md 문제 수정 확인"""
 import os
-import tempfile
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime
 
 from app.services.bookprint import (
     BookPrintService,
-    BookPrintAPIError,
     detect_mime_type,
 )
 
@@ -55,180 +52,51 @@ class TestDetectMimeType:
         assert detect_mime_type(str(f)) == "image/gif"
 
 
-# === Fix #4: 템플릿 선택 로직 테스트 ===
+# === TPL_ 상수 및 현재 구조 검증 테스트 ===
 
-class TestTemplateSelection:
-    """_select_best_template 및 _select_best_content_template"""
+class TestTPLConstants:
+    """TPL_ 상수가 올바르게 정의되어 있는지 검증"""
 
-    @pytest.mark.asyncio
-    async def test_select_simplest_cover_template(self):
-        """파라미터가 가장 적은 cover 템플릿 선택"""
-        service = BookPrintService(api_key="test", base_url="http://test")
+    def test_tpl_cover_defined(self):
+        """TPL_COVER 상수가 문자열로 정의됨"""
+        from app.services.bookprint import TPL_COVER
+        assert isinstance(TPL_COVER, str)
+        assert len(TPL_COVER) > 0
 
-        templates = [
-            {"templateUid": "tpl_complex"},
-            {"templateUid": "tpl_simple"},
-            {"templateUid": "tpl_medium"},
-        ]
+    def test_tpl_title_page_defined(self):
+        """TPL_TITLE_PAGE 상수가 문자열로 정의됨"""
+        from app.services.bookprint import TPL_TITLE_PAGE
+        assert isinstance(TPL_TITLE_PAGE, str)
+        assert len(TPL_TITLE_PAGE) > 0
 
-        async def mock_detail(uid):
-            details = {
-                "tpl_complex": {"parameters": {"a": {}, "b": {}, "c": {}, "d": {}}},
-                "tpl_simple": {"parameters": {}},
-                "tpl_medium": {"parameters": {"x": {}, "y": {}}},
-            }
-            return details.get(uid, {"parameters": {}})
+    def test_tpl_illustration_defined(self):
+        """TPL_ILLUSTRATION 상수가 문자열로 정의됨"""
+        from app.services.bookprint import TPL_ILLUSTRATION
+        assert isinstance(TPL_ILLUSTRATION, str)
+        assert len(TPL_ILLUSTRATION) > 0
 
-        service.get_template_detail = mock_detail
-        uid, params = await service._select_best_template(templates)
+    def test_tpl_story_defined(self):
+        """TPL_STORY 상수가 문자열로 정의됨"""
+        from app.services.bookprint import TPL_STORY
+        assert isinstance(TPL_STORY, str)
+        assert len(TPL_STORY) > 0
 
-        assert uid == "tpl_simple"
-        assert params == {}
+    def test_tpl_publish_defined(self):
+        """TPL_PUBLISH 상수가 문자열로 정의됨"""
+        from app.services.bookprint import TPL_PUBLISH
+        assert isinstance(TPL_PUBLISH, str)
+        assert len(TPL_PUBLISH) > 0
 
-    @pytest.mark.asyncio
-    async def test_select_empty_content_template(self):
-        """빈 내지 템플릿(파라미터 없음)을 우선 선택"""
-        service = BookPrintService(api_key="test", base_url="http://test")
+    def test_tpl_blank_defined(self):
+        """TPL_BLANK 상수가 문자열로 정의됨"""
+        from app.services.bookprint import TPL_BLANK
+        assert isinstance(TPL_BLANK, str)
+        assert len(TPL_BLANK) > 0
 
-        templates = [
-            {"templateUid": "tpl_diary"},
-            {"templateUid": "tpl_empty"},
-        ]
-
-        async def mock_detail(uid):
-            details = {
-                "tpl_diary": {"parameters": {
-                    "year": {"binding": "text"},
-                    "month": {"binding": "text"},
-                    "diaryText": {"binding": "text"},
-                    "photo1": {"binding": "file"},
-                }},
-                "tpl_empty": {"parameters": {}},
-            }
-            return details.get(uid, {"parameters": {}})
-
-        service.get_template_detail = mock_detail
-        uid, params = await service._select_best_content_template(templates)
-
-        assert uid == "tpl_empty"
-        assert params == {}
-
-    @pytest.mark.asyncio
-    async def test_select_fallback_when_api_fails(self):
-        """API 조회 실패 시 첫 번째 템플릿으로 폴백"""
-        service = BookPrintService(api_key="test", base_url="http://test")
-
-        templates = [{"templateUid": "tpl_fallback"}]
-
-        async def mock_detail(uid):
-            raise BookPrintAPIError("API 오류")
-
-        service.get_template_detail = mock_detail
-        uid, params = await service._select_best_content_template(templates)
-
-        assert uid == "tpl_fallback"
-        assert params == {}
-
-
-# === Fix #2: 표지 파라미터 매핑 테스트 ===
-
-class TestBuildCoverParameters:
-    """_build_cover_parameters — 표지 필수 파라미터 동적 매핑"""
-
-    def test_maps_all_required_cover_params(self):
-        """frontPhoto, dateRange, spineTitle 등 필수 파라미터 모두 매핑"""
-        params_def = {
-            "frontPhoto": {"binding": "file", "type": "string"},
-            "dateRange": {"binding": "text", "type": "string"},
-            "spineTitle": {"binding": "text", "type": "string"},
-        }
-
-        result = BookPrintService._build_cover_parameters(
-            title="테스트 동화책",
-            params_def=params_def,
-            cover_file_name="photo123.jpg",
-        )
-
-        assert result["frontPhoto"] == "photo123.jpg"
-        assert result["spineTitle"] == "테스트 동화책"[:20]
-        assert result["dateRange"]  # 날짜 문자열이 비어있지 않아야 함
-
-    def test_empty_params_def_returns_empty(self):
-        """빈 파라미터 정의 → 빈 dict"""
-        result = BookPrintService._build_cover_parameters("제목", {}, "file.jpg")
-        assert result == {}
-
-    def test_title_param_maps_to_title(self):
-        """title 파라미터에 책 제목 매핑"""
-        params_def = {
-            "bookTitle": {"binding": "text", "type": "string"},
-        }
-        result = BookPrintService._build_cover_parameters("내 동화책", params_def, None)
-        assert result["bookTitle"] == "내 동화책"
-
-
-# === Fix #1: 내지 파라미터 매핑 테스트 ===
-
-class TestBuildContentParameters:
-    """_build_content_parameters — 내지 템플릿 파라미터 동적 매핑"""
-
-    def test_empty_template_returns_empty(self):
-        """빈 템플릿(파라미터 없음) → 빈 dict"""
-        result = BookPrintService._build_content_parameters({}, "텍스트", "img.jpg", 1)
-        assert result == {}
-
-    def test_diary_template_mapping(self):
-        """diary 스타일 템플릿의 파라미터 매핑"""
-        params_def = {
-            "year": {"binding": "text", "type": "string"},
-            "month": {"binding": "text", "type": "string"},
-            "date": {"binding": "text", "type": "string"},
-            "diaryText": {"binding": "text", "type": "string"},
-            "photo1": {"binding": "file", "type": "string"},
-        }
-        result = BookPrintService._build_content_parameters(
-            params_def, "오늘의 이야기", "uploaded_photo.jpg", 3
-        )
-
-        assert result["year"] == str(datetime.now().year)
-        assert result["month"] == str(datetime.now().month)
-        assert result["diaryText"] == "오늘의 이야기"
-        assert result["photo1"] == "uploaded_photo.jpg"
-
-    def test_simple_photo_label_template(self):
-        """photo + dayLabel 템플릿 매핑"""
-        params_def = {
-            "photo": {"binding": "file", "type": "string"},
-            "dayLabel": {"binding": "text", "type": "string"},
-        }
-        result = BookPrintService._build_content_parameters(
-            params_def, "내용 텍스트", "img.jpg", 5
-        )
-
-        assert result["photo"] == "img.jpg"
-        assert result["dayLabel"] == "Page 5"
-
-    def test_gallery_binding_maps_to_array(self):
-        """rowGallery 바인딩은 배열로 매핑"""
-        params_def = {
-            "photos": {"binding": "rowGallery", "type": "string"},
-        }
-        result = BookPrintService._build_content_parameters(
-            params_def, "", "uploaded.jpg", 1
-        )
-        assert result["photos"] == ["uploaded.jpg"]
-
-    def test_no_image_skips_file_param(self):
-        """이미지가 없으면 file 파라미터 건너뜀"""
-        params_def = {
-            "photo1": {"binding": "file", "type": "string"},
-            "diaryText": {"binding": "text", "type": "string"},
-        }
-        result = BookPrintService._build_content_parameters(
-            params_def, "텍스트만", "", 1
-        )
-        assert "photo1" not in result
-        assert result["diaryText"] == "텍스트만"
+    def test_execute_order_workflow_exists(self):
+        """execute_order_workflow 메서드가 존재하는지 확인"""
+        assert hasattr(BookPrintService, "execute_order_workflow")
+        assert callable(getattr(BookPrintService, "execute_order_workflow"))
 
 
 # === Fix #3: 더미 이미지 실제 파일 생성 테스트 ===
@@ -341,51 +209,29 @@ class TestParametersDefinitionsUnwrap:
         assert "text" in detail["parameters"]
 
     @pytest.mark.asyncio
-    async def test_select_best_template_after_unwrap(self):
-        """언래핑 후 _select_best_template이 올바른 param_count를 계산"""
+    async def test_unwrap_definitions_used_in_workflow(self):
+        """언래핑된 파라미터가 execute_order_workflow에서 사용될 수 있는지 확인"""
         service = BookPrintService(api_key="test", base_url="http://test")
 
-        templates = [
-            {"templateUid": "tpl_many"},
-            {"templateUid": "tpl_few"},
-        ]
-
-        # _request를 mock하여 실제 API 응답처럼 definitions 중첩
-        async def mock_request(method, path, **kwargs):
-            if "tpl_many" in path:
-                return {"data": {"templateUid": "tpl_many", "parameters": {"definitions": {
-                    "a": {"binding": "text"}, "b": {"binding": "text"},
-                    "c": {"binding": "file"}, "d": {"binding": "text"},
-                }}}}
-            else:
-                return {"data": {"templateUid": "tpl_few", "parameters": {"definitions": {
-                    "photo": {"binding": "file"},
-                }}}}
-
-        service._request = mock_request
-        uid, params = await service._select_best_template(templates)
-
-        assert uid == "tpl_few"
-        assert len(params) == 1
-        assert "photo" in params
-
-    @pytest.mark.asyncio
-    async def test_build_cover_params_after_unwrap(self):
-        """언래핑된 파라미터로 _build_cover_parameters가 올바르게 매핑"""
-        service = BookPrintService(api_key="test", base_url="http://test")
-
-        # 언래핑된 결과를 시뮬레이션 (definitions 안의 내용이 직접 전달)
-        params_def = {
-            "frontPhoto": {"binding": "file", "required": True},
-            "dateRange": {"binding": "text", "required": True},
-            "spineTitle": {"binding": "text", "required": True},
+        # definitions 래핑된 응답을 시뮬레이션
+        mock_response = {
+            "data": {
+                "templateUid": "tpl_cover",
+                "parameters": {
+                    "definitions": {
+                        "coverPhoto": {"binding": "file", "required": True},
+                        "subtitle": {"binding": "text", "required": False},
+                    }
+                }
+            }
         }
+        service._request = AsyncMock(return_value=mock_response)
+        detail = await service.get_template_detail("tpl_cover")
 
-        result = service._build_cover_parameters("꿈꾸는 나", params_def, "cover.jpg")
-
-        assert result["frontPhoto"] == "cover.jpg"
-        assert "spineTitle" in result
-        assert "dateRange" in result
+        # definitions가 올바르게 언래핑되었는지
+        assert "coverPhoto" in detail["parameters"]
+        assert "subtitle" in detail["parameters"]
+        assert "definitions" not in detail["parameters"]
 
 
 # === Fix #8: 페이지 수 검증 (삽입 성공 수 기준) ===

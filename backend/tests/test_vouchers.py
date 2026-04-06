@@ -4,7 +4,7 @@ import pytest
 
 def _signup_and_login(client):
     """헬퍼: 회원가입 + 로그인하여 토큰 반환"""
-    client.post("/api/auth/signup", json={"email": "test@example.com", "password": "password123"})
+    client.post("/api/auth/signup", json={"email": "test@example.com", "password": "password123", "name": "테스트", "phone": "01012345678"})
     res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "password123"})
     return res.json()["access_token"]
 
