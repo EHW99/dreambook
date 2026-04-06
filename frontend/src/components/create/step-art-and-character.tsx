@@ -174,9 +174,7 @@ export function StepArtAndCharacter({
     setError(null);
 
     if (alreadySelected) {
-      // 토글 해제
-      setCharacters((prev) => prev.map((c) => ({ ...c, is_selected: false })));
-      onConfirm(); // false 상태로 부모에게 알림
+      // 이미 선택된 캐릭터 — 아무 동작 안 함
       setSelecting(false);
       return;
     }

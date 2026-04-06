@@ -1,6 +1,6 @@
-"""AI 스토리 생성 서비스 (GPT-4o)
+"""AI 스토리 생성 서비스 (GPT-4o-mini)
 
-OpenAI GPT-4o를 사용하여 동화 스토리를 생성한다.
+OpenAI GPT-4o-mini를 사용하여 동화 스토리를 생성한다.
 24페이지 고정 구성: 제목(1p) + [그림+이야기]×11(2~23p) + 판권(24p)
 LLM은 이야기 11개 + scene_description 11개를 생성한다.
 OPENAI_API_KEY가 없으면 더미 스토리로 폴백한다.

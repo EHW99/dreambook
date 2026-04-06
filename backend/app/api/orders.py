@@ -204,10 +204,14 @@ async def create_order(
     if req.shipping.shipping_memo:
         shipping["memo"] = req.shipping.shipping_memo
 
-    # 표지 이미지 (첫 페이지 이미지 사용)
-    cover_image_path = None
-    if pages_data:
-        cover_image_path = pages_data[0].get("image_path") or None
+    # 표지 이미지 (Book에 저장된 전용 표지, 없으면 첫 일러스트 폴백)
+    cover_image_path = book.cover_image_path
+    if not cover_image_path or not os.path.exists(cover_image_path):
+        for pd in pages_data:
+            if pd.get("page_type") == "illustration" and pd.get("image_path"):
+                if os.path.exists(pd["image_path"]):
+                    cover_image_path = pd["image_path"]
+                    break
 
     service = BookPrintService()
     try:

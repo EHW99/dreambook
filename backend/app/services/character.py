@@ -101,7 +101,6 @@ def _generate_ai_character(db: Session, book: Book) -> Optional[str]:
             f.write(image_bytes)
 
         logger.info(f"AI 캐릭터 시트 생성 완료: {filepath}")
-        # /uploads/characters/filename.png 형태의 URL 경로 반환
         return f"/uploads/characters/{filename}"
 
     except CharacterGenerationError:

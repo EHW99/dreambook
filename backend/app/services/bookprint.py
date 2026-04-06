@@ -528,10 +528,13 @@ class BookPrintService:
                         break
 
         cover_params = {
-            "coverPhoto": cover_file,
             "subtitle": title,
             "author": child_name or "",
         }
+        if cover_file:
+            cover_params["coverPhoto"] = cover_file
+        else:
+            logger.warning("[bookprint] 표지 이미지 없음 — coverPhoto 파라미터 생략")
         await self.create_cover(book_uid, TPL_COVER, cover_params)
         logger.info("[bookprint] 표지 생성 완료")
 
@@ -559,8 +562,12 @@ class BookPrintService:
                 elif page_type == "illustration":
                     # 그림 페이지 (왼쪽)
                     img_file = uploaded_files.get(img_path, "")
-                    params = {"photo": img_file} if img_file else {}
-                    last_result = await self.insert_content(book_uid, TPL_ILLUSTRATION, params, break_before="page")
+                    if img_file:
+                        last_result = await self.insert_content(book_uid, TPL_ILLUSTRATION, {"photo": img_file}, break_before="page")
+                    else:
+                        # 이미지 없으면 빈내지로 대체 (photo 필수 파라미터 누락 방지)
+                        logger.warning(f"[bookprint] 그림 이미지 없음 (p{page_num}) — 빈내지로 대체")
+                        last_result = await self.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
 
                 elif page_type == "story":
                     # 스토리 페이지 (오른쪽)

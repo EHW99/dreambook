@@ -410,8 +410,15 @@ def regenerate_story(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """스토리 재생성 (Phase 2: 더미 데이터, 횟수 카운트)"""
+    """스토리 재생성 (텍스트만, 일러스트는 별도)"""
     book = _get_book_or_403(db, book_id, user)
+
+    # 완료된 책은 재생성 불가
+    if book.status == "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 주문 완료된 동화책은 재생성할 수 없습니다",
+        )
 
     if book.story_regen_count >= 3:
         raise HTTPException(
@@ -422,9 +429,9 @@ def regenerate_story(
     # 횟수 증가
     book.story_regen_count += 1
 
-    # 기존 페이지 + 이미지 전부 삭제 후 새로 생성
+    # 스토리 텍스트만 재생성 (일러스트는 별도 단계에서)
     try:
-        pages = generate_story(db, book)
+        pages = generate_story_only(db, book)
     except StoryGenerationError as e:
         # 실패 시 횟수 롤백
         book.story_regen_count -= 1
@@ -474,16 +481,11 @@ def regenerate_image(
     # AI 일러스트 생성 시도
     image_path = None
 
-    # 캐릭터 시트 조회
-    from app.models.character_sheet import CharacterSheet
-    selected_char = db.query(CharacterSheet).filter(
-        CharacterSheet.book_id == book.id,
-        CharacterSheet.is_selected == True,
-    ).first()
-    char_path = selected_char.image_path if selected_char else None
+    # 캐릭터 시트 조회 (파일 시스템 경로로 변환)
+    from app.services.generate import _get_selected_character_sheet_path, _calc_child_age
+    char_path = _get_selected_character_sheet_path(db, book.id)
 
     if page.scene_description:
-        from app.services.generate import _calc_child_age
         child_age = _calc_child_age(book.child_birth_date)
         child_gender = book.child_gender or "male"
         ai_bytes = generate_illustration_or_dummy(
@@ -494,6 +496,8 @@ def regenerate_image(
             job_name=book.job_name or "직업",
             child_age=child_age,
             child_gender=child_gender,
+            job_name_en=book.job_name_en or "",
+            job_outfit=book.job_outfit or "",
         )
         if ai_bytes:
             from app.services.photo import UPLOAD_DIR, ensure_upload_dir

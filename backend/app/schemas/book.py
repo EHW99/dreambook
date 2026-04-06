@@ -9,7 +9,7 @@ class BookCreateRequest(BaseModel):
 
 
 VALID_ART_STYLES = {"watercolor", "pastel", "crayon", "3d", "cartoon"}
-VALID_STATUSES = {"draft", "character_confirmed", "generating", "editing", "completed"}
+VALID_STATUSES = {"draft", "character_confirmed", "generating", "story_generated", "editing", "completed"}
 def _get_valid_book_spec_uids() -> set[str]:
     """캐시된 판형 UID 목록 반환"""
     from app.services.bookprint import get_book_specs
@@ -126,6 +126,8 @@ class BookResponse(BaseModel):
     photo_id: Optional[int] = None
     job_category: Optional[str] = None
     job_name: Optional[str] = None
+    job_name_en: Optional[str] = None
+    job_outfit: Optional[str] = None
     art_style: Optional[str] = None
     page_count: int
     book_spec_uid: str

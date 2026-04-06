@@ -67,14 +67,31 @@ PLACEHOLDER_COLORS = [
 
 
 def _get_selected_character_sheet_path(db: Session, book_id: int) -> Optional[str]:
-    """확정된 캐릭터 시트의 이미지 경로를 반환한다."""
+    """확정된 캐릭터 시트의 파일 시스템 경로를 반환한다.
+
+    DB에는 URL 경로(/uploads/characters/file.png)로 저장되어 있으므로,
+    실제 파일 시스템 경로로 변환하여 반환한다.
+    """
     from app.models.character_sheet import CharacterSheet
     selected = db.query(CharacterSheet).filter(
         CharacterSheet.book_id == book_id,
         CharacterSheet.is_selected == True,
     ).first()
-    if selected:
-        return selected.image_path
+    if not selected or not selected.image_path:
+        return None
+
+    image_path = selected.image_path
+
+    # 이미 절대 경로면 그대로 반환
+    if os.path.isabs(image_path) and os.path.exists(image_path):
+        return image_path
+
+    # URL 경로 → 파일 시스템 경로 변환
+    if image_path.startswith("/uploads/"):
+        local_path = os.path.join(UPLOAD_DIR, image_path.replace("/uploads/", ""))
+        if os.path.exists(local_path):
+            return local_path
+
     return None
 
 
@@ -293,6 +310,15 @@ def generate_illustrations(
     character_sheet_path = _get_selected_character_sheet_path(db, book.id)
     now = datetime.now(timezone.utc)
 
+    # 직업 영어 번역 보장 (캐릭터 생성을 스킵한 경우에도)
+    if not book.job_name_en and book.job_name:
+        from app.services.ai_job import translate_job
+        job_translation = translate_job(book.job_name)
+        book.job_name_en = job_translation["job_name_en"]
+        book.job_outfit = job_translation["job_outfit"]
+        db.commit()
+        logger.info(f"[generate] 직업 번역 보장: {book.job_name} → {book.job_name_en}")
+
     pages = db.query(Page).filter(Page.book_id == book.id).order_by(Page.page_number).all()
 
     # illustration 페이지와 대응하는 story 페이지를 매칭
@@ -370,9 +396,15 @@ def generate_illustrations(
                 created_at=now,
             ))
 
+    # 표지 이미지 생성
+    cover_path = generate_cover_image(db, book)
+    if cover_path:
+        book.cover_image_path = cover_path
+        logger.info(f"[generate] 표지 이미지 생성 완료: {cover_path}")
+
     # 책 상태 업데이트
     book.status = "editing"
-    book.current_step = 6
+    book.current_step = 7
     book.updated_at = now
 
     db.commit()

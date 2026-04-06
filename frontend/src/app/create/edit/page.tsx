@@ -100,6 +100,9 @@ function EditContent() {
     const res = await apiClient.generateIllustrations(book.id);
     if (res.data) {
       setPages(res.data.pages);
+      // book 데이터도 갱신 (cover_image_path 등)
+      const bookRes = await apiClient.getBook(book.id);
+      if (bookRes.data) setBook(bookRes.data);
       showToast("일러스트가 재생성되었습니다");
     } else {
       showToast(res.error || "일러스트 생성에 실패했습니다");
