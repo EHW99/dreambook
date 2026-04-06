@@ -13,6 +13,7 @@ class Book(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     voucher_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("vouchers.id"), nullable=True)
     child_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    child_gender: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     child_birth_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
     photo_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("photos.id"), nullable=True)
     job_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)

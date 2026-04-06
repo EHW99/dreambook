@@ -2,83 +2,37 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Camera, Plus, Check, User, Calendar, ImageIcon, Maximize2 } from "lucide-react";
+import { User, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { PhotoLightbox } from "@/components/ui/photo-lightbox";
-import { apiClient, PhotoItem } from "@/lib/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface StepInfoInputProps {
   childName: string;
+  childGender: string;
   childBirthDate: string;
-  photoId: number | null;
-  onUpdate: (data: { child_name?: string; child_birth_date?: string; photo_id?: number }) => void;
+  onUpdate: (data: { child_name?: string; child_gender?: string; child_birth_date?: string }) => void;
   onValidate: () => boolean;
 }
 
 export function StepInfoInput({
   childName,
+  childGender,
   childBirthDate,
-  photoId,
   onUpdate,
   onValidate,
 }: StepInfoInputProps) {
   const [name, setName] = useState(childName);
+  const [gender, setGender] = useState(childGender);
   const [birthDate, setBirthDate] = useState(childBirthDate);
-  const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(photoId);
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [loadingPhotos, setLoadingPhotos] = useState(true);
-  const [errors, setErrors] = useState<{ name?: string; birthDate?: string; photo?: string }>({});
-  const [uploading, setUploading] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    loadPhotos();
-  }, []);
+  const [errors, setErrors] = useState<{ name?: string; gender?: string; birthDate?: string }>({});
 
   // 부모에게 변경 전달
   useEffect(() => {
-    const data: { child_name?: string; child_birth_date?: string; photo_id?: number } = {};
+    const data: { child_name?: string; child_gender?: string; child_birth_date?: string } = {};
     if (name.trim()) data.child_name = name.trim();
+    if (gender) data.child_gender = gender;
     if (birthDate) data.child_birth_date = birthDate;
-    if (selectedPhotoId) data.photo_id = selectedPhotoId;
     onUpdate(data);
-  }, [name, birthDate, selectedPhotoId]);
-
-  async function loadPhotos() {
-    const result = await apiClient.getPhotos();
-    if (result.data) {
-      setPhotos(result.data);
-    }
-    setLoadingPhotos(false);
-  }
-
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const result = await apiClient.uploadPhoto(file);
-    if (result.data) {
-      setPhotos((prev) => [result.data!, ...prev]);
-      setSelectedPhotoId(result.data.id);
-      setErrors((prev) => ({ ...prev, photo: undefined }));
-    } else if (result.error) {
-      setErrors((prev) => ({ ...prev, photo: result.error }));
-    }
-    setUploading(false);
-    // input 초기화
-    e.target.value = "";
-  }
-
-  // 유효성 검사 — 부모에서 호출
-  useEffect(() => {
-    // onValidate를 오버라이드
-    const originalValidate = onValidate;
-    // 이 컴포넌트에서 validate를 정의하지만 부모에게 콜백으로 넘기는 구조
-  }, []);
+  }, [name, gender, birthDate]);
 
   return (
     <motion.div
@@ -113,6 +67,40 @@ export function StepInfoInput({
         <p className="text-xs text-text-lighter text-right">{name.length}/20</p>
       </div>
 
+      {/* 성별 선택 */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-text">
+          <User className="w-4 h-4 text-primary" />
+          성별 <span className="text-error-dark">*</span>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { value: "male", label: "남자아이", emoji: "👦" },
+            { value: "female", label: "여자아이", emoji: "👧" },
+          ].map((opt) => {
+            const isSelected = gender === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setGender(opt.value);
+                  setErrors((prev) => ({ ...prev, gender: undefined }));
+                }}
+                className={`h-11 rounded-2xl border-2 text-sm font-medium transition-all ${
+                  isSelected
+                    ? "border-primary bg-primary/5 text-text"
+                    : "border-secondary bg-white hover:border-primary/50 text-text-light"
+                }`}
+              >
+                {opt.emoji} {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        {errors.gender && <p className="text-xs text-error-dark">{errors.gender}</p>}
+      </div>
+
       {/* 생년월일 */}
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm font-medium text-text">
@@ -135,110 +123,6 @@ export function StepInfoInput({
         />
         {errors.birthDate && <p className="text-xs text-error-dark">{errors.birthDate}</p>}
       </div>
-
-      {/* 사진 선택 */}
-      <div className="space-y-3">
-        <label className="flex items-center gap-2 text-sm font-medium text-text">
-          <Camera className="w-4 h-4 text-primary" />
-          아이 사진
-        </label>
-        <p className="text-xs text-text-light">
-          등록된 사진에서 선택하거나 새로 업로드해주세요
-        </p>
-
-        {/* 사진 그리드 */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-          {/* 업로드 버튼 */}
-          <label className="aspect-square rounded-2xl border-2 border-dashed border-secondary hover:border-primary cursor-pointer flex flex-col items-center justify-center gap-1 transition-colors bg-white/50">
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handlePhotoUpload}
-              disabled={uploading}
-            />
-            {uploading ? (
-              <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-            ) : (
-              <>
-                <Plus className="w-6 h-6 text-text-lighter" />
-                <span className="text-[10px] text-text-lighter">새 사진</span>
-              </>
-            )}
-          </label>
-
-          {/* 기존 사진 */}
-          {loadingPhotos ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="aspect-square rounded-2xl bg-secondary/30 animate-pulse" />
-            ))
-          ) : (
-            photos.map((photo, index) => (
-              <motion.div
-                key={photo.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
-                  selectedPhotoId === photo.id
-                    ? "border-primary ring-2 ring-primary/30"
-                    : "border-transparent hover:border-secondary"
-                }`}
-                onClick={() => {
-                  setSelectedPhotoId(photo.id);
-                  setErrors((prev) => ({ ...prev, photo: undefined }));
-                }}
-              >
-                <img
-                  src={`${API_BASE}${photo.thumbnail_url}`}
-                  alt={photo.original_name}
-                  className="w-full h-full object-cover"
-                />
-                {selectedPhotoId === photo.id && (
-                  <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  </div>
-                )}
-                {/* 크게보기 버튼 */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLightboxIndex(index);
-                  }}
-                  className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="크게 보기"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                </button>
-              </motion.div>
-            ))
-          )}
-        </div>
-
-        {errors.photo && <p className="text-xs text-error-dark">{errors.photo}</p>}
-
-        {!loadingPhotos && photos.length === 0 && (
-          <div className="text-center py-6 bg-secondary/10 rounded-2xl">
-            <ImageIcon className="w-8 h-8 text-text-lighter mx-auto mb-2" />
-            <p className="text-sm text-text-light">등록된 사진이 없어요</p>
-            <p className="text-xs text-text-lighter mt-1">위 버튼으로 사진을 업로드해주세요</p>
-          </div>
-        )}
-
-        {/* 사진 크게보기 라이트박스 */}
-        {lightboxIndex !== null && (
-          <PhotoLightbox
-            images={photos.map((p) => ({
-              src: `${API_BASE}${p.thumbnail_url}`,
-              alt: p.original_name,
-            }))}
-            initialIndex={lightboxIndex}
-            onClose={() => setLightboxIndex(null)}
-          />
-        )}
-      </div>
     </motion.div>
   );
 }
@@ -246,14 +130,19 @@ export function StepInfoInput({
 // 유효성 검사 함수 (외부에서 호출 가능)
 export function validateInfoInput(data: {
   childName: string;
+  childGender: string;
   childBirthDate: string;
-}): { valid: boolean; errors: { name?: string; birthDate?: string } } {
-  const errors: { name?: string; birthDate?: string } = {};
+}): { valid: boolean; errors: { name?: string; gender?: string; birthDate?: string } } {
+  const errors: { name?: string; gender?: string; birthDate?: string } = {};
 
   if (!data.childName.trim()) {
     errors.name = "아이 이름을 입력해주세요";
   } else if (data.childName.trim().length > 20) {
     errors.name = "아이 이름은 최대 20자까지 입력 가능합니다";
+  }
+
+  if (!data.childGender) {
+    errors.gender = "성별을 선택해주세요";
   }
 
   if (!data.childBirthDate) {

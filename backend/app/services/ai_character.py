@@ -62,17 +62,20 @@ def _get_job_description(job_name: str) -> tuple:
 def _build_character_prompt(
     art_style: str,
     job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
 ) -> str:
     """캐릭터 시트 생성용 프롬프트를 구성한다."""
     art_keywords = ART_STYLE_KEYWORDS.get(art_style, "illustration style")
     job_en, job_outfit = _get_job_description(job_name)
+    gender_en = "boy" if child_gender == "male" else "girl"
 
     prompt = (
         f"Transform this child into a {art_keywords} storybook character illustration. "
-        f"The character is a {job_en}, {job_outfit}. "
+        f"The character is a {gender_en} (age {child_age}), a {job_en}, {job_outfit}. "
         f"Full body, front-facing pose. Solid pastel-colored background. "
         f"Preserve the child's facial features as much as possible while applying the illustration style. "
-        f"The character should look like a child (age 5-7), not an adult. "
+        f"The character should look like a {gender_en} (age {child_age}), not an adult. "
         f"High quality children's book illustration."
     )
 
@@ -83,6 +86,8 @@ def generate_character_image(
     photo_path: str,
     art_style: str,
     job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
 ) -> bytes:
     """GPT Image images.edit을 사용하여 캐릭터 시트를 생성한다.
 
@@ -99,7 +104,7 @@ def generate_character_image(
     """
     settings = get_settings()
 
-    prompt = _build_character_prompt(art_style, job_name)
+    prompt = _build_character_prompt(art_style, job_name, child_age, child_gender)
 
     try:
         client = OpenAI(

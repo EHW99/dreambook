@@ -26,8 +26,12 @@ def _get_book_spec_page_range(spec_uid: str) -> tuple[int, int] | None:
     return None
 
 
+VALID_GENDERS = {"male", "female"}
+
+
 class BookUpdateRequest(BaseModel):
     child_name: Optional[str] = None
+    child_gender: Optional[str] = None
     child_birth_date: Optional[date] = None
     photo_id: Optional[int] = None
     job_category: Optional[str] = None
@@ -48,6 +52,13 @@ class BookUpdateRequest(BaseModel):
                 raise ValueError("아이 이름을 입력해주세요")
             if len(v) > 20:
                 raise ValueError("아이 이름은 최대 20자까지 입력 가능합니다")
+        return v
+
+    @field_validator("child_gender")
+    @classmethod
+    def validate_child_gender(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in VALID_GENDERS:
+            raise ValueError(f"유효하지 않은 성별입니다. 가능한 값: {', '.join(VALID_GENDERS)}")
         return v
 
     @field_validator("art_style")
@@ -110,6 +121,7 @@ class BookResponse(BaseModel):
     id: int
     voucher_id: Optional[int] = None
     child_name: str
+    child_gender: Optional[str] = None
     child_birth_date: Optional[date] = None
     photo_id: Optional[int] = None
     job_category: Optional[str] = None
@@ -132,6 +144,7 @@ class BookResponse(BaseModel):
 class BookListResponse(BaseModel):
     id: int
     child_name: str
+    child_gender: Optional[str] = None
     job_name: Optional[str] = None
     art_style: Optional[str] = None
     status: str

@@ -136,23 +136,42 @@ FEW_SHOT_CHEF = """{
 }"""
 
 
-def _build_system_prompt(art_style: Optional[str] = None) -> str:
+def _gender_ko(gender: str) -> str:
+    """성별 한국어 변환"""
+    return "남자아이" if gender == "male" else "여자아이"
+
+
+def _gender_en(gender: str) -> str:
+    """성별 영어 변환"""
+    return "boy" if gender == "male" else "girl"
+
+
+def _build_system_prompt(
+    art_style: Optional[str] = None,
+    child_age: int = 6,
+    child_gender: str = "male",
+) -> str:
     """시스템 프롬프트 구성"""
     art_keywords = ART_STYLE_KEYWORDS.get(art_style, "")
+    gender_ko = _gender_ko(child_gender)
+    gender_en = _gender_en(child_gender)
 
-    base = f"""당신은 5~7세 아동용 동화 작가입니다.
+    base = f"""당신은 아동용 동화 작가입니다.
 
 ## 책 구성
 24페이지 동화책을 위해 정확히 11개의 이야기를 만들어주세요.
 책 구성: 제목(1p) + [그림+이야기]×11 (2~23p) + 판권(24p)
 당신이 만들 것: title(책 제목) + stories(이야기 11개)
 
+## 주인공 정보
+- 주인공은 {child_age}세 {gender_ko}입니다.
+
 ## 세계관
 - 아이가 이미 그 직업인 세계입니다. 꿈이 아니라 현실입니다.
 - "꿈을 꿨어요", "눈을 떠 보니", "~가 되고 싶어요" 같은 표현은 절대 금지합니다.
 - 아이는 이미 그 직업으로 일하고 있으며, 자연스러운 하루를 보냅니다.
 - 시간이나 나이를 언급하지 마세요.
-- 아이 모습(5~7세) 그대로 직업 활동을 능숙하게 수행합니다.
+- 아이 모습({child_age}세 {gender_ko}) 그대로 직업 활동을 능숙하게 수행합니다.
 
 ## 필수 규칙
 - 타겟 연령: 5~7세. 해당 연령이 이해할 수 있는 쉬운 어휘만 사용하세요.
@@ -176,7 +195,8 @@ def _build_system_prompt(art_style: Optional[str] = None) -> str:
 ## scene_description 규칙
 - 영어로 작성하세요 (이미지 생성 AI에 전달됨).
 - 캐릭터의 외형, 표정, 동작, 배경을 구체적으로 묘사하세요.
-- 캐릭터는 항상 5~7세 아이 모습이어야 합니다 (직업 복장을 입은 아이).
+- 캐릭터는 항상 {child_age}세 {gender_en} 모습이어야 합니다 (직업 복장을 입은 {gender_en}).
+- 캐릭터를 묘사할 때 "a {gender_en} (age {child_age})"로 표현하세요.
 - 텍스트 배치 영역(상단 또는 하단)을 고려한 구도를 명시하세요.
 - 각 장면이 이전 장면과 다른 배경/상황이 되도록 다양하게 묘사하세요."""
 
@@ -230,6 +250,8 @@ def generate_story_with_gpt(
     job_name: str,
     plot_input: str,
     art_style: Optional[str] = None,
+    child_age: int = 6,
+    child_gender: str = "male",
 ) -> dict:
     """GPT-4o를 사용하여 동화 스토리를 생성한다.
 
@@ -247,12 +269,13 @@ def generate_story_with_gpt(
             timeout=120.0,
         )
 
-        system_prompt = _build_system_prompt(art_style)
+        system_prompt = _build_system_prompt(art_style, child_age, child_gender)
         user_prompt = _build_user_prompt(
             child_name=child_name,
             job_name=job_name,
             plot_input=plot_input,
         )
+        logger.info(f"[ai_story] 생성 요청: {child_name}, {job_name}, {child_age}세, {child_gender}")
 
         response = client.beta.chat.completions.parse(
             model="gpt-4o-mini",
@@ -307,31 +330,34 @@ def generate_story_with_gpt(
 def _generate_dummy_story_data(
     child_name: str,
     job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
 ) -> dict:
     """더미 스토리 데이터 생성 (API 키 없을 때 폴백)"""
+    g = _gender_en(child_gender)
     dummy_stories = [
         (f"오늘도 {job_name} {child_name}의 하루가 시작되었어요. 유니폼 단추를 하나하나 채우고 준비를 마치자, 기분이 정말 좋았어요. '좋아, 오늘도 열심히 해 볼까!' {child_name}는 씩씩한 발걸음으로 출발했답니다.",
-         f"A confident child (age 6) dressed as a {job_name}, getting ready for work with a cheerful determined expression, bright workplace entrance with morning sunlight"),
+         f"A confident {g} (age {child_age}) dressed as a {job_name}, getting ready for work with a cheerful determined expression, bright workplace entrance with morning sunlight"),
         (f"{child_name}가 도착한 곳에는 {job_name}가 쓰는 도구들이 가득했어요. 하나하나 살펴보니 모두 신기한 것들이었어요. '이건 뭐에 쓰는 거예요?' {child_name}가 호기심 가득한 눈으로 물었답니다.",
-         f"A child {job_name} exploring their new workspace with sparkling curious eyes, surrounded by professional tools and equipment, bright and welcoming setting"),
+         f"A {g} {job_name} exploring their new workspace with sparkling curious eyes, surrounded by professional tools and equipment, bright and welcoming setting"),
         (f"선배가 {child_name}에게 중요한 도구를 건네주었어요. '이건 {job_name}의 가장 소중한 도구야. 잘 써 봐!' {child_name}는 두 손으로 소중히 받으며 고개를 끄덕였어요. 이 도구와 함께라면 뭐든 할 수 있을 것 같았어요.",
-         f"A child {job_name} carefully receiving an important tool from an adult mentor, holding it with both hands reverently, indoor professional setting with warm light"),
+         f"A {g} {job_name} carefully receiving an important tool from an adult mentor, holding it with both hands reverently, indoor professional setting with warm light"),
         (f"{child_name}는 친구들 앞에서 {job_name}가 하는 일을 설명해 주었어요. 친구들은 눈을 동그랗게 뜨고 '와, 정말 멋지다!'라고 소리쳤어요. {child_name}는 뿌듯한 마음에 어깨가 으쓱해졌답니다.",
-         f"A child {job_name} proudly explaining their job to a group of impressed children, the other kids looking up with wide eyes and admiration, outdoor setting with playground"),
+         f"A {g} {job_name} proudly explaining their job to a group of impressed children, the other kids looking up with wide eyes and admiration, outdoor setting with playground"),
         (f"드디어 {child_name}에게 첫 번째 임무가 주어졌어요! 심장이 콩닥콩닥 뛰었지만, 심호흡을 하고 용기를 냈어요. '할 수 있어!' {child_name}는 스스로에게 속삭이며 힘차게 출발했답니다.",
-         f"A child {job_name} receiving their first mission, looking determined with a mix of nervous excitement, taking a deep breath before starting, busy workplace background"),
+         f"A {g} {job_name} receiving their first mission, looking determined with a mix of nervous excitement, taking a deep breath before starting, busy workplace background"),
         (f"{child_name}는 열심히 일하면서 {job_name}의 일이 얼마나 소중한지 깨달았어요. 누군가를 돕고 나니 마음이 따뜻해졌어요. '이런 기분이구나!' {child_name}는 환하게 웃으며 더 열심히 했답니다.",
-         f"A child {job_name} actively working and helping others with a warm fulfilled expression, community members smiling gratefully, warm and cozy atmosphere"),
+         f"A {g} {job_name} actively working and helping others with a warm fulfilled expression, community members smiling gratefully, warm and cozy atmosphere"),
         (f"그런데 갑자기 어려운 문제가 생겼어요! 모두가 걱정했지만, {child_name}는 당황하지 않고 차분하게 생각했어요. '분명 방법이 있을 거야.' {child_name}는 이마에 손을 대고 곰곰이 생각했답니다.",
-         f"A child {job_name} facing a big challenge, standing calmly with hand on chin in a thinking pose while others around look worried, dramatic but child-friendly scene"),
+         f"A {g} {job_name} facing a big challenge, standing calmly with hand on chin in a thinking pose while others around look worried, dramatic but child-friendly scene"),
         (f"{child_name}는 번뜩이는 아이디어로 문제를 해결했어요! '해냈다!' 주변 사람들이 모두 박수를 쳐 주었어요. {child_name}의 얼굴에 환한 미소가 퍼졌어요. 세상에서 가장 기쁜 순간이었답니다.",
-         f"A child {job_name} celebrating a triumphant moment, jumping with joy while a crowd of people clap and cheer around them, confetti or sparkles in the air, bright and festive mood"),
+         f"A {g} {job_name} celebrating a triumphant moment, jumping with joy while a crowd of people clap and cheer around them, confetti or sparkles in the air, bright and festive mood"),
         (f"사람들이 {child_name}에게 다가와 고마움을 전했어요. '정말 고마워, {child_name}!' 따뜻한 말 한마디에 {child_name}의 마음이 꽉 찼어요. 눈시울이 살짝 뜨거워졌지만, 행복한 눈물이었답니다.",
-         f"A child {job_name} being thanked by grateful townspeople, receiving hugs and handshakes, the child looking deeply moved with glistening eyes, warm sunset light, town square with flowers"),
+         f"A {g} {job_name} being thanked by grateful townspeople, receiving hugs and handshakes, the child looking deeply moved with glistening eyes, warm sunset light, town square with flowers"),
         (f"{child_name}는 하루를 마무리하며 오늘 있었던 일들을 떠올렸어요. 처음에는 떨렸지만, 열심히 해 냈어요. {job_name}가 되어 사람들의 웃음을 만들 수 있다는 게 정말 행복했답니다.",
-         f"A child {job_name} walking along a beautiful sunset path, looking content and reflective, golden hour light casting long warm shadows, peaceful neighborhood scenery"),
+         f"A {g} {job_name} walking along a beautiful sunset path, looking content and reflective, golden hour light casting long warm shadows, peaceful neighborhood scenery"),
         (f"노을이 물드는 하늘 아래, {child_name}는 가만히 별이 뜨기를 기다렸어요. 첫 번째 별이 반짝이자, {child_name}는 두 손을 모으고 속삭였어요. '내일도 멋진 {job_name}로서, 모든 사람들을 웃게 만들 거야.' {child_name}의 다짐은 별빛처럼 반짝반짝 빛났답니다.",
-         f"A child {job_name} standing on a gentle hilltop under a magnificent twilight sky, hands clasped together making a wish as the first star appears. The child's expression is peaceful, hopeful, and full of quiet determination. Background: layers of purple, orange and indigo sky with a single bright star, town lights twinkling below. Composition: child silhouetted against the vast sky, cinematic and emotional, space at top for text."),
+         f"A {g} {job_name} standing on a gentle hilltop under a magnificent twilight sky, hands clasped together making a wish as the first star appears. The child's expression is peaceful, hopeful, and full of quiet determination. Background: layers of purple, orange and indigo sky with a single bright star, town lights twinkling below. Composition: child silhouetted against the vast sky, cinematic and emotional, space at top for text."),
     ]
 
     stories = []
@@ -353,6 +379,8 @@ def generate_story_with_gpt_or_dummy(
     job_name: str,
     plot_input: str,
     art_style: Optional[str] = None,
+    child_age: int = 6,
+    child_gender: str = "male",
 ) -> dict:
     """API 키가 있으면 GPT-4o, 없으면 더미 스토리를 반환한다.
 
@@ -366,11 +394,13 @@ def generate_story_with_gpt_or_dummy(
 
     if not settings.OPENAI_API_KEY:
         logger.info("OPENAI_API_KEY 미설정 — 더미 스토리 폴백")
-        return _generate_dummy_story_data(child_name, job_name)
+        return _generate_dummy_story_data(child_name, job_name, child_age, child_gender)
 
     return generate_story_with_gpt(
         child_name=child_name,
         job_name=job_name,
         plot_input=plot_input,
         art_style=art_style,
+        child_age=child_age,
+        child_gender=child_gender,
     )

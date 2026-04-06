@@ -171,46 +171,37 @@ function EditModal({ text, onSave, onClose }: {
   useEffect(() => { ref.current?.focus(); }, []);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 100,
-        background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-      }}>
+      className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-5"
+    >
       <motion.div
         initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 16 }}
-        style={{
-          background: "#fff", borderRadius: 20, padding: 28,
-          width: "100%", maxWidth: 560, boxShadow: "0 24px 80px rgba(0,0,0,0.2)",
-        }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10, background: "#FFF0ED",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}><Type size={18} color="#E8836B" /></div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>이야기 편집</span>
+        className="bg-white rounded-3xl p-7 w-full max-w-[560px] shadow-hover"
+      >
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 rounded-xl bg-primary-light flex items-center justify-center">
+            <Type size={18} className="text-primary-dark" />
+          </div>
+          <span className="text-base font-bold text-text">이야기 편집</span>
         </div>
-        <textarea ref={ref} value={val} onChange={e => setVal(e.target.value)}
-          style={{
-            width: "100%", height: 280, border: "2px solid #f0ebe6", borderRadius: 14,
-            padding: 20, fontFamily: "'Nanum Myeongjo',serif",
-            fontSize: 16, lineHeight: "2.2", textAlign: "center",
-            color: "#1a1a1a", resize: "none", outline: "none",
-          }}
-          onFocus={e => { e.currentTarget.style.borderColor = "#E8836B"; }}
-          onBlur={e => { e.currentTarget.style.borderColor = "#f0ebe6"; }}
+        <textarea
+          ref={ref} value={val} onChange={e => setVal(e.target.value)}
+          className="w-full h-[280px] border-2 border-secondary rounded-2xl p-5 font-display text-base leading-[2.2] text-center text-text resize-none outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
         />
-        <div style={{ display: "flex", gap: 10, marginTop: 18, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{
-            padding: "10px 22px", borderRadius: 12, background: "#f5f3f0",
-            border: "none", fontSize: 14, cursor: "pointer", fontWeight: 600, color: "#777",
-          }}><X size={15} style={{ marginRight: 4 }} />취소</button>
-          <button onClick={() => onSave(val)} style={{
-            padding: "10px 22px", borderRadius: 12, background: "#E8836B",
-            color: "#fff", border: "none", fontSize: 14, cursor: "pointer", fontWeight: 600,
-          }}><Check size={15} style={{ marginRight: 4 }} />저장</button>
+        <div className="flex gap-3 mt-5 justify-end">
+          <button onClick={onClose}
+            className="px-5 py-2.5 rounded-2xl bg-secondary-light border-none text-sm cursor-pointer font-semibold text-text-light hover:bg-secondary transition-colors flex items-center gap-1.5"
+          >
+            <X size={15} /> 취소
+          </button>
+          <button onClick={() => onSave(val)}
+            className="px-5 py-2.5 rounded-2xl bg-primary border-none text-sm cursor-pointer font-semibold text-white hover:bg-primary-dark transition-colors flex items-center gap-1.5 shadow-soft"
+          >
+            <Check size={15} /> 저장
+          </button>
         </div>
       </motion.div>
     </motion.div>

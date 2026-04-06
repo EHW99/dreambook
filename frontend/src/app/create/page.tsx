@@ -33,6 +33,7 @@ function CreateWizardContent() {
   const isDev = process.env.NODE_ENV === "development";
   const DEV_DEFAULTS = {
     childName: "김서준",
+    childGender: "male",
     childBirthDate: "2020-03-15",
     jobCategory: "안전/봉사",
     jobName: "소방관",
@@ -42,9 +43,10 @@ function CreateWizardContent() {
 
   // 정보 입력 상태
   const [childName, setChildName] = useState(isDev ? DEV_DEFAULTS.childName : "");
+  const [childGender, setChildGender] = useState(isDev ? DEV_DEFAULTS.childGender : "");
   const [childBirthDate, setChildBirthDate] = useState(isDev ? DEV_DEFAULTS.childBirthDate : "");
   const [photoId, setPhotoId] = useState<number | null>(null);
-  const [infoErrors, setInfoErrors] = useState<{ name?: string; birthDate?: string }>({});
+  const [infoErrors, setInfoErrors] = useState<{ name?: string; gender?: string; birthDate?: string }>({});
 
   // 직업 선택 상태
   const [jobCategory, setJobCategory] = useState(isDev ? DEV_DEFAULTS.jobCategory : "");
@@ -77,7 +79,7 @@ function CreateWizardContent() {
 
   // Strict Mode 이중 실행 방지
   const initRef = useRef(false);
-  const pendingUpdate = useRef<{ child_name?: string; child_birth_date?: string; photo_id?: number }>({});
+  const pendingUpdate = useRef<{ child_name?: string; child_gender?: string; child_birth_date?: string }>({});
 
   // beforeunload
   useEffect(() => {
@@ -133,6 +135,7 @@ function CreateWizardContent() {
     setBook(bookData);
     setCurrentStep(bookData.current_step);
     setChildName(bookData.child_name || (isDev ? DEV_DEFAULTS.childName : ""));
+    setChildGender(bookData.child_gender || (isDev ? DEV_DEFAULTS.childGender : ""));
     setChildBirthDate(bookData.child_birth_date || (isDev ? DEV_DEFAULTS.childBirthDate : ""));
     setPhotoId(bookData.photo_id);
     setJobCategory(bookData.job_category || (isDev ? DEV_DEFAULTS.jobCategory : ""));
@@ -168,19 +171,19 @@ function CreateWizardContent() {
 
     if (currentStep === 1) {
       const nameToValidate = pendingUpdate.current.child_name ?? childName;
+      const genderToValidate = pendingUpdate.current.child_gender ?? childGender;
       const birthToValidate = pendingUpdate.current.child_birth_date ?? childBirthDate;
-      const validation = validateInfoInput({ childName: nameToValidate, childBirthDate: birthToValidate });
+      const validation = validateInfoInput({ childName: nameToValidate, childGender: genderToValidate, childBirthDate: birthToValidate });
       if (!validation.valid) { setInfoErrors(validation.errors); return; }
       setInfoErrors({});
 
       setSaving(true);
       const updateData: Record<string, unknown> = {
         child_name: nameToValidate.trim(),
+        child_gender: genderToValidate,
         child_birth_date: birthToValidate,
         current_step: 2,
       };
-      if (pendingUpdate.current.photo_id) updateData.photo_id = pendingUpdate.current.photo_id;
-      else if (photoId) updateData.photo_id = photoId;
 
       const result = await apiClient.updateBook(book.id, updateData as Record<string, string | number>);
       setSaving(false);
@@ -259,11 +262,11 @@ function CreateWizardContent() {
   }
 
   const handleInfoUpdate = useCallback(
-    (data: { child_name?: string; child_birth_date?: string; photo_id?: number }) => {
+    (data: { child_name?: string; child_gender?: string; child_birth_date?: string }) => {
       pendingUpdate.current = data;
       if (data.child_name !== undefined) setChildName(data.child_name);
+      if (data.child_gender !== undefined) setChildGender(data.child_gender);
       if (data.child_birth_date !== undefined) setChildBirthDate(data.child_birth_date);
-      if (data.photo_id !== undefined) setPhotoId(data.photo_id);
     }, []
   );
 
@@ -327,9 +330,9 @@ function CreateWizardContent() {
           {currentStep === 1 && (
             <StepInfoInput
               key="step-1"
-              childName={childName} childBirthDate={childBirthDate} photoId={photoId}
+              childName={childName} childGender={childGender} childBirthDate={childBirthDate}
               onUpdate={handleInfoUpdate}
-              onValidate={() => { const v = validateInfoInput({ childName, childBirthDate }); setInfoErrors(v.errors); return v.valid; }}
+              onValidate={() => { const v = validateInfoInput({ childName, childGender, childBirthDate }); setInfoErrors(v.errors); return v.valid; }}
             />
           )}
           {currentStep === 2 && (
@@ -338,9 +341,10 @@ function CreateWizardContent() {
           {currentStep === 3 && book && (
             <StepArtAndCharacter
               key="step-3"
-              bookId={book.id} artStyle={artStyle} characterRegenCount={book.character_regen_count}
+              bookId={book.id} artStyle={artStyle} photoId={photoId} characterRegenCount={book.character_regen_count}
               onArtStyleChange={(style) => { setArtStyle(style); setStyleError(null); }}
               onArtStyleSaved={async () => { const r = await apiClient.getBook(book.id); if (r.data) loadBookState(r.data); }}
+              onPhotoChange={(id) => setPhotoId(id)}
               onConfirm={async () => { const r = await apiClient.getBook(book.id); if (r.data) loadBookState(r.data); setCharacterConfirmed(true); }}
               onRegenCountUpdate={(count) => { if (book) setBook({ ...book, character_regen_count: count }); }}
             />

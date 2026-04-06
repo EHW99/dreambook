@@ -9,7 +9,7 @@
 """
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -37,6 +37,19 @@ logger = logging.getLogger(__name__)
 SKIP_AI_ILLUSTRATION = True
 
 # 더미 placeholder 색상 팔레트 (파스텔 톤)
+def _calc_child_age(birth_date) -> int:
+    """생년월일로 만 나이를 계산한다. 없으면 기본 6세."""
+    if not birth_date:
+        return 6
+    today = date.today()
+    if isinstance(birth_date, datetime):
+        birth_date = birth_date.date()
+    age = today.year - birth_date.year
+    if (today.month, today.day) < (birth_date.month, birth_date.day):
+        age -= 1
+    return max(3, min(age, 12))  # 3~12세 범위 제한
+
+
 PLACEHOLDER_COLORS = [
     (255, 218, 185),  # peach
     (173, 216, 230),  # light blue
@@ -112,12 +125,16 @@ def _generate_single_illustration(
         return _create_placeholder_image(page_number, label, book.id)
 
     if scene_description:
+        child_age = _calc_child_age(book.child_birth_date)
+        child_gender = book.child_gender or "male"
         ai_bytes = generate_illustration_or_dummy(
             character_sheet_path=character_sheet_path or "",
             scene_description=scene_description,
             art_style=book.art_style or "watercolor",
             child_name=book.child_name,
             job_name=book.job_name or "직업",
+            child_age=child_age,
+            child_gender=child_gender,
         )
         if ai_bytes:
             filename = f"ai_illust_book{book.id}_page{page_number}.png"
@@ -156,6 +173,8 @@ def generate_story_only(
     job_name = book.job_name or "직업"
     art_style = book.art_style
     plot_input = book.plot_input or ""
+    child_age = _calc_child_age(book.child_birth_date)
+    child_gender = book.child_gender or "male"
 
     # AI 또는 더미 스토리 생성
     story_data = generate_story_with_gpt_or_dummy(
@@ -163,6 +182,8 @@ def generate_story_only(
         job_name=job_name,
         plot_input=plot_input,
         art_style=art_style,
+        child_age=child_age,
+        child_gender=child_gender,
     )
 
     # 기존 페이지 삭제 (재생성 시)

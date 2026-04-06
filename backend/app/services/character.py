@@ -70,10 +70,16 @@ def _generate_ai_character(db: Session, book: Book) -> Optional[str]:
     try:
         from app.services.ai_character import generate_character_image, CharacterGenerationError
 
+        from app.services.generate import _calc_child_age
+        child_age = _calc_child_age(book.child_birth_date)
+        child_gender = book.child_gender or "male"
+
         image_bytes = generate_character_image(
             photo_path=photo.file_path,
             art_style=art_style,
             job_name=job_name,
+            child_age=child_age,
+            child_gender=child_gender,
         )
 
         # 파일 저장

@@ -5,10 +5,11 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Droplets, PenTool, Palette, Box, Zap,
-  RefreshCw, Check, User, ImageIcon,
+  RefreshCw, Check, User, ImageIcon, Camera, Plus, Maximize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { apiClient, CharacterSheetItem } from "@/lib/api";
+import { PhotoLightbox } from "@/components/ui/photo-lightbox";
+import { apiClient, CharacterSheetItem, PhotoItem } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const MAX_GENERATIONS = 5;
@@ -64,9 +65,11 @@ const ART_STYLES = [
 interface StepArtAndCharacterProps {
   bookId: number;
   artStyle: string;
+  photoId: number | null;
   characterRegenCount: number;
   onArtStyleChange: (style: string) => void;
   onArtStyleSaved: () => void;
+  onPhotoChange: (photoId: number) => void;
   onConfirm: () => void | Promise<void>;
   onRegenCountUpdate: (count: number) => void;
 }
@@ -74,9 +77,11 @@ interface StepArtAndCharacterProps {
 export function StepArtAndCharacter({
   bookId,
   artStyle,
+  photoId,
   characterRegenCount,
   onArtStyleChange,
   onArtStyleSaved,
+  onPhotoChange,
   onConfirm,
   onRegenCountUpdate,
 }: StepArtAndCharacterProps) {
@@ -87,6 +92,13 @@ export function StepArtAndCharacter({
   const [savingStyle, setSavingStyle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
+
+  // 사진 관련
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(photoId);
+  const [uploading, setUploading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const selectedChar = characters.find((c) => c.is_selected);
   const remainingRegens = MAX_GENERATIONS - characters.length;
@@ -101,7 +113,34 @@ export function StepArtAndCharacter({
 
   useEffect(() => {
     loadCharacters();
+    loadPhotos();
   }, [loadCharacters]);
+
+  async function loadPhotos() {
+    const result = await apiClient.getPhotos();
+    if (result.data) setPhotos(result.data);
+    setLoadingPhotos(false);
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const result = await apiClient.uploadPhoto(file);
+    if (result.data) {
+      setPhotos((prev) => [result.data!, ...prev]);
+      await handlePhotoSelect(result.data.id);
+    }
+    setUploading(false);
+    e.target.value = "";
+  }
+
+  async function handlePhotoSelect(id: number) {
+    setSelectedPhotoId(id);
+    // 서버에 즉시 저장 (캐릭터 생성 전에 photo_id가 필요)
+    await apiClient.updateBook(bookId, { photo_id: id });
+    onPhotoChange(id);
+  }
 
   async function handleStyleChange(styleId: string) {
     if (styleId === artStyle || savingStyle) return;
@@ -149,13 +188,83 @@ export function StepArtAndCharacter({
       transition={{ duration: 0.3 }}
       className="space-y-8"
     >
-      {/* ── 그림체 선택 ── */}
+      {/* ── 사진 선택 ── */}
       <section>
         <div className="text-center space-y-2 mb-6">
-          <h2 className="text-2xl font-bold text-text">그림체 & 캐릭터</h2>
-          <p className="text-text-light text-sm">그림체를 선택하고 캐릭터를 만들어주세요</p>
+          <h2 className="text-2xl font-bold text-text">스타일 & 캐릭터</h2>
+          <p className="text-text-light text-sm">사진을 선택하고, 그림체를 골라 캐릭터를 만들어주세요</p>
         </div>
 
+        <p className="text-sm font-medium text-text mb-3 flex items-center gap-2">
+          <Camera className="w-4 h-4 text-primary" />
+          아이 사진
+        </p>
+        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+          {/* 업로드 버튼 */}
+          <label className="aspect-square rounded-2xl border-2 border-dashed border-secondary hover:border-primary cursor-pointer flex flex-col items-center justify-center gap-1 transition-colors bg-white/50">
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+            {uploading ? (
+              <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+            ) : (
+              <>
+                <Plus className="w-5 h-5 text-text-lighter" />
+                <span className="text-[9px] text-text-lighter">새 사진</span>
+              </>
+            )}
+          </label>
+          {loadingPhotos ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="aspect-square rounded-2xl bg-secondary/30 animate-pulse" />
+            ))
+          ) : (
+            photos.map((photo, index) => (
+              <motion.div
+                key={photo.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
+                  selectedPhotoId === photo.id
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-transparent hover:border-secondary"
+                }`}
+                onClick={() => handlePhotoSelect(photo.id)}
+              >
+                <img src={`${API_BASE}${photo.thumbnail_url}`} alt={photo.original_name} className="w-full h-full object-cover" />
+                {selectedPhotoId === photo.id && (
+                  <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                )}
+                <button type="button" onClick={(e) => { e.stopPropagation(); setLightboxIndex(index); }}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Maximize2 className="w-3 h-3" />
+                </button>
+              </motion.div>
+            ))
+          )}
+        </div>
+        {!loadingPhotos && photos.length === 0 && (
+          <div className="text-center py-4 bg-secondary/10 rounded-2xl mt-2">
+            <ImageIcon className="w-6 h-6 text-text-lighter mx-auto mb-1" />
+            <p className="text-xs text-text-light">사진을 업로드해주세요</p>
+          </div>
+        )}
+        {lightboxIndex !== null && (
+          <PhotoLightbox
+            images={photos.map((p) => ({ src: `${API_BASE}${p.thumbnail_url}`, alt: p.original_name }))}
+            initialIndex={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+          />
+        )}
+      </section>
+
+      {/* ── 구분선 ── */}
+      <div className="border-t border-secondary/30" />
+
+      {/* ── 그림체 선택 ── */}
+      <section>
         <p className="text-sm font-medium text-text mb-3">그림체 선택</p>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
           {ART_STYLES.map((style) => {

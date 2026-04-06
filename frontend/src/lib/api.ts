@@ -526,6 +526,7 @@ export interface BookItem {
   id: number;
   voucher_id: number | null;
   child_name: string;
+  child_gender: string | null;
   child_birth_date: string | null;
   photo_id: number | null;
   job_category: string | null;
@@ -546,6 +547,7 @@ export interface BookItem {
 export interface BookListItem {
   id: number;
   child_name: string;
+  child_gender: string | null;
   job_name: string | null;
   art_style: string | null;
   status: string;
@@ -557,6 +559,7 @@ export interface BookListItem {
 
 export interface BookUpdateData {
   child_name?: string;
+  child_gender?: string;
   child_birth_date?: string;
   photo_id?: number;
   job_category?: string;

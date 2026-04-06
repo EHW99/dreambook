@@ -62,6 +62,8 @@ def _build_illustration_prompt(
     scene_description: str,
     child_name: str,
     job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
 ) -> str:
     """페이지 일러스트 생성용 프롬프트를 구성한다.
 
@@ -72,12 +74,13 @@ def _build_illustration_prompt(
     """
     art_keywords = ART_STYLE_KEYWORDS.get(art_style, "illustration style")
     job_en, job_outfit = _get_job_description(job_name)
+    gender_en = "boy" if child_gender == "male" else "girl"
 
     prompt = (
         f"{art_keywords} children's book illustration. "
         f"Scene: {scene_description}. "
-        f"Character: A child named {child_name}, a {job_en}, {job_outfit}. "
-        f"The character should look like the reference image (child, age 5-7). "
+        f"Character: A {gender_en} named {child_name} (age {child_age}), a {job_en}, {job_outfit}. "
+        f"The character should look like the reference image ({gender_en}, age {child_age}). "
         f"Composition: Leave space at the bottom or top for text overlay. "
         f"Background: Detailed background matching the scene. "
         f"High quality children's storybook page illustration. "
@@ -93,6 +96,8 @@ def generate_illustration_image(
     art_style: str,
     child_name: str,
     job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
 ) -> bytes:
     """GPT Image images.edit을 사용하여 페이지 일러스트를 생성한다.
 
@@ -111,7 +116,7 @@ def generate_illustration_image(
     """
     settings = get_settings()
 
-    prompt = _build_illustration_prompt(art_style, scene_description, child_name, job_name)
+    prompt = _build_illustration_prompt(art_style, scene_description, child_name, job_name, child_age, child_gender)
 
     try:
         client = OpenAI(
@@ -169,6 +174,8 @@ def generate_illustration_or_dummy(
     art_style: str,
     child_name: str,
     job_name: str,
+    child_age: int = 6,
+    child_gender: str = "male",
 ) -> bytes | None:
     """API 키가 있으면 GPT Image, 없거나 실패하면 None 반환.
 
@@ -190,6 +197,8 @@ def generate_illustration_or_dummy(
             art_style=art_style,
             child_name=child_name,
             job_name=job_name,
+            child_age=child_age,
+            child_gender=child_gender,
         )
     except IllustrationGenerationError as e:
         logger.warning(f"AI 일러스트 생성 실패, 더미 폴백: {e}")

@@ -452,12 +452,17 @@ def regenerate_image(
     char_path = selected_char.image_path if selected_char else None
 
     if page.scene_description:
+        from app.services.generate import _calc_child_age
+        child_age = _calc_child_age(book.child_birth_date)
+        child_gender = book.child_gender or "male"
         ai_bytes = generate_illustration_or_dummy(
             character_sheet_path=char_path or "",
             scene_description=page.scene_description,
             art_style=book.art_style or "watercolor",
             child_name=book.child_name,
             job_name=book.job_name or "직업",
+            child_age=child_age,
+            child_gender=child_gender,
         )
         if ai_bytes:
             from app.services.photo import UPLOAD_DIR, ensure_upload_dir
