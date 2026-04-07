@@ -157,6 +157,14 @@ function ColophonPage({ p, title, childName }: { p: PageItem; title: string; chi
       }}>
         {`발행일 : ${date}\n만든이 : ${childName || "AI 동화작가"}\n제작 : (주)스위트북`}
       </div>
+      {/* Dreambook 로고 */}
+      <div style={{
+        position: "absolute", left: 53, top: 833, width: 268, height: 47,
+        overflow: "hidden",
+      }}>
+        <img src="/logo.png" alt="Dreambook" style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          draggable={false} />
+      </div>
     </>
   );
 }
@@ -187,7 +195,7 @@ function CoverPage({ coverSrc, title, childName }: { coverSrc: string; title: st
       </div>
       {/* 제목 */}
       <div style={{
-        position: "absolute", left: 249, top: 820, width: 479, height: 52,
+        position: "absolute", left: 249, top: 850, width: 479, height: 52,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontFamily: "'Jua', serif", fontSize: 28, fontWeight: 700, color: "#000",
         textAlign: "center",
@@ -196,7 +204,7 @@ function CoverPage({ coverSrc, title, childName }: { coverSrc: string; title: st
       </div>
       {/* 저자 */}
       <div style={{
-        position: "absolute", left: 400, top: 876, width: 179, height: 40,
+        position: "absolute", left: 400, top: 926, width: 179, height: 40,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontFamily: "'Nanum Gothic', sans-serif", fontSize: 16, color: "#666",
         textAlign: "center",

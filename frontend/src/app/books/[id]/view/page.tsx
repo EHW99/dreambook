@@ -6,6 +6,7 @@ import { ArrowLeft, BookOpen } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
 import { apiClient, BookItem, PageItem } from "@/lib/api";
+import BookViewer from "@/components/book-viewer";
 import BookPreview from "@/components/book-preview";
 
 function BookViewContent() {
@@ -15,6 +16,7 @@ function BookViewContent() {
 
   const [book, setBook] = useState<BookItem | null>(null);
   const [pages, setPages] = useState<PageItem[]>([]);
+  const [thumbnails, setThumbnails] = useState<{ cover: string | null; pages: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,13 +27,15 @@ function BookViewContent() {
 
   async function loadData(id: number) {
     setLoading(true);
-    const [bookRes, pagesRes] = await Promise.all([
+    const [bookRes, pagesRes, thumbRes] = await Promise.all([
       apiClient.getBook(id),
       apiClient.getPages(id),
+      apiClient.getThumbnails(id).catch(() => ({ data: null, error: null })),
     ]);
     if (bookRes.data) setBook(bookRes.data);
     else setError("동화책을 찾을 수 없습니다");
     if (pagesRes.data) setPages(pagesRes.data);
+    if (thumbRes.data) setThumbnails(thumbRes.data);
     setLoading(false);
   }
 
@@ -58,26 +62,32 @@ function BookViewContent() {
     );
   }
 
+  const hasThumbnails = thumbnails && thumbnails.pages.length > 0;
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: "#faf9f7" }}>
       {/* 헤더 */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-secondary/30">
+      <div className="flex items-center gap-3 px-5 py-3">
         <button
           onClick={() => router.back()}
           className="text-text-light hover:text-text transition-colors flex items-center gap-2"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">돌아가기</span>
         </button>
-        <h3 className="text-text text-sm font-bold truncate flex-1 text-center">
-          {book.title || "동화책"}
-        </h3>
-        <div className="w-20" />
+        <div className="flex-1" />
       </div>
 
-      {/* BookPreview (편집 기능 없이 읽기 전용) */}
-      <div className="flex-1 px-4 py-4">
-        {pages.length > 0 ? (
+      {/* 뷰어 */}
+      <div className="flex-1 px-4 pb-4">
+        {hasThumbnails ? (
+          <BookViewer
+            cover={thumbnails.cover}
+            pages={thumbnails.pages}
+            title={book.title || "동화책"}
+            author={book.child_name}
+          />
+        ) : pages.length > 0 ? (
           <BookPreview
             pages={pages}
             title={book.title || "동화책"}

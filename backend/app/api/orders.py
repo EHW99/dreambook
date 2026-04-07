@@ -249,6 +249,19 @@ async def create_order(
         db.commit()
         db.refresh(order)
 
+        # 렌더링 썸네일 다운로드 (비동기, 실패해도 주문은 유지)
+        book_uid = result.get("book_uid")
+        if book_uid:
+            try:
+                from app.services.photo import UPLOAD_DIR
+                thumbnail_dir = os.path.join(UPLOAD_DIR, "thumbnails", book_uid)
+                thumbnails = await service.download_thumbnails(book_uid, thumbnail_dir)
+                book.thumbnail_dir = thumbnail_dir
+                db.commit()
+                logger.info(f"썸네일 다운로드 완료: {len(thumbnails.get('pages', []))}/24")
+            except Exception as e:
+                logger.warning(f"썸네일 다운로드 실패 — 나중에 재시도 가능: {e}")
+
         return order
 
     except BookPrintAPIError as e:

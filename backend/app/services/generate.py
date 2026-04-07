@@ -9,6 +9,7 @@
 """
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
 from typing import List, Optional
 
@@ -337,12 +338,11 @@ def generate_illustrations(
 
     generated_count = 0
 
-    for i, illust_page in enumerate(illust_pages):
-        # 대응하는 스토리 페이지의 텍스트를 참조
+    # 병렬 일러스트 생성 (동시 4개)
+    # AI API 호출은 I/O-bound이므로 ThreadPoolExecutor로 병렬화
+    def _gen_task(i: int, illust_page: Page) -> tuple[int, str]:
         story_text = story_pages[i].text_content if i < len(story_pages) else ""
         scene_desc = illust_page.scene_description or ""
-
-        # AI 일러스트 생성 (선택된 캐릭터의 그림체 사용)
         image_path = _generate_single_illustration(
             book=book,
             page_number=illust_page.page_number,
@@ -351,8 +351,26 @@ def generate_illustrations(
             character_sheet_path=character_sheet_path,
             art_style=art_style,
         )
+        return i, image_path
 
-        # 기존 이미지 삭제 후 새로 추가
+    image_results: dict[int, str] = {}
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {
+            executor.submit(_gen_task, i, ip): i
+            for i, ip in enumerate(illust_pages)
+        }
+        for future in as_completed(futures):
+            idx, image_path = future.result()
+            image_results[idx] = image_path
+            generated_count += 1
+            logger.info(f"[generate] 일러스트 {generated_count}/{len(illust_pages)} (p{illust_pages[idx].page_number}) 완료")
+
+    # DB 업데이트 (순차 — 세션은 스레드 안전하지 않으므로)
+    for i, illust_page in enumerate(illust_pages):
+        image_path = image_results.get(i, "")
+        if not image_path:
+            continue
+
         db.query(PageImage).filter(PageImage.page_id == illust_page.id).delete()
         db.add(PageImage(
             page_id=illust_page.id,
@@ -372,9 +390,6 @@ def generate_illustrations(
                 is_selected=True,
                 created_at=now,
             ))
-
-        generated_count += 1
-        logger.info(f"[generate] 일러스트 {generated_count}/{len(illust_pages)} (p{illust_page.page_number}) 완료")
 
     # 제목 페이지 이미지 — 첫 일러스트 재사용
     title_page = next((p for p in pages if p.page_type == "title"), None)

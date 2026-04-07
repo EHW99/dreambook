@@ -491,6 +491,14 @@ class ApiClient {
     );
   }
 
+  async getThumbnails(bookId: number) {
+    return this.request<{ cover: string | null; pages: string[] }>(
+      `/api/books/${bookId}/thumbnails`,
+      {},
+      true
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getAccessToken();
   }

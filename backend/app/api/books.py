@@ -629,3 +629,42 @@ def get_audio_data(
         total_pages=len(audio_pages),
         pages=audio_pages,
     )
+
+
+@router.get("/{book_id}/thumbnails")
+def get_thumbnails(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """완성된 책의 렌더링 썸네일 목록 반환"""
+    import os
+    from app.models.book import Book
+
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="동화책을 찾을 수 없습니다")
+    if book.user_id != user.id:
+        raise HTTPException(status_code=403, detail="본인의 동화책만 접근할 수 있습니다")
+
+    if not book.thumbnail_dir or not os.path.isdir(book.thumbnail_dir):
+        raise HTTPException(status_code=404, detail="썸네일이 아직 생성되지 않았습니다")
+
+    # URL 경로 생성 (uploads/ 기준 상대 경로)
+    thumb_dir = book.thumbnail_dir
+    cover_path = os.path.join(thumb_dir, "cover.jpg")
+    cover_url = None
+    if os.path.exists(cover_path):
+        # /uploads/thumbnails/bk_xxx/cover.jpg 형태로 변환
+        from app.services.photo import UPLOAD_DIR
+        rel = os.path.relpath(cover_path, UPLOAD_DIR).replace("\\", "/")
+        cover_url = f"/uploads/{rel}"
+
+    pages = []
+    for pn in range(24):
+        page_path = os.path.join(thumb_dir, f"{pn}.jpg")
+        if os.path.exists(page_path):
+            rel = os.path.relpath(page_path, UPLOAD_DIR).replace("\\", "/")
+            pages.append(f"/uploads/{rel}")
+
+    return {"cover": cover_url, "pages": pages}

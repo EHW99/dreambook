@@ -456,6 +456,77 @@ class BookPrintService:
 
         return await self._request("GET", "/webhooks/deliveries", params=params)
 
+    # === Render / Thumbnails ===
+
+    async def download_thumbnails(self, book_uid: str, out_dir: str) -> dict[str, Any]:
+        """Book Print API 렌더링 썸네일을 다운로드하여 파일로 저장한다.
+
+        Args:
+            book_uid: Book Print API의 bookUid
+            out_dir: 저장 디렉토리 경로
+
+        Returns:
+            {"cover": "path/to/cover.jpg", "pages": ["path/to/0.jpg", ...]}
+        """
+        os.makedirs(out_dir, exist_ok=True)
+        client = await self._get_client()
+        headers = self._headers()
+
+        # 1. 전 페이지 렌더 요청 (24페이지)
+        for pn in range(24):
+            try:
+                await self._request("POST", "/render/page-thumbnail", json_data={
+                    "bookUid": book_uid,
+                    "pageNum": pn,
+                })
+            except BookPrintAPIError as e:
+                logger.warning(f"[bookprint] 렌더 요청 실패 (page {pn}): {e.message}")
+
+        # 2. 렌더링 완료 대기
+        await asyncio.sleep(5)
+
+        result: dict[str, Any] = {"cover": None, "pages": []}
+
+        # 3. 표지 다운로드
+        cover_path = os.path.join(out_dir, "cover.jpg")
+        for attempt in range(2):
+            try:
+                r = await client.get(
+                    f"{self.base_url}/render/thumbnail/{book_uid}/cover.jpg",
+                    headers=headers, timeout=30.0,
+                )
+                if r.status_code == 200:
+                    with open(cover_path, "wb") as f:
+                        f.write(r.content)
+                    result["cover"] = cover_path
+                    break
+                elif r.status_code == 404 and attempt == 0:
+                    await asyncio.sleep(3)
+            except Exception as e:
+                logger.warning(f"[bookprint] 표지 썸네일 다운로드 실패: {e}")
+
+        # 4. 내지 다운로드 (0~23)
+        for pn in range(24):
+            page_path = os.path.join(out_dir, f"{pn}.jpg")
+            for attempt in range(2):
+                try:
+                    r = await client.get(
+                        f"{self.base_url}/render/thumbnail/{book_uid}/{pn}.jpg",
+                        headers=headers, timeout=30.0,
+                    )
+                    if r.status_code == 200:
+                        with open(page_path, "wb") as f:
+                            f.write(r.content)
+                        result["pages"].append(page_path)
+                        break
+                    elif r.status_code == 404 and attempt == 0:
+                        await asyncio.sleep(3)
+                except Exception as e:
+                    logger.warning(f"[bookprint] 썸네일 다운로드 실패 (page {pn}): {e}")
+
+        logger.info(f"[bookprint] 썸네일 다운로드 완료: cover={'O' if result['cover'] else 'X'}, pages={len(result['pages'])}/24")
+        return result
+
     # === Full Workflow ===
 
     async def execute_order_workflow(
