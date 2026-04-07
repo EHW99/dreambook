@@ -1,6 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Package,
+  Truck,
+  MapPin,
+  ChevronRight,
+  X,
+  AlertTriangle,
+  CheckCircle2,
+  Pencil,
+  ShoppingBag,
+  Clock,
+  Ban,
+  Loader2,
+  BookOpen,
+} from "lucide-react";
 import {
   apiClient,
   OrderListItem,
@@ -9,42 +25,26 @@ import {
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  ShoppingBagIcon,
-  PackageIcon,
-  TruckIcon,
-  MapPinIcon,
-  ChevronRightIcon,
-  ChevronLeftIcon,
-  XIcon,
-  AlertTriangleIcon,
-  CheckCircleIcon,
-  EditIcon,
-} from "@/components/icons";
 
-// 주문 상태 정보
+// ── 상태 매핑 ──
 const ORDER_STATUS: Record<
   string,
-  { label: string; color: string; icon: typeof PackageIcon }
+  { label: string; color: string; bg: string; stripe: string; icon: typeof Package }
 > = {
-  PAID: { label: "결제 완료", color: "bg-accent text-teal-800", icon: PackageIcon },
-  PDF_READY: { label: "PDF 준비", color: "bg-accent text-teal-800", icon: PackageIcon },
-  CONFIRMED: { label: "주문 확정", color: "bg-success text-green-800", icon: CheckCircleIcon },
-  IN_PRODUCTION: { label: "제작 중", color: "bg-warning text-yellow-800", icon: PackageIcon },
-  SHIPPED: { label: "배송 중", color: "bg-primary/20 text-primary-dark", icon: TruckIcon },
-  DELIVERED: { label: "배송 완료", color: "bg-success text-green-800", icon: CheckCircleIcon },
-  CANCELLED: { label: "취소됨", color: "bg-gray-200 text-gray-600", icon: XIcon },
-  CANCELLED_REFUND: { label: "취소/환불", color: "bg-gray-200 text-gray-600", icon: XIcon },
+  PAID:             { label: "결제 완료",  color: "text-accent-dark",  bg: "bg-accent/10",  stripe: "bg-accent-dark",  icon: CheckCircle2 },
+  PDF_READY:        { label: "PDF 준비",   color: "text-accent-dark",  bg: "bg-accent/10",  stripe: "bg-accent-dark",  icon: Package },
+  CONFIRMED:        { label: "주문 확정",  color: "text-success-dark", bg: "bg-success/10", stripe: "bg-success-dark", icon: CheckCircle2 },
+  IN_PRODUCTION:    { label: "제작 중",    color: "text-warning-dark", bg: "bg-warning/10", stripe: "bg-warning-dark", icon: Clock },
+  SHIPPED:          { label: "배송 중",    color: "text-primary-dark", bg: "bg-primary/10", stripe: "bg-primary-dark", icon: Truck },
+  DELIVERED:        { label: "배송 완료",  color: "text-success-dark", bg: "bg-success/10", stripe: "bg-success-dark", icon: CheckCircle2 },
+  CANCELLED:        { label: "취소됨",     color: "text-text-lighter", bg: "bg-gray-100",   stripe: "bg-gray-300",     icon: Ban },
+  CANCELLED_REFUND: { label: "취소/환불",  color: "text-text-lighter", bg: "bg-gray-100",   stripe: "bg-gray-300",     icon: Ban },
 };
 
-function getOrderStatusInfo(status: string) {
-  return (
-    ORDER_STATUS[status] || {
-      label: status,
-      color: "bg-gray-200 text-gray-700",
-      icon: PackageIcon,
-    }
-  );
+function getStatusInfo(status: string) {
+  return ORDER_STATUS[status] || {
+    label: status, color: "text-text-lighter", bg: "bg-gray-100", stripe: "bg-gray-300", icon: Package,
+  };
 }
 
 function formatDate(dateStr: string) {
@@ -56,16 +56,10 @@ function formatPrice(amount: number) {
   return amount.toLocaleString("ko-KR") + "원";
 }
 
-// 취소 가능 상태 (PAID, PDF_READY)
-function canCancel(statusCode: number) {
-  return statusCode === 20 || statusCode === 25;
-}
+function canCancel(sc: number) { return sc === 20 || sc === 25; }
+function canChangeShipping(sc: number) { return sc === 20 || sc === 25 || sc === 30; }
 
-// 배송지 변경 가능 상태 (PAID ~ CONFIRMED)
-function canChangeShipping(statusCode: number) {
-  return statusCode === 20 || statusCode === 25 || statusCode === 30;
-}
-
+// ── 컴포넌트 ──
 interface OrdersTabProps {
   onOrdersLoaded?: (bookIds: Set<number>) => void;
 }
@@ -75,17 +69,17 @@ export function OrdersTab({ onOrdersLoaded }: OrdersTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 상세 보기
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [orderDetail, setOrderDetail] = useState<OrderDetailResult | null>(null);
+  // 모달
+  const [modalOrderId, setModalOrderId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<OrderDetailResult | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   // 취소
-  const [cancelTarget, setCancelTarget] = useState<number | null>(null);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // 배송지 변경
-  const [shippingEditMode, setShippingEditMode] = useState(false);
+  // 배송지
+  const [shippingEdit, setShippingEdit] = useState(false);
   const [shippingForm, setShippingForm] = useState<Partial<ShippingData>>({});
   const [isUpdatingShipping, setIsUpdatingShipping] = useState(false);
   const [shippingSuccess, setShippingSuccess] = useState("");
@@ -95,406 +89,367 @@ export function OrdersTab({ onOrdersLoaded }: OrdersTabProps) {
     const result = await apiClient.getOrders();
     if (result.data) {
       setOrders(result.data);
-      if (onOrdersLoaded) {
-        onOrdersLoaded(new Set(result.data.map((o) => o.book_id)));
-      }
+      onOrdersLoaded?.(new Set(result.data.map((o) => o.book_id)));
     } else {
       setError(result.error || "주문 내역을 불러오지 못했습니다");
     }
     setLoading(false);
   }, [onOrdersLoaded]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  const fetchOrderDetail = async (orderId: number) => {
+  // 모달 열기
+  const openModal = async (orderId: number) => {
+    setModalOrderId(orderId);
     setDetailLoading(true);
-    setShippingEditMode(false);
+    setShippingEdit(false);
     setShippingSuccess("");
-    const result = await apiClient.getOrder(orderId);
-    if (result.data) {
-      setOrderDetail(result.data);
-    }
+    setCancelConfirm(false);
+    const res = await apiClient.getOrder(orderId);
+    if (res.data) setDetail(res.data);
     setDetailLoading(false);
   };
 
-  const handleSelectOrder = (orderId: number) => {
-    setSelectedOrderId(orderId);
-    fetchOrderDetail(orderId);
-  };
-
-  const handleBack = () => {
-    setSelectedOrderId(null);
-    setOrderDetail(null);
-    setShippingEditMode(false);
+  const closeModal = () => {
+    setModalOrderId(null);
+    setDetail(null);
+    setShippingEdit(false);
     setShippingSuccess("");
+    setCancelConfirm(false);
   };
 
+  // 취소
   const handleCancel = async () => {
-    if (cancelTarget === null) return;
+    if (!detail) return;
     setIsCancelling(true);
-    const result = await apiClient.cancelOrder(cancelTarget);
+    const result = await apiClient.cancelOrder(detail.id);
     if (result.error) {
       setError(result.error);
     } else {
-      // 목록 새로고침
       await fetchOrders();
-      if (selectedOrderId === cancelTarget) {
-        fetchOrderDetail(cancelTarget);
-      }
+      const res = await apiClient.getOrder(detail.id);
+      if (res.data) setDetail(res.data);
     }
-    setCancelTarget(null);
+    setCancelConfirm(false);
     setIsCancelling(false);
   };
 
-  const handleShippingEdit = () => {
-    if (!orderDetail) return;
+  // 배송지
+  const startShippingEdit = () => {
+    if (!detail) return;
     setShippingForm({
-      recipient_name: orderDetail.recipient_name,
-      recipient_phone: orderDetail.recipient_phone,
-      postal_code: orderDetail.postal_code,
-      address1: orderDetail.address1,
-      address2: orderDetail.address2 || "",
-      shipping_memo: orderDetail.shipping_memo || "",
+      recipient_name: detail.recipient_name,
+      recipient_phone: detail.recipient_phone,
+      postal_code: detail.postal_code,
+      address1: detail.address1,
+      address2: detail.address2 || "",
+      shipping_memo: detail.shipping_memo || "",
     });
-    setShippingEditMode(true);
+    setShippingEdit(true);
     setShippingSuccess("");
   };
 
   const handleShippingUpdate = async () => {
-    if (!orderDetail) return;
+    if (!detail) return;
     setIsUpdatingShipping(true);
-
-    const result = await apiClient.updateShipping(orderDetail.id, shippingForm);
+    const result = await apiClient.updateShipping(detail.id, shippingForm);
     if (result.error) {
       setError(result.error);
     } else if (result.data) {
-      setOrderDetail(result.data);
-      setShippingEditMode(false);
+      setDetail(result.data);
+      setShippingEdit(false);
       setShippingSuccess("배송지가 변경되었습니다");
     }
     setIsUpdatingShipping(false);
   };
 
+  // ── 로딩 ──
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="mt-4 text-sm text-text-light">주문 내역을 불러오는 중...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="mt-3 text-sm text-text-light">주문 내역을 불러오는 중...</p>
       </div>
     );
   }
 
+  // ── 에러 ──
   if (error && !orders.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <AlertTriangleIcon className="w-10 h-10 text-error-dark mb-3" />
+        <AlertTriangle className="w-10 h-10 text-error-dark mb-3" />
         <p className="text-sm text-error-dark">{error}</p>
-        <Button variant="ghost" className="mt-4" onClick={fetchOrders}>
-          다시 시도
-        </Button>
+        <Button variant="ghost" className="mt-4" onClick={fetchOrders}>다시 시도</Button>
       </div>
     );
   }
 
-  // 빈 상태
-  if (orders.length === 0 && !selectedOrderId) {
+  // ── 빈 상태 ──
+  if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-20 h-20 rounded-full bg-secondary/50 flex items-center justify-center mb-6">
-          <ShoppingBagIcon className="w-10 h-10 text-primary" />
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mb-5">
+          <BookOpen className="w-9 h-9 text-primary" />
         </div>
-        <p className="text-lg font-medium text-text mb-2">아직 주문 내역이 없어요</p>
-        <p className="text-sm text-text-light">
-          동화책을 완성하면 실물 책으로 주문할 수 있어요
+        <p className="text-lg font-bold text-text mb-1">아직 주문이 없어요</p>
+        <p className="text-sm text-text-light text-center max-w-xs">
+          동화책을 완성하면 세상에 단 하나뿐인 실물 책으로 주문할 수 있어요
         </p>
       </div>
     );
   }
 
-  // 주문 상세 뷰
-  if (selectedOrderId && orderDetail) {
-    const statusInfo = getOrderStatusInfo(orderDetail.status);
-
-    return (
-      <div className="space-y-6">
-        {/* 뒤로가기 */}
-        <button
-          onClick={handleBack}
-          className="flex items-center gap-1 text-sm text-text-light hover:text-primary transition-colors"
-        >
-          <ChevronLeftIcon className="w-4 h-4" />
-          주문 목록으로
-        </button>
-
-        {/* 주문 상태 */}
-        <div className="bg-gradient-to-r from-secondary/30 to-primary/10 rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusInfo.color}`}>
-              {statusInfo.label}
-            </span>
-            <span className="text-xs text-text-lighter">
-              주문번호 #{orderDetail.id}
-            </span>
-          </div>
-          <p className="text-sm text-text-light">
-            주문일: {formatDate(orderDetail.ordered_at)}
-          </p>
-          <p className="text-lg font-bold text-text mt-1">
-            {formatPrice(orderDetail.total_amount)}
-          </p>
-        </div>
-
-        {/* 성공 메시지 */}
-        {shippingSuccess && (
-          <div className="p-3 bg-success/20 border border-success rounded-2xl text-sm text-success-dark flex items-center gap-2">
-            <CheckCircleIcon className="w-4 h-4" />
-            {shippingSuccess}
-          </div>
-        )}
-
-        {/* 배송 정보 */}
-        <div className="bg-white border border-secondary/60 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-bold text-text flex items-center gap-2">
-              <MapPinIcon className="w-4 h-4 text-primary" />
-              배송 정보
-            </h4>
-            {canChangeShipping(orderDetail.status_code) && !shippingEditMode && (
-              <Button size="sm" variant="ghost" onClick={handleShippingEdit}>
-                <EditIcon className="w-3.5 h-3.5 mr-1" />
-                변경
-              </Button>
-            )}
-          </div>
-
-          {!shippingEditMode ? (
-            <div className="space-y-2 text-sm">
-              <div className="flex">
-                <span className="text-text-light w-20 shrink-0">수령인</span>
-                <span className="text-text">{orderDetail.recipient_name}</span>
+  // ── 목록 + 모달 ──
+  return (
+    <>
+      {/* 목록 */}
+      <div className="divide-y divide-text/10">
+        {orders.map((order, i) => {
+          const info = getStatusInfo(order.status);
+          return (
+            <motion.button
+              key={order.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.03 }}
+              onClick={() => openModal(order.id)}
+              className="w-full py-5 text-left hover:bg-gray-50/50 transition-colors group"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-medium text-text truncate">
+                    {order.book_title || `동화책 #${order.book_id}`}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className={`text-xs font-semibold ${info.color}`}>
+                      {info.label}
+                    </span>
+                    <span className="text-text-lighter text-xs">·</span>
+                    <span className="text-xs text-text-lighter">
+                      {formatDate(order.ordered_at)}
+                    </span>
+                    <span className="text-text-lighter text-xs">·</span>
+                    <span className="text-xs text-text-lighter">
+                      주문번호 #{order.id}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-base font-bold text-text">
+                    {formatPrice(order.total_amount)}
+                  </p>
+                  <p className="text-[11px] text-text-lighter mt-1 group-hover:text-primary transition-colors">
+                    상세보기 →
+                  </p>
+                </div>
               </div>
-              <div className="flex">
-                <span className="text-text-light w-20 shrink-0">연락처</span>
-                <span className="text-text">{orderDetail.recipient_phone}</span>
-              </div>
-              <div className="flex">
-                <span className="text-text-light w-20 shrink-0">주소</span>
-                <span className="text-text">
-                  ({orderDetail.postal_code}) {orderDetail.address1}
-                  {orderDetail.address2 && ` ${orderDetail.address2}`}
-                </span>
-              </div>
-              {orderDetail.shipping_memo && (
-                <div className="flex">
-                  <span className="text-text-light w-20 shrink-0">메모</span>
-                  <span className="text-text">{orderDetail.shipping_memo}</span>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {/* ── 상세 모달 ── */}
+      <AnimatePresence>
+        {modalOrderId !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            onClick={closeModal}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="relative bg-white rounded-3xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {detailLoading || !detail ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <p className="mt-3 text-sm text-text-light">불러오는 중...</p>
+                </div>
+              ) : (
+                <div className="p-6 sm:p-7 space-y-5">
+                  {/* 닫기 */}
+                  <button
+                    onClick={closeModal}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                  >
+                    <X className="w-4 h-4 text-text-lighter" />
+                  </button>
+
+                  {/* 상태 + 금액 */}
+                  {(() => {
+                    const info = getStatusInfo(detail.status);
+                    return (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${info.bg} ${info.color}`}>
+                            {info.label}
+                          </span>
+                          <span className="text-xs text-text-lighter">
+                            #{detail.id}
+                          </span>
+                        </div>
+                        <p className="text-xs text-text-lighter">
+                          {formatDate(detail.ordered_at)} 주문
+                        </p>
+                        <p className="text-2xl font-bold text-text mt-1">
+                          {formatPrice(detail.total_amount)}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="border-t border-secondary/30" />
+
+                  {/* 성공 메시지 */}
+                  <AnimatePresence>
+                    {shippingSuccess && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="p-3 bg-success/15 border border-success/30 rounded-xl text-sm text-success-dark flex items-center gap-2"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        {shippingSuccess}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* 배송 정보 */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-bold text-text flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-primary" />
+                        배송 정보
+                      </h4>
+                      {canChangeShipping(detail.status_code) && !shippingEdit && (
+                        <button
+                          onClick={startShippingEdit}
+                          className="text-xs text-text-lighter hover:text-primary flex items-center gap-1 transition-colors"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          변경
+                        </button>
+                      )}
+                    </div>
+
+                    {!shippingEdit ? (
+                      <div className="space-y-2 text-sm bg-gray-50 rounded-xl p-4">
+                        {[
+                          ["수령인", detail.recipient_name],
+                          ["연락처", detail.recipient_phone],
+                          ["주소", `(${detail.postal_code}) ${detail.address1}${detail.address2 ? ` ${detail.address2}` : ""}`],
+                          ...(detail.shipping_memo ? [["메모", detail.shipping_memo]] : []),
+                        ].map(([label, value]) => (
+                          <div key={label} className="flex">
+                            <span className="text-text-lighter w-14 shrink-0 text-xs">{label}</span>
+                            <span className="text-text text-xs">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5 bg-gray-50 rounded-xl p-4">
+                        {[
+                          { label: "수령인", key: "recipient_name" },
+                          { label: "연락처", key: "recipient_phone" },
+                          { label: "우편번호", key: "postal_code" },
+                          { label: "주소", key: "address1" },
+                          { label: "상세주소", key: "address2" },
+                          { label: "배송 메모", key: "shipping_memo" },
+                        ].map(({ label, key }) => (
+                          <div key={key}>
+                            <label className="block text-[11px] font-medium text-text-lighter mb-1">{label}</label>
+                            <Input
+                              value={(shippingForm as any)[key] || ""}
+                              onChange={(e) => setShippingForm((p) => ({ ...p, [key]: e.target.value }))}
+                              disabled={isUpdatingShipping}
+                              className="h-9 text-sm"
+                            />
+                          </div>
+                        ))}
+                        <div className="flex gap-2 pt-1">
+                          <Button variant="ghost" size="sm" className="flex-1" onClick={() => setShippingEdit(false)} disabled={isUpdatingShipping}>
+                            취소
+                          </Button>
+                          <Button size="sm" className="flex-1" onClick={handleShippingUpdate} disabled={isUpdatingShipping}>
+                            {isUpdatingShipping ? "변경 중..." : "배송지 변경"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 운송장 */}
+                  {detail.tracking_number && (
+                    <div>
+                      <h4 className="text-sm font-bold text-text flex items-center gap-1.5 mb-3">
+                        <Truck className="w-3.5 h-3.5 text-primary" />
+                        배송 추적
+                      </h4>
+                      <div className="space-y-2 text-sm bg-gray-50 rounded-xl p-4">
+                        <div className="flex">
+                          <span className="text-text-lighter w-14 shrink-0 text-xs">택배사</span>
+                          <span className="text-text text-xs">{detail.tracking_carrier || "-"}</span>
+                        </div>
+                        <div className="flex">
+                          <span className="text-text-lighter w-14 shrink-0 text-xs">운송장</span>
+                          <span className="text-text font-mono text-xs">{detail.tracking_number}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 취소 버튼 */}
+                  {canCancel(detail.status_code) && !cancelConfirm && (
+                    <button
+                      onClick={() => setCancelConfirm(true)}
+                      className="w-full text-center text-sm text-text-lighter hover:text-error-dark transition-colors py-2"
+                    >
+                      주문 취소
+                    </button>
+                  )}
+
+                  {/* 취소 확인 */}
+                  <AnimatePresence>
+                    {cancelConfirm && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="bg-error/5 border border-error/20 rounded-xl p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <AlertTriangle className="w-4 h-4 text-error-dark" />
+                            <p className="text-sm font-medium text-error-dark">정말 취소하시겠습니까?</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" className="flex-1" onClick={() => setCancelConfirm(false)} disabled={isCancelling}>
+                              돌아가기
+                            </Button>
+                            <Button variant="destructive" size="sm" className="flex-1" onClick={handleCancel} disabled={isCancelling}>
+                              {isCancelling ? "취소 중..." : "주문 취소"}
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">수령인</label>
-                <Input
-                  value={shippingForm.recipient_name || ""}
-                  onChange={(e) =>
-                    setShippingForm((p) => ({ ...p, recipient_name: e.target.value }))
-                  }
-                  disabled={isUpdatingShipping}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">연락처</label>
-                <Input
-                  value={shippingForm.recipient_phone || ""}
-                  onChange={(e) =>
-                    setShippingForm((p) => ({ ...p, recipient_phone: e.target.value }))
-                  }
-                  disabled={isUpdatingShipping}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">우편번호</label>
-                <Input
-                  value={shippingForm.postal_code || ""}
-                  onChange={(e) =>
-                    setShippingForm((p) => ({ ...p, postal_code: e.target.value }))
-                  }
-                  disabled={isUpdatingShipping}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">주소</label>
-                <Input
-                  value={shippingForm.address1 || ""}
-                  onChange={(e) =>
-                    setShippingForm((p) => ({ ...p, address1: e.target.value }))
-                  }
-                  disabled={isUpdatingShipping}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">상세주소</label>
-                <Input
-                  value={shippingForm.address2 || ""}
-                  onChange={(e) =>
-                    setShippingForm((p) => ({ ...p, address2: e.target.value }))
-                  }
-                  disabled={isUpdatingShipping}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">배송 메모</label>
-                <Input
-                  value={shippingForm.shipping_memo || ""}
-                  onChange={(e) =>
-                    setShippingForm((p) => ({ ...p, shipping_memo: e.target.value }))
-                  }
-                  disabled={isUpdatingShipping}
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setShippingEditMode(false)}
-                  disabled={isUpdatingShipping}
-                >
-                  취소
-                </Button>
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  onClick={handleShippingUpdate}
-                  disabled={isUpdatingShipping}
-                >
-                  {isUpdatingShipping ? "변경 중..." : "배송지 변경"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 운송장 정보 */}
-        {orderDetail.tracking_number && (
-          <div className="bg-white border border-secondary/60 rounded-2xl p-6">
-            <h4 className="font-bold text-text flex items-center gap-2 mb-4">
-              <TruckIcon className="w-4 h-4 text-primary" />
-              배송 추적
-            </h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex">
-                <span className="text-text-light w-20 shrink-0">택배사</span>
-                <span className="text-text">{orderDetail.tracking_carrier || "-"}</span>
-              </div>
-              <div className="flex">
-                <span className="text-text-light w-20 shrink-0">운송장</span>
-                <span className="text-text font-mono">{orderDetail.tracking_number}</span>
-              </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
-
-        {/* 액션 버튼 */}
-        {canCancel(orderDetail.status_code) && (
-          <div className="pt-2">
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={() => setCancelTarget(orderDetail.id)}
-            >
-              주문 취소
-            </Button>
-          </div>
-        )}
-
-        {/* 취소 확인 다이얼로그 */}
-        {cancelTarget !== null && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-3xl shadow-hover p-8 max-w-sm w-full mx-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center">
-                  <AlertTriangleIcon className="w-5 h-5 text-error-dark" />
-                </div>
-                <h4 className="text-lg font-bold text-text">주문 취소</h4>
-              </div>
-              <p className="text-sm text-text-light mb-6">
-                정말 이 주문을 취소하시겠습니까?
-              </p>
-              <div className="flex gap-3">
-                <Button
-                  variant="ghost"
-                  className="flex-1"
-                  onClick={() => setCancelTarget(null)}
-                  disabled={isCancelling}
-                >
-                  돌아가기
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={handleCancel}
-                  disabled={isCancelling}
-                >
-                  {isCancelling ? "취소 중..." : "주문 취소"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // 상세 로딩 중
-  if (selectedOrderId && detailLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="mt-4 text-sm text-text-light">주문 상세 정보를 불러오는 중...</p>
-      </div>
-    );
-  }
-
-  // 주문 목록
-  return (
-    <div className="space-y-3">
-      {orders.map((order) => {
-        const statusInfo = getOrderStatusInfo(order.status);
-        const StatusIcon = statusInfo.icon;
-
-        return (
-          <button
-            key={order.id}
-            onClick={() => handleSelectOrder(order.id)}
-            className="w-full bg-white border border-secondary/60 rounded-2xl p-4 hover:shadow-hover transition-all duration-200 text-left flex items-center gap-4"
-          >
-            <div className="w-10 h-10 rounded-full bg-secondary/40 flex items-center justify-center shrink-0">
-              <StatusIcon className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusInfo.color}`}>
-                  {statusInfo.label}
-                </span>
-                <span className="text-xs text-text-lighter">
-                  {formatDate(order.ordered_at)}
-                </span>
-              </div>
-              <p className="text-sm font-medium text-text truncate">
-                {order.book_title || `동화책 #${order.book_id}`}
-              </p>
-              <p className="text-sm font-bold text-primary mt-0.5">
-                {formatPrice(order.total_amount)}
-              </p>
-            </div>
-            <ChevronRightIcon className="w-5 h-5 text-text-lighter shrink-0" />
-          </button>
-        );
-      })}
-    </div>
+      </AnimatePresence>
+    </>
   );
 }

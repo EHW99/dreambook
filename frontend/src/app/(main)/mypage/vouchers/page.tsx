@@ -17,7 +17,7 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  ArrowLeft,
+
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -125,15 +125,7 @@ function VouchersContent() {
     <PageTransition>
       <div className="max-w-6xl mx-auto px-4 py-6 pb-24 md:py-10 md:pb-10">
         {/* 헤더 */}
-        <div className="flex items-center gap-3 mb-6 md:mb-10">
-          <Link
-            href="/mypage"
-            className="w-9 h-9 rounded-xl bg-white shadow-soft flex items-center justify-center hover:shadow-card transition-shadow"
-          >
-            <ArrowLeft className="w-4 h-4 text-text-light" />
-          </Link>
-          <h2 className="text-xl md:text-2xl font-bold text-text">이용권 관리</h2>
-        </div>
+        <h2 className="text-2xl font-bold text-text mb-6 md:mb-10">이용권 관리</h2>
 
         {/* 2컬럼 레이아웃 (데스크톱) / 1컬럼 (모바일) */}
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:items-start">

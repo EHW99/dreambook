@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # 항상 placeholder 이미지를 사용합니다.
 # → 일러스트 AI 생성을 활성화하려면 False로 변경하세요.
 # ============================================================
-SKIP_AI_ILLUSTRATION = True
+SKIP_AI_ILLUSTRATION = False
 
 # 더미 placeholder 색상 팔레트 (파스텔 톤)
 def _calc_child_age(birth_date) -> int:
@@ -66,8 +66,8 @@ PLACEHOLDER_COLORS = [
 ]
 
 
-def _get_selected_character_sheet_path(db: Session, book_id: int) -> Optional[str]:
-    """확정된 캐릭터 시트의 파일 시스템 경로를 반환한다.
+def _get_selected_character_info(db: Session, book_id: int) -> tuple[Optional[str], Optional[str]]:
+    """확정된 캐릭터 시트의 (파일 경로, 그림체)를 반환한다.
 
     DB에는 URL 경로(/uploads/characters/file.png)로 저장되어 있으므로,
     실제 파일 시스템 경로로 변환하여 반환한다.
@@ -78,21 +78,28 @@ def _get_selected_character_sheet_path(db: Session, book_id: int) -> Optional[st
         CharacterSheet.is_selected == True,
     ).first()
     if not selected or not selected.image_path:
-        return None
+        return None, None
 
+    art_style = selected.art_style
     image_path = selected.image_path
 
     # 이미 절대 경로면 그대로 반환
     if os.path.isabs(image_path) and os.path.exists(image_path):
-        return image_path
+        return image_path, art_style
 
     # URL 경로 → 파일 시스템 경로 변환
     if image_path.startswith("/uploads/"):
         local_path = os.path.join(UPLOAD_DIR, image_path.replace("/uploads/", ""))
         if os.path.exists(local_path):
-            return local_path
+            return local_path, art_style
 
-    return None
+    return None, art_style
+
+
+# 하위 호환
+def _get_selected_character_sheet_path(db: Session, book_id: int) -> Optional[str]:
+    path, _ = _get_selected_character_info(db, book_id)
+    return path
 
 
 def _create_placeholder_image(page_number: int, label: str, book_id: int) -> str:
@@ -132,6 +139,7 @@ def _generate_single_illustration(
     scene_description: str,
     text_content: str,
     character_sheet_path: Optional[str],
+    art_style: Optional[str] = None,
 ) -> str:
     """AI 일러스트를 시도하고, 실패하면 placeholder를 생성한다."""
     ensure_upload_dir()
@@ -147,7 +155,7 @@ def _generate_single_illustration(
         ai_bytes = generate_illustration_or_dummy(
             character_sheet_path=character_sheet_path or "",
             scene_description=scene_description,
-            art_style=book.art_style or "watercolor",
+            art_style=art_style or book.art_style or "watercolor",
             child_name=book.child_name,
             job_name=book.job_name or "직업",
             child_age=child_age,
@@ -307,7 +315,9 @@ def generate_illustrations(
     illustration 타입 페이지 + title 페이지에 이미지를 생성/연결한다.
     story 페이지에도 같은 이미지를 참조로 연결한다.
     """
-    character_sheet_path = _get_selected_character_sheet_path(db, book.id)
+    character_sheet_path, char_art_style = _get_selected_character_info(db, book.id)
+    # 선택된 캐릭터의 그림체 사용 (없으면 book.art_style 폴백)
+    art_style = char_art_style or book.art_style or "watercolor"
     now = datetime.now(timezone.utc)
 
     # 직업 영어 번역 보장 (캐릭터 생성을 스킵한 경우에도)
@@ -332,13 +342,14 @@ def generate_illustrations(
         story_text = story_pages[i].text_content if i < len(story_pages) else ""
         scene_desc = illust_page.scene_description or ""
 
-        # AI 일러스트 생성
+        # AI 일러스트 생성 (선택된 캐릭터의 그림체 사용)
         image_path = _generate_single_illustration(
             book=book,
             page_number=illust_page.page_number,
             scene_description=scene_desc,
             text_content=story_text,
             character_sheet_path=character_sheet_path,
+            art_style=art_style,
         )
 
         # 기존 이미지 삭제 후 새로 추가
@@ -434,7 +445,8 @@ def generate_cover_image(
         생성된 이미지 파일 경로 (또는 None)
     """
     ensure_upload_dir()
-    character_sheet_path = _get_selected_character_sheet_path(db, book.id)
+    character_sheet_path, char_art_style = _get_selected_character_info(db, book.id)
+    art_style = char_art_style or book.art_style or "watercolor"
 
     if SKIP_AI_ILLUSTRATION:
         logger.info("[SKIP] 표지 AI 생성 스킵")
@@ -445,7 +457,7 @@ def generate_cover_image(
 
     ai_bytes = generate_cover_or_dummy(
         character_sheet_path=character_sheet_path or "",
-        art_style=book.art_style or "watercolor",
+        art_style=art_style,
         child_name=book.child_name,
         job_name=book.job_name or "직업",
         child_age=child_age,

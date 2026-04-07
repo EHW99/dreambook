@@ -135,6 +135,7 @@ class BookResponse(BaseModel):
     status: str
     current_step: int
     title: Optional[str] = None
+    cover_image_path: Optional[str] = None
     story_regen_count: int
     character_regen_count: int
     created_at: datetime
@@ -152,6 +153,7 @@ class BookListResponse(BaseModel):
     status: str
     current_step: int
     title: Optional[str] = None
+    cover_image_path: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 #
 # → 캐릭터 AI 생성을 활성화하려면 False로 변경하세요.
 # ============================================================
-SKIP_AI_CHARACTER = True
+SKIP_AI_CHARACTER = False
 
 # 최대 재생성 횟수 (최초 1회 + 재생성 4회 = 총 5회)
 MAX_CHARACTER_GENERATIONS = 5
@@ -59,8 +59,16 @@ def _generate_ai_character(db: Session, book: Book) -> Optional[str]:
 
     # 사진 파일 경로 조회
     photo = db.query(Photo).filter(Photo.id == book.photo_id).first()
-    if not photo or not os.path.exists(photo.file_path):
-        logger.warning(f"사진 파일을 찾을 수 없음: photo_id={book.photo_id}")
+    if not photo:
+        logger.warning(f"사진 레코드 없음: photo_id={book.photo_id}")
+        return None
+
+    # 절대경로 또는 uploads 디렉토리 기준으로 파일 찾기
+    photo_path = photo.file_path
+    if not os.path.isabs(photo_path):
+        photo_path = os.path.join(UPLOAD_DIR, photo_path)
+    if not os.path.exists(photo_path):
+        logger.warning(f"사진 파일을 찾을 수 없음: {photo_path}")
         return None
 
     # 그림체 및 직업 정보
@@ -84,7 +92,7 @@ def _generate_ai_character(db: Session, book: Book) -> Optional[str]:
         child_gender = book.child_gender or "male"
 
         image_bytes = generate_character_image(
-            photo_path=photo.file_path,
+            photo_path=photo_path,
             art_style=art_style,
             job_name=job_name,
             child_age=child_age,
@@ -134,6 +142,7 @@ def create_character_sheet(db: Session, book: Book) -> CharacterSheet:
     character = CharacterSheet(
         book_id=book.id,
         image_path=image_path,
+        art_style=book.art_style or "watercolor",
         generation_index=existing_count,
         is_selected=False,
     )
@@ -180,10 +189,10 @@ def select_character_sheet(db: Session, book_id: int, char_id: int) -> Optional[
     # 새로 선택
     character.is_selected = True
 
-    # book.status를 character_confirmed로 전이
     book = db.query(Book).filter(Book.id == book_id).first()
-    if book and book.status == "draft":
-        book.status = "character_confirmed"
+    if book:
+        if book.status == "draft":
+            book.status = "character_confirmed"
         book.updated_at = datetime.now(timezone.utc)
 
     db.commit()

@@ -161,6 +161,77 @@ function ColophonPage({ p, title, childName }: { p: PageItem; title: string; chi
   );
 }
 
+function CoverPage({ coverSrc, title, childName }: { coverSrc: string; title: string; childName: string }) {
+  return (
+    <>
+      {/* 배경색 */}
+      <div style={{ position: "absolute", left: 0, top: 0, width: PW, height: PH, background: "#FFF8F0" }} />
+      {/* 표지 사진 */}
+      <div style={{
+        position: "absolute", left: 171, top: 156, width: 636, height: 636,
+        borderRadius: 12, overflow: "hidden", background: "#f5f0e8",
+      }}>
+        {coverSrc ? (
+          <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            crossOrigin="anonymous" draggable={false} />
+        ) : (
+          <div style={{
+            width: "100%", height: "100%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "linear-gradient(135deg,#fef3e8,#fde8d8)",
+            color: "#c4a97d", fontSize: 28, fontFamily: "'Jua',sans-serif",
+          }}>
+            표지
+          </div>
+        )}
+      </div>
+      {/* 제목 */}
+      <div style={{
+        position: "absolute", left: 249, top: 820, width: 479, height: 52,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Jua', serif", fontSize: 28, fontWeight: 700, color: "#000",
+        textAlign: "center",
+      }}>
+        {title}
+      </div>
+      {/* 저자 */}
+      <div style={{
+        position: "absolute", left: 400, top: 876, width: 179, height: 40,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Nanum Gothic', sans-serif", fontSize: 16, color: "#666",
+        textAlign: "center",
+      }}>
+        {childName}
+      </div>
+    </>
+  );
+}
+
+function BackCoverPage() {
+  return (
+    <div style={{
+      position: "absolute", left: 0, top: 0, width: PW, height: PH,
+      background: "#FFF8F0",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <div style={{
+        fontFamily: "'Nanum Gothic', sans-serif", fontSize: 14, color: "#ccc",
+      }}>
+        (주)스위트북
+      </div>
+    </div>
+  );
+}
+
+function BlankPage() {
+  return (
+    <div style={{
+      position: "absolute", left: 0, top: 0, width: PW, height: PH,
+      background: "#fff",
+    }} />
+  );
+}
+
 /* ── 편집 모달 ── */
 
 function EditModal({ text, onSave, onClose }: {
@@ -220,18 +291,45 @@ interface BookPreviewProps {
   coverImageUrl?: string;
 }
 
-export default function BookPreview({ pages, title, childName, onTextSave }: BookPreviewProps) {
+export default function BookPreview({ pages, title, childName, onTextSave, coverImageUrl }: BookPreviewProps) {
   const [si, setSi] = useState(0);  // spread index
   const [editPage, setEditPage] = useState<PageItem | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(0.4);
 
-  // 스프레드 만들기
-  const spreads: PageItem[][] = [];
-  if (pages.length > 0) spreads.push([pages[0]]);
-  for (let i = 1; i < pages.length; i += 2) {
-    spreads.push(i + 1 < pages.length ? [pages[i], pages[i + 1]] : [pages[i]]);
+  // 스프레드 구성: 표지(단독) → [빈,간지] → [그림,스토리]×11 → [발행면,빈] → 뒷표지(단독)
+  type SpreadItem = { type: "page"; data: PageItem } | { type: "cover" } | { type: "backcover" } | { type: "blank" };
+  type Spread = SpreadItem[];
+  const spreads: Spread[] = [];
+
+  const coverSrc = imgUrl(coverImageUrl);
+
+  // 1. 표지 (단독)
+  spreads.push([{ type: "cover" }]);
+
+  // 2. [빈, 간지(p1)]
+  const titlePage = pages.find(p => p.page_type === "title");
+  if (titlePage) {
+    spreads.push([{ type: "blank" }, { type: "page", data: titlePage }]);
   }
+
+  // 3. [그림, 스토리] 쌍
+  const illustPages = pages.filter(p => p.page_type === "illustration").sort((a, b) => a.page_number - b.page_number);
+  const storyPages = pages.filter(p => p.page_type === "story").sort((a, b) => a.page_number - b.page_number);
+  for (let i = 0; i < illustPages.length; i++) {
+    const left: SpreadItem = { type: "page", data: illustPages[i] };
+    const right: SpreadItem = storyPages[i] ? { type: "page", data: storyPages[i] } : { type: "blank" };
+    spreads.push([left, right]);
+  }
+
+  // 4. [발행면, 빈]
+  const colophonPage = pages.find(p => p.page_type === "colophon");
+  if (colophonPage) {
+    spreads.push([{ type: "page", data: colophonPage }, { type: "blank" }]);
+  }
+
+  // 5. 뒷표지 (단독)
+  spreads.push([{ type: "backcover" }]);
 
   const cur = spreads[si] || [];
   const single = cur.length === 1;
@@ -271,20 +369,32 @@ export default function BookPreview({ pages, title, childName, onTextSave }: Boo
     setEditPage(null);
   };
 
-  // 페이지 렌더
-  function renderInner(p: PageItem) {
-    switch (p.page_type) {
-      case "title": return <TitlePage p={p} childName={childName} />;
-      case "illustration": return <IllustPage p={p} />;
-      case "story": return <StoryPage p={p} onEdit={() => setEditPage(p)} />;
-      case "colophon": return <ColophonPage p={p} title={title} childName={childName} />;
-      default: return null;
+  // SpreadItem 렌더
+  function renderItem(item: SpreadItem) {
+    switch (item.type) {
+      case "cover": return <CoverPage coverSrc={coverSrc} title={title} childName={childName} />;
+      case "backcover": return <BackCoverPage />;
+      case "blank": return <BlankPage />;
+      case "page": {
+        const p = item.data;
+        switch (p.page_type) {
+          case "title": return <TitlePage p={p} childName={childName} />;
+          case "illustration": return <IllustPage p={p} />;
+          case "story": return <StoryPage p={p} onEdit={() => setEditPage(p)} />;
+          case "colophon": return <ColophonPage p={p} title={title} childName={childName} />;
+          default: return <BlankPage />;
+        }
+      }
     }
   }
 
-  const labels: Record<string, string> = {
-    title: "제목", illustration: "그림", story: "이야기", colophon: "발행면",
-  };
+  function itemLabel(item: SpreadItem): string {
+    if (item.type === "cover") return "표지";
+    if (item.type === "backcover") return "뒷표지";
+    if (item.type === "blank") return "";
+    const labels: Record<string, string> = { title: "제목", illustration: "그림", story: "이야기", colophon: "발행면" };
+    return labels[item.data.page_type] || `p${item.data.page_number}`;
+  }
 
   return (
     <>
@@ -311,18 +421,27 @@ export default function BookPreview({ pages, title, childName, onTextSave }: Boo
                 display: "flex", gap: 1, padding: 2,
                 opacity: active ? 1 : 0.55, transition: "all 0.15s",
               }}>
-                {sp.map(p => {
-                  const src = imgUrl((p.images.find(x => x.is_selected) || p.images[0])?.image_path);
-                  const hasImg = (p.page_type === "illustration" || p.page_type === "colophon") && src;
+                {sp.map((item, idx) => {
+                  let thumbSrc = "";
+                  let label = "";
+                  if (item.type === "cover") { thumbSrc = coverSrc; label = "표지"; }
+                  else if (item.type === "backcover") { label = "뒷"; }
+                  else if (item.type === "blank") { label = ""; }
+                  else {
+                    const p = item.data;
+                    thumbSrc = imgUrl((p.images.find(x => x.is_selected) || p.images[0])?.image_path);
+                    if (p.page_type !== "illustration" && p.page_type !== "colophon") thumbSrc = "";
+                    label = String(p.page_number);
+                  }
                   return (
-                    <div key={p.id} style={{
+                    <div key={idx} style={{
                       flex: 1, borderRadius: 3, overflow: "hidden",
-                      background: hasImg ? undefined : "#ddd",
+                      background: thumbSrc ? undefined : "#ddd",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                      {hasImg
-                        ? <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} crossOrigin="anonymous" draggable={false} />
-                        : <span style={{ fontSize: 7, color: "#999" }}>{p.page_number}</span>}
+                      {thumbSrc
+                        ? <img src={thumbSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} crossOrigin="anonymous" draggable={false} />
+                        : <span style={{ fontSize: 7, color: "#999" }}>{label}</span>}
                     </div>
                   );
                 })}
@@ -344,12 +463,15 @@ export default function BookPreview({ pages, title, childName, onTextSave }: Boo
             display: "flex", justifyContent: "space-between", padding: "10px 18px",
           }}>
             <div style={{ display: "flex", gap: 6 }}>
-              {cur.map(p => (
-                <span key={p.id} style={{
-                  background: "rgba(255,255,255,0.1)", padding: "2px 10px",
-                  borderRadius: 99, color: "rgba(255,255,255,0.5)", fontSize: 11,
-                }}>{labels[p.page_type] || `p${p.page_number}`}</span>
-              ))}
+              {cur.map((item, idx) => {
+                const label = itemLabel(item);
+                return label ? (
+                  <span key={idx} style={{
+                    background: "rgba(255,255,255,0.1)", padding: "2px 10px",
+                    borderRadius: 99, color: "rgba(255,255,255,0.5)", fontSize: 11,
+                  }}>{label}</span>
+                ) : null;
+              })}
             </div>
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
               {si + 1} / {spreads.length}
@@ -384,15 +506,15 @@ export default function BookPreview({ pages, title, childName, onTextSave }: Boo
               top: 0,
               left: 0,
             }}>
-              {/* 왼쪽 페이지 */}
+              {/* 왼쪽 (또는 단독) 페이지 */}
               <div style={{
                 position: "absolute", left: 0, top: 0, width: PW, height: PH,
                 background: "#fff",
                 boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
                 borderRadius: 3, overflow: "hidden",
               }}
-              className={cur[0]?.page_type === "story" ? "__story-wrap" : ""}>
-                {cur[0] && renderInner(cur[0])}
+              className={cur[0]?.type === "page" && cur[0].data.page_type === "story" ? "__story-wrap" : ""}>
+                {cur[0] && renderItem(cur[0])}
               </div>
 
               {/* 오른쪽 페이지 */}
@@ -403,8 +525,8 @@ export default function BookPreview({ pages, title, childName, onTextSave }: Boo
                   boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
                   borderRadius: 3, overflow: "hidden",
                 }}
-                className={cur[1].page_type === "story" ? "__story-wrap" : ""}>
-                  {renderInner(cur[1])}
+                className={cur[1].type === "page" && cur[1].data.page_type === "story" ? "__story-wrap" : ""}>
+                  {renderItem(cur[1])}
                 </div>
               )}
             </div>

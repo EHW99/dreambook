@@ -7,6 +7,7 @@ class CharacterSheetResponse(BaseModel):
     id: int
     book_id: int
     image_path: str
+    art_style: str | None = None
     generation_index: int
     is_selected: bool
     created_at: datetime

@@ -546,6 +546,7 @@ export interface BookItem {
   status: string;
   current_step: number;
   title: string | null;
+  cover_image_path: string | null;
   story_regen_count: number;
   character_regen_count: number;
   created_at: string;
@@ -561,6 +562,7 @@ export interface BookListItem {
   status: string;
   current_step: number;
   title: string | null;
+  cover_image_path: string | null;
   created_at: string;
   updated_at: string;
 }

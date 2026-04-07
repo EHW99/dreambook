@@ -230,6 +230,7 @@ function EditContent() {
             pages={pages}
             title={book.title || "동화책"}
             childName={book.child_name}
+            coverImageUrl={book.cover_image_path || undefined}
             onTextSave={handleTextSave}
           />
         ) : (

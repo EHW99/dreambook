@@ -8,10 +8,9 @@ function OrdersContent() {
   return (
     <PageTransition>
       <div className="max-w-5xl mx-auto px-4 py-8 pb-20 md:pb-8">
-        <h2 className="text-2xl font-bold text-text mb-6">주문 내역</h2>
-        <div className="bg-white rounded-3xl shadow-card overflow-hidden p-6 sm:p-8">
-          <OrdersTab />
-        </div>
+        <h2 className="text-2xl font-bold text-text mb-2">주문 내역</h2>
+        <div className="border-b-2 border-text/15 mb-6" />
+        <OrdersTab />
       </div>
     </PageTransition>
   );

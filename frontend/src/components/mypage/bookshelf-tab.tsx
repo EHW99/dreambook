@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { apiClient, BookListItem } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,40 +11,34 @@ import {
   EyeIcon,
   ShoppingCartIcon,
   TrashIcon,
-  PlayIcon,
-  AlertTriangleIcon,
   EditIcon,
   HeadphonesIcon,
+  AlertTriangleIcon,
 } from "@/components/icons";
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  draft: { label: "작성중", color: "bg-warning text-yellow-800" },
-  character_confirmed: { label: "작성중", color: "bg-warning text-yellow-800" },
-  generating: { label: "생성중", color: "bg-accent text-teal-800" },
-  editing: { label: "편집중", color: "bg-accent text-teal-800" },
-  completed: { label: "완성", color: "bg-success text-green-800" },
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const STATUS_MAP: Record<string, { label: string; bg: string; text: string }> = {
+  draft: { label: "작성중", bg: "bg-warning/80", text: "text-yellow-900" },
+  character_confirmed: { label: "작성중", bg: "bg-warning/80", text: "text-yellow-900" },
+  story_generated: { label: "편집중", bg: "bg-accent/80", text: "text-teal-900" },
+  generating: { label: "생성중", bg: "bg-accent/80", text: "text-teal-900" },
+  editing: { label: "편집중", bg: "bg-accent/80", text: "text-teal-900" },
+  completed: { label: "완성", bg: "bg-success/80", text: "text-green-900" },
 };
 
-const ART_STYLE_LABELS: Record<string, string> = {
-  watercolor: "수채화",
-  pastel: "파스텔",
-  crayon: "크레파스",
-  "3d": "3D",
-  cartoon: "만화",
+const ART_LABELS: Record<string, string> = {
+  watercolor: "수채화", pastel: "파스텔", crayon: "크레파스", "3d": "3D", cartoon: "만화",
 };
 
-function getStatusInfo(status: string) {
-  return STATUS_LABELS[status] || { label: status, color: "bg-gray-200 text-gray-700" };
+function coverUrl(path: string | null): string {
+  if (!path) return "";
+  const filename = path.split(/[/\\]/).pop();
+  return `${API_BASE}/uploads/${filename}`;
 }
 
-function isOrdered(book: BookListItem): boolean {
-  // completed 상태면서 주문이 된 경우 — 실제로는 orders 목록과 비교해야 하지만,
-  // 간단히 status로 판단. 주문이 된 책은 별도로 표시하기 위해 부모에서 orderedBookIds를 전달.
-  return false;
-}
-
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
+function formatDate(s: string) {
+  const d = new Date(s);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
 }
 
@@ -62,55 +57,29 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
   const fetchBooks = async () => {
     setLoading(true);
     const result = await apiClient.getBooks();
-    if (result.data) {
-      setBooks(result.data);
-    } else {
-      setError(result.error || "동화책 목록을 불러오지 못했습니다");
-    }
+    if (result.data) setBooks(result.data);
+    else setError(result.error || "동화책 목록을 불러오지 못했습니다");
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchBooks();
-  }, []);
+  useEffect(() => { fetchBooks(); }, []);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
     const result = await apiClient.deleteBook(deleteTarget.id);
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setBooks((prev) => prev.filter((b) => b.id !== deleteTarget.id));
-    }
+    if (result.error) setError(result.error);
+    else setBooks((prev) => prev.filter((b) => b.id !== deleteTarget.id));
     setDeleteTarget(null);
     setIsDeleting(false);
   };
 
   const handleContinue = (book: BookListItem) => {
     if (book.status === "editing" || book.status === "completed") {
-      // 편집/완성 상태면 편집 페이지로 이동
       router.push(`/create/edit?book_id=${book.id}`);
     } else {
-      // draft/character_confirmed 등은 위자드로 이동
       router.push(`/create?book_id=${book.id}`);
     }
-  };
-
-  const handleView = (book: BookListItem) => {
-    router.push(`/books/${book.id}/view`);
-  };
-
-  const handleOrder = (book: BookListItem) => {
-    router.push(`/create/order?bookId=${book.id}`);
-  };
-
-  const handleListen = (book: BookListItem) => {
-    router.push(`/books/${book.id}/listen`);
-  };
-
-  const handleCreateNew = () => {
-    router.push("/create");
   };
 
   if (loading) {
@@ -127,14 +96,11 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
       <div className="flex flex-col items-center justify-center py-16">
         <AlertTriangleIcon className="w-10 h-10 text-error-dark mb-3" />
         <p className="text-sm text-error-dark">{error}</p>
-        <Button variant="ghost" className="mt-4" onClick={fetchBooks}>
-          다시 시도
-        </Button>
+        <Button variant="ghost" className="mt-4" onClick={fetchBooks}>다시 시도</Button>
       </div>
     );
   }
 
-  // 빈 상태
   if (books.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -142,12 +108,9 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
           <BookOpenIcon className="w-10 h-10 text-primary" />
         </div>
         <p className="text-lg font-medium text-text mb-2">아직 만든 동화책이 없어요</p>
-        <p className="text-sm text-text-light mb-6">
-          아이만의 특별한 동화책을 만들어보세요
-        </p>
-        <Button onClick={handleCreateNew}>
-          <PlusIcon className="w-4 h-4 mr-2" />
-          새 동화책 만들기
+        <p className="text-sm text-text-light mb-6">아이만의 특별한 동화책을 만들어보세요</p>
+        <Button onClick={() => router.push("/create")}>
+          <PlusIcon className="w-4 h-4 mr-2" />새 동화책 만들기
         </Button>
       </div>
     );
@@ -155,35 +118,49 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
 
   return (
     <div className="space-y-6">
-      {/* 책 카드 그리드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {books.map((book) => {
-          const statusInfo = getStatusInfo(book.status);
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {books.map((book, i) => {
+          const status = STATUS_MAP[book.status] || { label: book.status, bg: "bg-gray-200", text: "text-gray-700" };
           const isDraft = book.status === "draft" || book.status === "character_confirmed";
-          const isGenerating = book.status === "generating";
-          const isEditing = book.status === "editing";
+          const isEditing = book.status === "editing" || book.status === "story_generated";
           const isCompleted = book.status === "completed";
-          const isBookOrdered = orderedBookIds.has(book.id);
-          const canDelete = isDraft && !isBookOrdered;
+          const isOrdered = orderedBookIds.has(book.id);
+          const canDelete = isDraft && !isOrdered;
+          const cover = coverUrl(book.cover_image_path);
 
           return (
-            <div
+            <motion.div
               key={book.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.3 }}
               className="bg-white border border-secondary/60 rounded-2xl overflow-hidden shadow-soft hover:shadow-hover transition-all duration-200 group"
             >
-              {/* 썸네일 영역 */}
-              <div className="relative h-40 bg-gradient-to-br from-secondary/30 to-primary/10 flex items-center justify-center">
-                <BookOpenIcon className="w-16 h-16 text-primary/30" />
+              {/* 표지 (정사각형) */}
+              <div
+                className="relative aspect-square overflow-hidden cursor-pointer"
+                onClick={() => handleContinue(book)}
+              >
+                {cover ? (
+                  <img
+                    src={cover}
+                    alt={book.title || "표지"}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    crossOrigin="anonymous"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-secondary/40 to-primary/10 flex flex-col items-center justify-center gap-3">
+                    <BookOpenIcon className="w-14 h-14 text-primary/30" />
+                    <span className="text-xs text-primary/40 font-medium">표지 미생성</span>
+                  </div>
+                )}
+
                 {/* 상태 배지 */}
-                <span
-                  className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    isBookOrdered
-                      ? "bg-primary/20 text-primary-dark"
-                      : statusInfo.color
-                  }`}
-                >
-                  {isBookOrdered ? "주문됨" : statusInfo.label}
-                </span>
+                <div className={`absolute top-3 right-3 text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm ${
+                  isOrdered ? "bg-primary/80 text-white" : `${status.bg} ${status.text}`
+                }`}>
+                  {isOrdered ? "주문완료" : status.label}
+                </div>
               </div>
 
               {/* 정보 */}
@@ -193,12 +170,8 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
                 </h3>
                 <div className="flex items-center gap-2 text-xs text-text-light mb-3">
                   {book.job_name && <span>{book.job_name}</span>}
-                  {book.art_style && (
-                    <>
-                      <span>·</span>
-                      <span>{ART_STYLE_LABELS[book.art_style] || book.art_style}</span>
-                    </>
-                  )}
+                  {book.job_name && book.art_style && <span className="text-text-lighter">·</span>}
+                  {book.art_style && <span>{ART_LABELS[book.art_style] || book.art_style}</span>}
                 </div>
                 <p className="text-xs text-text-lighter mb-4">
                   {formatDate(book.updated_at || book.created_at)}
@@ -207,153 +180,100 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
                 {/* 액션 버튼 */}
                 <div className="flex gap-2">
                   {isDraft && (
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleContinue(book)}
-                    >
-                      <EditIcon className="w-3.5 h-3.5 mr-1" />
-                      이어서 만들기
+                    <Button size="sm" className="flex-1" onClick={() => handleContinue(book)}>
+                      <EditIcon className="w-3.5 h-3.5 mr-1" />이어서 만들기
                     </Button>
-                  )}
-
-                  {isGenerating && (
-                    <div className="flex-1 flex items-center justify-center gap-2 py-2 text-sm text-accent-dark">
-                      <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                      <span>동화책을 생성하고 있어요...</span>
-                    </div>
                   )}
 
                   {isEditing && (
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleContinue(book)}
-                    >
-                      <EditIcon className="w-3.5 h-3.5 mr-1" />
-                      편집하기
+                    <Button size="sm" className="flex-1" onClick={() => handleContinue(book)}>
+                      <EditIcon className="w-3.5 h-3.5 mr-1" />편집하기
                     </Button>
                   )}
 
-                  {isCompleted && !isBookOrdered && (
+                  {isCompleted && !isOrdered && (
                     <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => handleView(book)}
-                      >
-                        <EyeIcon className="w-3.5 h-3.5 mr-1" />
-                        보기
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/view`)}>
+                        <EyeIcon className="w-3.5 h-3.5 mr-1" />보기
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => handleListen(book)}
-                      >
-                        <HeadphonesIcon className="w-3.5 h-3.5 mr-1" />
-                        듣기
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/listen`)}>
+                        <HeadphonesIcon className="w-3.5 h-3.5 mr-1" />듣기
                       </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleOrder(book)}
-                      >
-                        <ShoppingCartIcon className="w-3.5 h-3.5 mr-1" />
-                        주문하기
+                      <Button size="sm" className="flex-1" onClick={() => router.push(`/create/order?bookId=${book.id}`)}>
+                        <ShoppingCartIcon className="w-3.5 h-3.5 mr-1" />주문
                       </Button>
                     </>
                   )}
 
-                  {isCompleted && isBookOrdered && (
+                  {isCompleted && isOrdered && (
                     <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => handleView(book)}
-                      >
-                        <EyeIcon className="w-3.5 h-3.5 mr-1" />
-                        보기
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/view`)}>
+                        <EyeIcon className="w-3.5 h-3.5 mr-1" />보기
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => handleListen(book)}
-                      >
-                        <HeadphonesIcon className="w-3.5 h-3.5 mr-1" />
-                        듣기
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/listen`)}>
+                        <HeadphonesIcon className="w-3.5 h-3.5 mr-1" />듣기
                       </Button>
                     </>
                   )}
 
                   {canDelete && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-text-lighter hover:text-error-dark"
-                      onClick={() => setDeleteTarget(book)}
-                    >
+                    <Button size="sm" variant="ghost" className="text-text-lighter hover:text-error-dark" onClick={() => setDeleteTarget(book)}>
                       <TrashIcon className="w-3.5 h-3.5" />
                     </Button>
                   )}
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
 
         {/* 새 동화책 만들기 카드 */}
-        <button
-          onClick={handleCreateNew}
-          className="border-2 border-dashed border-secondary hover:border-primary rounded-2xl h-full min-h-[240px] flex flex-col items-center justify-center gap-3 text-text-light hover:text-primary transition-all duration-200 group"
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: books.length * 0.05, duration: 0.3 }}
+          onClick={() => router.push("/create")}
+          className="border-2 border-dashed border-secondary hover:border-primary rounded-2xl min-h-[300px] flex flex-col items-center justify-center gap-3 text-text-light hover:text-primary transition-all duration-200 group"
         >
           <div className="w-14 h-14 rounded-full bg-secondary/50 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
             <PlusIcon className="w-7 h-7" />
           </div>
           <span className="text-sm font-medium">새 동화책 만들기</span>
-        </button>
+        </motion.button>
       </div>
 
-      {/* 삭제 확인 다이얼로그 */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-3xl shadow-hover p-8 max-w-sm w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center">
-                <TrashIcon className="w-5 h-5 text-error-dark" />
+      {/* 삭제 확인 */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl shadow-hover p-7 max-w-sm w-full mx-4"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center">
+                  <TrashIcon className="w-5 h-5 text-error-dark" />
+                </div>
+                <h4 className="text-lg font-bold text-text">동화책 삭제</h4>
               </div>
-              <h4 className="text-lg font-bold text-text">동화책 삭제</h4>
-            </div>
-            <p className="text-sm text-text-light mb-2">
-              <strong>&quot;{deleteTarget.title || `${deleteTarget.child_name}의 동화책`}&quot;</strong>
-            </p>
-            <p className="text-sm text-text-light mb-6">
-              이 동화책을 삭제하시겠습니까? 삭제된 동화책은 복구할 수 없습니다.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                className="flex-1"
-                onClick={() => setDeleteTarget(null)}
-                disabled={isDeleting}
-              >
-                취소
-              </Button>
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? "삭제 중..." : "삭제하기"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+              <p className="text-sm text-text-light mb-1">
+                <strong>&quot;{deleteTarget.title || `${deleteTarget.child_name}의 동화책`}&quot;</strong>
+              </p>
+              <p className="text-sm text-text-light mb-6">삭제하면 복구할 수 없습니다.</p>
+              <div className="flex gap-3">
+                <Button variant="ghost" className="flex-1" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>취소</Button>
+                <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={isDeleting}>
+                  {isDeleting ? "삭제 중..." : "삭제하기"}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

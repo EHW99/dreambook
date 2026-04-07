@@ -1,0 +1,744 @@
+{
+  "cover": {
+    "templateUid": "4SezofiW67xk",
+    "accountUid": "u_f54372538e914f2d9d67ae666f",
+    "templateName": "구글포토북C-표지-ehw",
+    "description": null,
+    "templateKind": "cover",
+    "category": null,
+    "theme": null,
+    "bookSpecUid": "SQUAREBOOK_HC",
+    "specProfileUid": null,
+    "isPublic": false,
+    "status": "active",
+    "parameters": {
+      "definitions": {
+        "coverPhoto": {
+          "binding": "file",
+          "type": "string",
+          "required": true,
+          "description": "앞표지 메인 사진"
+        },
+        "subtitle": {
+          "binding": "text",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        "author": {
+          "binding": "text",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      }
+    },
+    "layout": {
+      "backgroundColor": "#FFFFFFFF",
+      "elements": [
+        {
+          "element_id": "book-back",
+          "type": "rectangle",
+          "position": {
+            "x": 1013.24,
+            "y": 0
+          },
+          "width": 47.2,
+          "height": 1041.12,
+          "color": "#FFFFFFFF",
+          "logoImage": "Transparent",
+          "logoHeight": 28
+        },
+        {
+          "element_id": "spine-subtitle",
+          "type": "text",
+          "position": {
+            "x": 1011.36,
+            "y": 95
+          },
+          "width": 48,
+          "height": 946.12,
+          "text": "$$subtitle$$",
+          "fontFamily": "tvN 즐거운이야기 Bold",
+          "fontSize": 28,
+          "textBold": false,
+          "textBrush": "#FF000000",
+          "backgroundColor": "#00FFFFFF",
+          "textAlignment": "Left",
+          "verticalAlignment": "Center",
+          "isVertical": true,
+          "isDynamic": false,
+          "splittable": false
+        },
+        {
+          "element_id": "front-photo",
+          "type": "photo",
+          "position": {
+            "x": 1248.9,
+            "y": 155.57
+          },
+          "width": 636.33,
+          "height": 636.33,
+          "fileName": "$$coverPhoto$$",
+          "fit": "cover",
+          "cornerRadius": 20
+        },
+        {
+          "element_id": "front-subtitle",
+          "type": "text",
+          "position": {
+            "x": 1327.39,
+            "y": 850.2
+          },
+          "width": 479.34,
+          "height": 51.55,
+          "text": "$$subtitle$$",
+          "fontFamily": "tvN 즐거운이야기 Bold",
+          "fontSize": 40,
+          "textBold": false,
+          "textBrush": "#FF000000",
+          "backgroundColor": "#00FFFFFF",
+          "textAlignment": "Center",
+          "verticalAlignment": "Center",
+          "textOffset": 3,
+          "isDynamic": false,
+          "splittable": false
+        },
+        {
+          "element_id": "graphic-eto7jdcw",
+          "type": "graphic",
+          "position": {
+            "x": 371.97,
+            "y": 950
+          },
+          "width": 269.29,
+          "height": 50,
+          "imageSource": "/api_platform_image/u_f54372538e914f2d9d67ae666f/image260405154626959.PNG",
+          "opacity": 1
+        },
+        {
+          "element_id": "text-w2mbi50b",
+          "type": "text",
+          "position": {
+            "x": 371.97,
+            "y": 453.44856819096816
+          },
+          "width": 269.29,
+          "height": 39.64,
+          "text": "$$subtitle$$",
+          "fontFamily": "tvN 즐거운이야기 Bold",
+          "fontSize": 16,
+          "textBold": false,
+          "textBrush": "#FF000000",
+          "textAlignment": "Left",
+          "verticalAlignment": "Top",
+          "isDynamic": false,
+          "splittable": false
+        },
+        {
+          "element_id": "text-ik0ldz93",
+          "type": "text",
+          "position": {
+            "x": 1477.69,
+            "y": 926.14
+          },
+          "width": 178.75,
+          "height": 39.64,
+          "text": "$$author$$",
+          "fontFamily": "NotoSansKR",
+          "fontSize": 16,
+          "textBold": false,
+          "textBrush": "#FF000000",
+          "textAlignment": "Center",
+          "verticalAlignment": "Center",
+          "isDynamic": false,
+          "splittable": false
+        }
+      ]
+    },
+    "layoutRules": {
+      "flow": {},
+      "margin": {
+        "pageMargin": {
+          "head": 0,
+          "tail": 0,
+          "fore": 0,
+          "spine": 0
+        }
+      },
+      "shiftUpOnHide": false
+    },
+    "createdAt": "2026-04-05T15:49:36.797Z",
+    "updatedAt": "2026-04-07T03:45:15.107Z",
+    "thumbnails": {
+      "layout": "https://api-sandbox.sweetbook.com/templates_thumb/4SezofiW67xk/layout.png"
+    }
+  },
+  "title_page": {
+    "templateUid": "uZICIRIwJzuB",
+    "accountUid": "u_f54372538e914f2d9d67ae666f",
+    "templateName": "구글포토북C-간지-ehw",
+    "description": null,
+    "templateKind": "divider",
+    "category": null,
+    "theme": null,
+    "bookSpecUid": "SQUAREBOOK_HC",
+    "specProfileUid": null,
+    "isPublic": false,
+    "status": "active",
+    "parameters": {
+      "definitions": {
+        "monthYearTitle": {
+          "binding": "text",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        "author": {
+          "binding": "text",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      }
+    },
+    "layout": {
+      "backgroundColor": "#FFFFFFFF",
+      "elements": [
+        {
+          "element_id": "month-year-title",
+          "type": "text",
+          "position": {
+            "x": 85.47,
+            "y": 407.25
+          },
+          "width": 807.07,
+          "height": 97.08,
+          "text": "$$monthYearTitle$$",
+          "fontFamily": "tvN 즐거운이야기 Bold",
+          "fontSize": 50,
+          "textBold": false,
+          "textBrush": "#FF000000",
+          "backgroundColor": "#00FFFFFF",
+          "textAlignment": "Center",
+          "verticalAlignment": "Center",
+          "textLineHeight": 38,
+          "isDynamic": false,
+          "splittable": false
+        },
+        {
+          "element_id": "text-wgwogdfz",
+          "type": "text",
+          "position": {
+            "x": 357.13,
+            "y": 559.41
+          },
+          "width": 263.73,
+          "height": 34.13,
+          "text": "$$author$$",
+          "fontFamily": "배달의민족 주아",
+          "fontSize": 20,
+          "textBold": false,
+          "textBrush": "#FF000000",
+          "textAlignment": "Center",
+          "verticalAlignment": "Center",
+          "isDynamic": false,
+          "splittable": false
+        }
+      ]
+    },
+    "layoutRules": {
+      "flow": {},
+      "margin": {
+        "pageMargin": {
+          "head": 0,
+          "tail": 0,
+          "fore": 0,
+          "spine": 0
+        }
+      },
+      "shiftUpOnHide": false
+    },
+    "createdAt": "2026-04-05T15:57:53.594Z",
+    "updatedAt": "2026-04-05T15:57:53.594Z",
+    "thumbnails": {
+      "layout": "https://api-sandbox.sweetbook.com/templates_thumb/uZICIRIwJzuB/layout.png"
+    }
+  },
+  "illustration": {
+    "templateUid": "5TLmcVySw3Ca",
+    "accountUid": "u_f54372538e914f2d9d67ae666f",
+    "templateName": "구글포토북C-내지-사진-ehw",
+    "description": null,
+    "templateKind": "content",
+    "category": null,
+    "theme": null,
+    "bookSpecUid": "SQUAREBOOK_HC",
+    "specProfileUid": null,
+    "isPublic": false,
+    "status": "active",
+    "parameters": {
+      "definitions": {
+        "photo": {
+          "binding": "file",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      }
+    },
+    "layout": {
+      "backgroundColor": "#FFFFFFFF",
+      "elements": [
+        {
+          "element_id": "photo-qx39i0ic",
+          "type": "photo",
+          "position": {
+            "x": 14,
+            "y": 12.4
+          },
+          "width": 900,
+          "height": 900,
+          "fileName": "$$photo$$",
+          "fit": "cover",
+          "borderBrush": "#FFFFFFFF",
+          "borderThickness": 2,
+          "cornerRadius": 20
+        }
+      ]
+    },
+    "layoutRules": {
+      "flow": {
+        "columnGap": 32,
+        "itemSpacing": {
+          "size": 6
+        }
+      },
+      "margin": {
+        "pageMargin": {
+          "head": 30,
+          "tail": 46,
+          "fore": 25,
+          "spine": 25
+        }
+      },
+      "shiftUpOnHide": false
+    },
+    "baseLayer": {
+      "odd": {
+        "elements": [
+          {
+            "element_id": "bl-odd-pagenum",
+            "type": "text",
+            "position": {
+              "x": 855.17,
+              "y": 955.75
+            },
+            "width": 71.38,
+            "height": 20.12,
+            "text": "@@pageNum@@",
+            "fontFamily": "나눔고딕",
+            "fontSize": 12,
+            "textBold": false,
+            "textBrush": "#FF000000",
+            "backgroundColor": "#00FFFFFF",
+            "textAlignment": "Right",
+            "verticalAlignment": "Top",
+            "isDynamic": false,
+            "splittable": false
+          }
+        ]
+      },
+      "even": {
+        "elements": [
+          {
+            "element_id": "bl-even-pagenum",
+            "type": "text",
+            "position": {
+              "x": 51.45,
+              "y": 955.75
+            },
+            "width": 71.38,
+            "height": 20.12,
+            "text": "@@pageNum@@",
+            "fontFamily": "나눔고딕",
+            "fontSize": 12,
+            "textBold": false,
+            "textBrush": "#FF000000",
+            "backgroundColor": "#00FFFFFF",
+            "textAlignment": "Left",
+            "verticalAlignment": "Top",
+            "isDynamic": false,
+            "splittable": false
+          }
+        ]
+      }
+    },
+    "createdAt": "2026-04-05T09:54:57.651Z",
+    "updatedAt": "2026-04-05T15:55:03.944Z",
+    "thumbnails": {
+      "layout": "https://api-sandbox.sweetbook.com/templates_thumb/5TLmcVySw3Ca/layout.png"
+    }
+  },
+  "story": {
+    "templateUid": "7AtlblwFXwPE",
+    "accountUid": "u_f54372538e914f2d9d67ae666f",
+    "templateName": "구글포토북C-내지-텍스트-ehw",
+    "description": null,
+    "templateKind": "content",
+    "category": null,
+    "theme": null,
+    "bookSpecUid": "SQUAREBOOK_HC",
+    "specProfileUid": null,
+    "isPublic": false,
+    "status": "active",
+    "parameters": {
+      "definitions": {
+        "storyText": {
+          "binding": "text",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      }
+    },
+    "layout": {
+      "backgroundColor": "#FFFFFFFF",
+      "elements": [
+        {
+          "element_id": "text-b0dqloo4",
+          "type": "text",
+          "position": {
+            "x": 114,
+            "y": 62.4
+          },
+          "width": 700,
+          "height": 800,
+          "text": "$$storyText$$",
+          "fontFamily": "NanumMyeongjo",
+          "fontSize": 24,
+          "textBold": true,
+          "textBrush": "#FF000000",
+          "textAlignment": "Center",
+          "verticalAlignment": "Center",
+          "textLineHeight": 60,
+          "isDynamic": false,
+          "splittable": false
+        }
+      ]
+    },
+    "layoutRules": {
+      "flow": {
+        "columnGap": 32,
+        "itemSpacing": {
+          "size": 6
+        }
+      },
+      "margin": {
+        "pageMargin": {
+          "head": 30,
+          "tail": 46,
+          "fore": 25,
+          "spine": 25
+        }
+      },
+      "shiftUpOnHide": false
+    },
+    "baseLayer": {
+      "odd": {
+        "elements": [
+          {
+            "element_id": "bl-odd-pagenum",
+            "type": "text",
+            "position": {
+              "x": 855.17,
+              "y": 955.75
+            },
+            "width": 71.38,
+            "height": 20.12,
+            "text": "@@pageNum@@",
+            "fontFamily": "나눔고딕",
+            "fontSize": 12,
+            "textBold": false,
+            "textBrush": "#FF000000",
+            "backgroundColor": "#00FFFFFF",
+            "textAlignment": "Right",
+            "verticalAlignment": "Top",
+            "isDynamic": false,
+            "splittable": false
+          }
+        ]
+      },
+      "even": {
+        "elements": [
+          {
+            "element_id": "bl-even-pagenum",
+            "type": "text",
+            "position": {
+              "x": 51.45,
+              "y": 955.75
+            },
+            "width": 71.38,
+            "height": 20.12,
+            "text": "@@pageNum@@",
+            "fontFamily": "나눔고딕",
+            "fontSize": 12,
+            "textBold": false,
+            "textBrush": "#FF000000",
+            "backgroundColor": "#00FFFFFF",
+            "textAlignment": "Left",
+            "verticalAlignment": "Top",
+            "isDynamic": false,
+            "splittable": false
+          }
+        ]
+      }
+    },
+    "createdAt": "2026-04-05T14:56:05.209Z",
+    "updatedAt": "2026-04-05T15:55:20.128Z",
+    "thumbnails": {
+      "layout": "https://api-sandbox.sweetbook.com/templates_thumb/7AtlblwFXwPE/layout.png"
+    }
+  },
+  "publish": {
+    "templateUid": "5gBcekhFJVNT",
+    "accountUid": "u_f54372538e914f2d9d67ae666f",
+    "templateName": "구글포토북C-발행면-ehw",
+    "description": null,
+    "templateKind": "publish",
+    "category": null,
+    "theme": null,
+    "bookSpecUid": "SQUAREBOOK_HC",
+    "specProfileUid": null,
+    "isPublic": false,
+    "status": "active",
+    "parameters": {
+      "definitions": {
+        "photo": {
+          "binding": "file",
+          "type": "string",
+          "required": false,
+          "description": "발행면 사진"
+        },
+        "title": {
+          "binding": "text",
+          "type": "string",
+          "required": true,
+          "description": "책 제목"
+        },
+        "publishDate": {
+          "binding": "text",
+          "type": "string",
+          "required": true,
+          "description": "발행일"
+        },
+        "author": {
+          "binding": "text",
+          "type": "string",
+          "required": true,
+          "description": "만든이"
+        },
+        "hashtags": {
+          "binding": "text",
+          "type": "string",
+          "required": false,
+          "description": "해시태그"
+        },
+        "publisher": {
+          "binding": "text",
+          "type": "string",
+          "required": false,
+          "description": "제작사 (예: (주)스위트북)"
+        }
+      }
+    },
+    "layout": {
+      "backgroundColor": "#FFFFFFFF",
+      "elements": [
+        {
+          "element_id": "publish-photo",
+          "type": "photo",
+          "position": {
+            "x": 50,
+            "y": 277.08
+          },
+          "width": 293.4,
+          "height": 293.4,
+          "fileName": "$$photo$$",
+          "fit": "cover"
+        },
+        {
+          "element_id": "publish-title",
+          "type": "text",
+          "position": {
+            "x": 50,
+            "y": 600.48
+          },
+          "width": 652,
+          "height": 50,
+          "text": "$$title$$",
+          "fontFamily": "나눔고딕",
+          "fontSize": 20,
+          "textBold": false,
+          "textBrush": "#FF000000",
+          "textAlignment": "Left",
+          "verticalAlignment": "Top",
+          "textLineHeight": 24,
+          "isDynamic": false,
+          "splittable": false
+        },
+        {
+          "element_id": "publish-info",
+          "type": "text",
+          "position": {
+            "x": 50,
+            "y": 650.48
+          },
+          "width": 350,
+          "height": 100,
+          "text": "발행일 : $$publishDate$$\n만든이 : $$author$$\n제작 : $$publisher$$\n$$hashtags$$",
+          "fontFamily": "나눔고딕",
+          "fontSize": 12,
+          "textBold": false,
+          "textBrush": "#FF000000",
+          "textAlignment": "Left",
+          "verticalAlignment": "Top",
+          "textLineHeight": 21,
+          "isDynamic": false,
+          "splittable": false
+        },
+        {
+          "element_id": "graphic-ae0dj8cz",
+          "type": "graphic",
+          "position": {
+            "x": 52.575657063351564,
+            "y": 833.4572037969758
+          },
+          "width": 267.9285520974289,
+          "height": 47.18376184032483,
+          "imageSource": "/api_platform_image/u_f54372538e914f2d9d67ae666f/image260405154626959.PNG",
+          "opacity": 1
+        }
+      ]
+    },
+    "layoutRules": {
+      "flow": {},
+      "margin": {
+        "pageMargin": {
+          "head": 0,
+          "tail": 0,
+          "fore": 0,
+          "spine": 0
+        }
+      },
+      "shiftUpOnHide": false
+    },
+    "createdAt": "2026-04-05T15:59:13.651Z",
+    "updatedAt": "2026-04-05T16:00:25.007Z",
+    "thumbnails": {
+      "layout": "https://api-sandbox.sweetbook.com/templates_thumb/5gBcekhFJVNT/layout.png"
+    }
+  },
+  "blank": {
+    "templateUid": "2mi1ao0Z4Vxl",
+    "accountUid": "public",
+    "templateName": "빈내지",
+    "description": null,
+    "templateKind": "content",
+    "category": null,
+    "theme": "공용",
+    "bookSpecUid": "SQUAREBOOK_HC",
+    "specProfileUid": null,
+    "isPublic": true,
+    "status": "active",
+    "parameters": {
+      "definitions": {}
+    },
+    "layout": {
+      "elements": []
+    },
+    "layoutRules": {
+      "flow": {
+        "columns": 3
+      },
+      "margin": {
+        "pageMargin": {
+          "head": 32,
+          "tail": 0,
+          "fore": 0,
+          "spine": 0
+        }
+      },
+      "shiftUpOnHide": false,
+      "pageSide": "left"
+    },
+    "baseLayer": {
+      "even": {
+        "elements": [
+          {
+            "element_id": "bl-even-69szxn6e",
+            "type": "text",
+            "position": {
+              "x": 50,
+              "y": 25
+            },
+            "width": 300,
+            "height": 30,
+            "text": "텍스트",
+            "fontFamily": "Malgun Gothic",
+            "fontSize": 12,
+            "textBold": false,
+            "textBrush": "#FF000000",
+            "textAlignment": "Left",
+            "verticalAlignment": "Top",
+            "isDynamic": false,
+            "splittable": false
+          },
+          {
+            "element_id": "bl-even-2bnpteao",
+            "type": "text",
+            "position": {
+              "x": 319.7431610867537,
+              "y": 40.71323033813249
+            },
+            "width": 300,
+            "height": 30,
+            "text": "텍스트",
+            "fontFamily": "Malgun Gothic",
+            "fontSize": 12,
+            "textBold": false,
+            "textBrush": "#FF000000",
+            "textAlignment": "Left",
+            "verticalAlignment": "Top",
+            "isDynamic": false,
+            "splittable": false
+          },
+          {
+            "element_id": "bl-even-osygumdc",
+            "type": "text",
+            "position": {
+              "x": 13.335753918919082,
+              "y": 210.93952969089793
+            },
+            "width": 300,
+            "height": 30,
+            "text": "텍스트",
+            "fontFamily": "Malgun Gothic",
+            "fontSize": 12,
+            "textBold": false,
+            "textBrush": "#FF000000",
+            "textAlignment": "Left",
+            "verticalAlignment": "Top",
+            "isDynamic": false,
+            "splittable": false
+          }
+        ]
+      }
+    },
+    "createdAt": "2026-03-12T11:02:31.145Z",
+    "updatedAt": "2026-03-26T07:03:11.421Z",
+    "thumbnails": {
+      "baseLayerEven": "https://api-sandbox.sweetbook.com/templates_thumb/2mi1ao0Z4Vxl/base_layer_even.png"
+    }
+  }
+}
