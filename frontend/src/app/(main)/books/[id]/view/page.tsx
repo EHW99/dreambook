@@ -40,7 +40,7 @@ function ThumbnailLoading({ bookId, onLoaded }: { bookId: number; onLoaded: (t: 
       <div className="text-center space-y-3">
         <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full mx-auto" />
         <p className="text-text-light text-sm">렌더링 준비 중{dots}</p>
-        <p className="text-text-lighter text-xs">잠시만 기다려주세요</p>
+        <p className="text-text-lighter text-xs">약 2~3분 정도 소요됩니다</p>
       </div>
     </div>
   );

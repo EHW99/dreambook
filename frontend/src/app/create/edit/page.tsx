@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, ArrowLeft, AlertCircle,
+  BookOpen, ArrowLeft, AlertCircle, Loader2,
   ImageIcon, CheckCircle, Pencil, X, Check,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
@@ -230,8 +230,8 @@ function EditContent() {
               disabled={regeneratingIllust || (book.illust_regen_count ?? 0) >= 2}
               className="gap-1.5 text-xs hidden sm:flex"
             >
-              <ImageIcon className="w-3.5 h-3.5" />
-              {regeneratingIllust ? "생성 중..." : `그림 재생성 (${2 - (book.illust_regen_count ?? 0)}회)`}
+              {regeneratingIllust ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+              {regeneratingIllust ? "그림 재생성 중... (4~6분)" : `그림 재생성 (${2 - (book.illust_regen_count ?? 0)}회)`}
             </Button>
           </div>
         </div>
@@ -276,8 +276,8 @@ function EditContent() {
             disabled={regeneratingIllust || (book.illust_regen_count ?? 0) >= 2}
             className="gap-1.5 text-xs sm:hidden"
           >
-            <ImageIcon className="w-3.5 h-3.5" />
-            {regeneratingIllust ? "생성중..." : `그림 재생성 (${2 - (book.illust_regen_count ?? 0)}회)`}
+            {regeneratingIllust ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+            {regeneratingIllust ? "재생성 중..." : `그림 재생성 (${2 - (book.illust_regen_count ?? 0)}회)`}
           </Button>
           <div className="flex-1" />
           <p className="text-xs text-text-lighter hidden sm:block">편집이 완료되면 확정해주세요</p>
@@ -317,7 +317,7 @@ function EditContent() {
                 캐릭터에 사용된 그림체로 생성됩니다.
               </p>
               <p className="text-sm text-text-light mb-1">
-                약 <strong>2~5분</strong>이 소요되며, 기존 그림은 사라집니다.
+                약 <strong>4~6분</strong>이 소요되며, 기존 그림은 사라집니다.
               </p>
               <p className="text-xs text-text-lighter mt-3 mb-5">
                 남은 재생성 횟수: {2 - (book.illust_regen_count ?? 0)}회 / 2회

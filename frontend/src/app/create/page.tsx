@@ -528,7 +528,7 @@ function CreateWizardContent() {
                 <Sparkles className="w-5 h-5" />
                 그림 생성하기
               </Button>
-              <p className="text-xs text-text-lighter">생성에 약 2~5분이 소요됩니다</p>
+              <p className="text-xs text-text-lighter">생성에 약 4~6분이 소요됩니다</p>
             </motion.div>
           )}
           {currentStep === 6 && isGeneratingIllust && (
@@ -544,7 +544,7 @@ function CreateWizardContent() {
               </div>
               <div className="text-center space-y-2">
                 <p className="text-lg font-bold text-text">그림을 그리고 있어요...</p>
-                <p className="text-sm text-text-light">편집한 이야기를 바탕으로 일러스트를 생성하고 있어요 (약 2~5분)</p>
+                <p className="text-sm text-text-light">편집한 이야기를 바탕으로 일러스트를 생성하고 있어요 (약 4~6분)</p>
               </div>
               <div className="bg-warning/10 border border-warning/30 rounded-2xl px-4 py-3 max-w-sm">
                 <p className="text-xs text-text-light text-center">이 화면을 닫지 마세요.</p>
