@@ -132,12 +132,15 @@ class BookResponse(BaseModel):
     page_count: int
     book_spec_uid: str
     plot_input: Optional[str] = None
+    plot_candidates: Optional[str] = None
+    plot_regen_count: int = 0
     status: str
     current_step: int
     title: Optional[str] = None
     cover_image_path: Optional[str] = None
     story_regen_count: int
     character_regen_count: int
+    illust_regen_count: int = 0
     created_at: datetime
     updated_at: datetime
 

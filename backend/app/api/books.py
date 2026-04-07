@@ -184,19 +184,32 @@ def delete(
 
     # 주문이 있으면 취소 먼저
     from app.models.order import Order
+    from app.services.bookprint import BookPrintService
+    import asyncio
+
     order = db.query(Order).filter(Order.book_id == book.id).first()
-    if order and order.bookprint_order_uid:
-        try:
-            from app.services.bookprint import BookPrintService, BookPrintAPIError
-            import asyncio
-            service = BookPrintService()
+
+    try:
+        service = BookPrintService()
+        # 주문 취소
+        if order and order.bookprint_order_uid:
+            try:
+                asyncio.get_event_loop().run_until_complete(
+                    service.cancel_order(order.bookprint_order_uid)
+                )
+            except Exception as e:
+                logger.warning(f"주문 취소 실패 (무시): {e}")
+
+        # Book Print API에서 책 삭제
+        if book.bookprint_book_uid:
             asyncio.get_event_loop().run_until_complete(
-                service.cancel_order(order.bookprint_order_uid)
+                service.delete_book_from_api(book.bookprint_book_uid)
             )
-            asyncio.get_event_loop().run_until_complete(service.close())
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"주문 취소 실패 (무시): {e}")
+
+        asyncio.get_event_loop().run_until_complete(service.close())
+    except Exception as e:
+        logger.warning(f"Book Print API 정리 실패 (무시): {e}")
+
     if order:
         db.delete(order)
         db.flush()
@@ -335,8 +348,17 @@ def generate_plots_endpoint(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """줄거리 후보 4개 생성 (LLM)"""
+    """줄거리 후보 4개 생성 (LLM). 재생성은 최대 1회."""
     book = _get_book_or_403(db, book_id, user)
+
+    # 이미 후보가 있으면 재생성 (횟수 체크)
+    if book.plot_candidates:
+        if book.plot_regen_count >= 1:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="줄거리 재생성 횟수를 모두 사용했습니다 (최대 1회)",
+            )
+        book.plot_regen_count += 1
 
     from app.services.ai_plot import generate_plots
     from app.services.generate import _calc_child_age
@@ -356,6 +378,11 @@ def generate_plots_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"줄거리 생성에 실패했습니다: {str(e)}",
         )
+
+    # 줄거리 후보 DB 저장
+    import json
+    book.plot_candidates = json.dumps(result.get("plots", []), ensure_ascii=False)
+    db.commit()
 
     return result
 

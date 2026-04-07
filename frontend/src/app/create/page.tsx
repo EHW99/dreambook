@@ -65,6 +65,11 @@ function CreateWizardContent() {
 
   // 줄거리 상태
   const [plotInput, setPlotInput] = useState("");
+  const [plotCandidates, setPlotCandidates] = useState<import("@/lib/api").PlotCandidate[]>([]);
+  const [plotSelectedIdx, setPlotSelectedIdx] = useState<number | null>(null);
+  const [plotIsCustom, setPlotIsCustom] = useState(false);
+  const [plotRegenUsed, setPlotRegenUsed] = useState(false);
+  // loadBookState에서 DB 값으로 초기화
 
   // step 6: 글편집용 페이지 데이터
   const [storyPages, setStoryPages] = useState<PageItem[]>([]);
@@ -130,7 +135,20 @@ function CreateWizardContent() {
       }
     }
 
-    router.replace("/");
+    // book_id도 voucher_id도 없으면 → 사용 가능한 이용권 자동 사용
+    const vouchersRes = await apiClient.getVouchers();
+    const available = vouchersRes.data?.find(v => v.status === "available");
+    if (available) {
+      const result = await apiClient.createBook(available.id);
+      if (result.data) {
+        router.replace(`/create?book_id=${result.data.id}`);
+        loadBookState(result.data);
+        setLoading(false);
+        return;
+      }
+    }
+    // 이용권 없으면 이용권 페이지로
+    router.replace("/mypage/vouchers");
   }
 
   function loadBookState(bookData: BookItem) {
@@ -145,14 +163,33 @@ function CreateWizardContent() {
     setArtStyle(bookData.art_style || (isDev ? DEV_DEFAULTS.artStyle : ""));
     setBookSpecUid(bookData.book_spec_uid || "SQUAREBOOK_HC");
     setPlotInput(bookData.plot_input || "");
+    // 줄거리 후보 복원
+    if (bookData.plot_candidates) {
+      try {
+        const candidates = JSON.parse(bookData.plot_candidates);
+        setPlotCandidates(candidates);
+        // 선택된 줄거리 찾기
+        if (bookData.plot_input && candidates.length > 0) {
+          const idx = candidates.findIndex((c: any) => bookData.plot_input?.includes(c.title));
+          if (idx >= 0) {
+            setPlotSelectedIdx(idx);
+            setPlotIsCustom(false);
+          } else {
+            setPlotSelectedIdx(null);
+            setPlotIsCustom(true);
+          }
+        }
+      } catch {}
+    }
+    setPlotRegenUsed((bookData.plot_regen_count ?? 0) >= 1);
     setCharacterConfirmed(bookData.status === "character_confirmed" || bookData.current_step > 3);
 
-    // story_generated 상태면 step 6으로
+    // story_generated 상태면 step 5(편집)로
     if (bookData.status === "story_generated" && bookData.current_step <= 6) {
-      setCurrentStep(6);
+      setCurrentStep(5);
       loadStoryPages(bookData.id);
     }
-    // editing 상태면 step 7 완료 → edit 페이지로
+    // editing 상태면 edit 페이지로
     if (bookData.status === "editing") {
       router.push(`/create/edit?book_id=${bookData.id}`);
     }
@@ -229,21 +266,20 @@ function CreateWizardContent() {
       if (result.data) { loadBookState(result.data); setCurrentStep(5); }
       else setError(result.error || "저장에 실패했습니다");
 
-    } else if (currentStep === 6) {
-      // 글편집 완료 → 그림 생성 안내 (step 7)
-      setCurrentStep(7);
+    } else if (currentStep === 5) {
+      // 스토리 편집 완료 → 그림 생성 안내 (step 6)
+      setCurrentStep(6);
     }
   }
 
   // 뒤로가기
   function handleBack() {
-    if (currentStep === 5) return; // 스토리 생성 단계에서는 뒤로가기 차단
-    if (currentStep === 7 && isGeneratingIllust) return;
+    if (currentStep === 6 && isGeneratingIllust) return;
     setError(null);
     if (currentStep === 1) {
       router.push("/bookshelf");
-    } else if (currentStep === 6) {
-      // 글편집에서 뒤로가면 줄거리로 (스토리 재생성 의미)
+    } else if (currentStep === 5 && storyPages.length > 0) {
+      // 스토리 편집에서 이전 → 줄거리로
       setCurrentStep(4);
     } else {
       setCurrentStep(currentStep - 1);
@@ -290,7 +326,7 @@ function CreateWizardContent() {
       router.push(`/create/edit?book_id=${book.id}`);
     } else {
       setError(result.error || "그림 생성에 실패했습니다");
-      setCurrentStep(6);
+      setCurrentStep(5);
     }
   }
 
@@ -360,7 +396,7 @@ function CreateWizardContent() {
               key="step-3"
               bookId={book.id} artStyle={artStyle} photoId={photoId} characterRegenCount={book.character_regen_count}
               onArtStyleChange={(style) => { setArtStyle(style); setStyleError(null); }}
-              onArtStyleSaved={async () => { const r = await apiClient.getBook(book.id); if (r.data) loadBookState(r.data); }}
+              onArtStyleSaved={async () => { const r = await apiClient.getBook(book.id); if (r.data) setBook(r.data); }}
               onPhotoChange={(id) => setPhotoId(id)}
               onConfirm={async () => {
                 const chars = await apiClient.getCharacters(book.id);
@@ -371,25 +407,31 @@ function CreateWizardContent() {
             />
           )}
           {currentStep === 4 && (
-            <StepPlot key="step-4" bookId={book!.id} plotInput={plotInput} jobName={book?.job_name || null} onPlotChange={setPlotInput} />
+            <StepPlot key="step-4" bookId={book!.id} plotInput={plotInput} jobName={book?.job_name || null} onPlotChange={setPlotInput}
+              plots={plotCandidates} onPlotsChange={setPlotCandidates}
+              selectedIdx={plotSelectedIdx} onSelectedIdxChange={setPlotSelectedIdx}
+              isCustom={plotIsCustom} onIsCustomChange={setPlotIsCustom}
+              regenUsed={plotRegenUsed} onRegenUsedChange={setPlotRegenUsed}
+            />
           )}
 
-          {/* step 5: 스토리 생성 */}
-          {currentStep === 5 && book && (
+          {/* step 5: 스토리 생성 + 글 편집 (합쳐진 단계) */}
+          {currentStep === 5 && book && storyPages.length === 0 && (
             <StepGenerating
-              key="step-5"
+              key="step-5-gen"
               bookId={book.id}
+              onBack={() => setCurrentStep(4)}
               onComplete={async () => {
-                await loadStoryPages(book.id);
-                setCurrentStep(6);
+                const result = await apiClient.getPages(book.id);
+                if (result.data) setStoryPages(result.data);
+                const bookRes = await apiClient.getBook(book.id);
+                if (bookRes.data) setBook(bookRes.data);
               }}
               onError={(msg) => { setError(msg); setCurrentStep(4); }}
             />
           )}
-
-          {/* step 6: 글 편집 */}
-          {currentStep === 6 && (
-            <motion.div key="step-6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+          {currentStep === 5 && storyPages.length > 0 && (
+            <motion.div key="step-5-edit" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
               <div className="text-center mb-4">
                 <h2 className="text-xl font-bold text-text mb-2">이야기를 확인하고 편집하세요</h2>
                 <p className="text-sm text-text-light">
@@ -466,8 +508,8 @@ function CreateWizardContent() {
             </motion.div>
           )}
 
-          {/* step 7: 그림 생성 */}
-          {currentStep === 7 && !isGeneratingIllust && (
+          {/* step 6: 그림 생성 (기존 step 7) */}
+          {currentStep === 6 && !isGeneratingIllust && (
             <motion.div key="step-7-ready" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="flex flex-col items-center justify-center min-h-[400px] space-y-8"
             >
@@ -478,8 +520,10 @@ function CreateWizardContent() {
                 <h2 className="text-xl font-bold text-text">그림을 그릴 준비가 되었어요</h2>
                 <p className="text-sm text-text-light leading-relaxed">
                   편집한 이야기를 바탕으로 AI가 11장의 일러스트와 표지를 그려요.
+                  캐릭터에 사용된 그림체로 생성됩니다.
                 </p>
               </div>
+              <p className="text-sm text-warning-dark">그림 생성 후에는 이전 단계로 돌아갈 수 없습니다.</p>
               <Button onClick={handleStartIllustration} size="lg" className="gap-2">
                 <Sparkles className="w-5 h-5" />
                 그림 생성하기
@@ -487,7 +531,7 @@ function CreateWizardContent() {
               <p className="text-xs text-text-lighter">생성에 약 2~5분이 소요됩니다</p>
             </motion.div>
           )}
-          {currentStep === 7 && isGeneratingIllust && (
+          {currentStep === 6 && isGeneratingIllust && (
             <motion.div key="step-7-gen" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="flex flex-col items-center justify-center min-h-[400px] space-y-8"
             >
@@ -524,7 +568,7 @@ function CreateWizardContent() {
       </div>
 
       {/* 하단 네비게이션 — 생성 중에는 숨김 */}
-      {currentStep !== 5 && !(currentStep === 7 && isGeneratingIllust) && (
+      {!(currentStep === 5 && storyPages.length === 0) && !(currentStep === 6 && isGeneratingIllust) && (
         <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm border-t border-secondary/30">
           <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
             <Button variant="ghost" onClick={handleBack} className="gap-2">
@@ -542,12 +586,7 @@ function CreateWizardContent() {
                   <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                   저장 중...
                 </>
-              ) : currentStep === 4 ? (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  스토리 생성하기
-                </>
-              ) : currentStep === 6 ? (
+              ) : currentStep === 5 ? (
                 <>
                   <ImageIcon className="w-4 h-4" />
                   그림 생성하기

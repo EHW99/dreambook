@@ -559,6 +559,8 @@ export interface BookItem {
   page_count: number;
   book_spec_uid: string;
   plot_input: string | null;
+  plot_candidates: string | null;
+  plot_regen_count: number;
   status: string;
   current_step: number;
   title: string | null;

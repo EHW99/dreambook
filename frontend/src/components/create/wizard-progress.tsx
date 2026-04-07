@@ -9,8 +9,7 @@ const STEPS = [
   { number: 3, label: "스타일" },
   { number: 4, label: "줄거리" },
   { number: 5, label: "스토리" },
-  { number: 6, label: "글 편집" },
-  { number: 7, label: "그림" },
+  { number: 6, label: "그림" },
 ];
 
 const TOTAL = STEPS.length;
@@ -19,7 +18,7 @@ const TOTAL = STEPS.length;
 const GROUPS = [
   { label: "정보 입력", steps: [1, 2, 3] },
   { label: "동화 생성", steps: [4, 5] },
-  { label: "편집/완성", steps: [6, 7] },
+  { label: "편집/완성", steps: [6] },
 ];
 
 interface WizardProgressProps {

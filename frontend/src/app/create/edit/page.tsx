@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, ArrowLeft, RefreshCw, Eye, Sparkles,
-  AlertCircle, ImageIcon, CheckCircle, Pencil, X, Check,
+  BookOpen, ArrowLeft, AlertCircle,
+  ImageIcon, CheckCircle, Pencil, X, Check,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
@@ -283,8 +283,10 @@ function EditContent() {
           <p className="text-xs text-text-lighter hidden sm:block">편집이 완료되면 확정해주세요</p>
           <Button
             onClick={() => setShowConfirmModal(true)}
-            className="gap-2 text-white px-6 h-10"
+            className="gap-2 text-white px-6 h-10 transition-colors"
             style={{ background: "#de7460" }}
+            onMouseEnter={(e) => e.currentTarget.style.background = "#c9614e"}
+            onMouseLeave={(e) => e.currentTarget.style.background = "#de7460"}
           >
             <CheckCircle className="w-4 h-4" />
             편집 완료 · 확정하기
@@ -312,6 +314,7 @@ function EditContent() {
               </div>
               <p className="text-sm text-text-light mb-1">
                 전체 일러스트 <strong>11장 + 표지</strong>를 다시 생성합니다.
+                캐릭터에 사용된 그림체로 생성됩니다.
               </p>
               <p className="text-sm text-text-light mb-1">
                 약 <strong>2~5분</strong>이 소요되며, 기존 그림은 사라집니다.

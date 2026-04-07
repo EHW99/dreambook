@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, BookOpen } from "lucide-react";
+import { Sparkles, BookOpen, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface StepGeneratingProps {
   bookId: number;
   onComplete: () => void;
   onError: (message: string) => void;
+  onBack?: () => void;
 }
 
 export function StepGenerating({
   bookId,
   onComplete,
   onError,
+  onBack,
 }: StepGeneratingProps) {
   const [generating, setGenerating] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -68,10 +70,18 @@ export function StepGenerating({
             각 이야기에는 그림을 위한 장면 묘사도 함께 생성됩니다.
           </p>
         </div>
-        <Button onClick={startGeneration} size="lg" className="gap-2">
-          <Sparkles className="w-5 h-5" />
-          스토리 생성하기
-        </Button>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <Button onClick={onBack} variant="ghost" size="lg" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              이전
+            </Button>
+          )}
+          <Button onClick={startGeneration} size="lg" className="gap-2">
+            <Sparkles className="w-5 h-5" />
+            스토리 생성하기
+          </Button>
+        </div>
         <p className="text-xs text-text-lighter">생성에 약 10~20초가 소요됩니다</p>
       </motion.div>
     );

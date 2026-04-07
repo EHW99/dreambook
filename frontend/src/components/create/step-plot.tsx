@@ -11,15 +11,20 @@ interface StepPlotProps {
   plotInput: string;
   jobName: string | null;
   onPlotChange: (plot: string) => void;
+  // 부모에서 상태 보존용
+  plots: PlotCandidate[];
+  onPlotsChange: (plots: PlotCandidate[]) => void;
+  selectedIdx: number | null;
+  onSelectedIdxChange: (idx: number | null) => void;
+  isCustom: boolean;
+  onIsCustomChange: (v: boolean) => void;
+  regenUsed: boolean;
+  onRegenUsedChange: (v: boolean) => void;
 }
 
-export function StepPlot({ bookId, plotInput, jobName, onPlotChange }: StepPlotProps) {
-  const [plots, setPlots] = useState<PlotCandidate[]>([]);
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const [isCustom, setIsCustom] = useState(false);
+export function StepPlot({ bookId, plotInput, jobName, onPlotChange, plots, onPlotsChange, selectedIdx, onSelectedIdxChange, isCustom, onIsCustomChange, regenUsed, onRegenUsedChange }: StepPlotProps) {
   const [loading, setLoading] = useState(false);
-  const [generated, setGenerated] = useState(false);
-  const [regenUsed, setRegenUsed] = useState(false);
+  const generated = plots.length > 0 || !!plotInput;
   const [error, setError] = useState<string | null>(null);
   const [bookSpec, setBookSpec] = useState<BookSpecItem | null>(null);
 
@@ -38,14 +43,13 @@ export function StepPlot({ bookId, plotInput, jobName, onPlotChange }: StepPlotP
   async function generatePlots() {
     setLoading(true);
     setError(null);
-    setSelectedIdx(null);
-    setIsCustom(false);
+    onSelectedIdxChange(null);
+    onIsCustomChange(false);
     onPlotChange("");
 
     const result = await apiClient.generatePlots(bookId);
     if (result.data) {
-      setPlots(result.data.plots);
-      setGenerated(true);
+      onPlotsChange(result.data.plots);
     } else {
       setError(result.error || "줄거리 생성에 실패했습니다");
     }
@@ -53,21 +57,21 @@ export function StepPlot({ bookId, plotInput, jobName, onPlotChange }: StepPlotP
   }
 
   function handleSelectPlot(idx: number) {
-    setSelectedIdx(idx);
-    setIsCustom(false);
+    onSelectedIdxChange(idx);
+    onIsCustomChange(false);
     const plot = plots[idx];
     onPlotChange(`${plot.title}: ${plot.description}`);
   }
 
   function handleCustom() {
-    setSelectedIdx(null);
-    setIsCustom(true);
+    onSelectedIdxChange(null);
+    onIsCustomChange(true);
     onPlotChange("");
   }
 
   async function handleRegen() {
     if (regenUsed) return;
-    setRegenUsed(true);
+    onRegenUsedChange(true);
     await generatePlots();
   }
 
@@ -108,7 +112,7 @@ export function StepPlot({ bookId, plotInput, jobName, onPlotChange }: StepPlotP
             <Layers className="w-4 h-4 text-primary flex-shrink-0" />
             <span className="text-sm text-text">
               <span className="font-medium">24페이지</span>
-              <span className="text-text-light"> · 제목 1p + 이야기 11편 + 판권 1p</span>
+              <span className="text-text-light"> · 간지 1p + 그림&이야기 11편 + 판권 1p</span>
             </span>
           </div>
         </div>
@@ -226,7 +230,7 @@ export function StepPlot({ bookId, plotInput, jobName, onPlotChange }: StepPlotP
               className="gap-2 text-xs"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              {regenUsed ? "재생성 사용 완료" : "다른 줄거리 보기"}
+              {regenUsed ? "재생성 사용 완료 (1회 제한)" : "다른 줄거리 보기 (1회)"}
             </Button>
           </div>
         </>

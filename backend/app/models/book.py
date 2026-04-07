@@ -25,6 +25,8 @@ class Book(Base):
     page_count: Mapped[int] = mapped_column(Integer, default=24)
     book_spec_uid: Mapped[str] = mapped_column(String(50), default="SQUAREBOOK_HC")
     plot_input: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    plot_candidates: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    plot_regen_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="draft")
     current_step: Mapped[int] = mapped_column(Integer, default=1)
     title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
