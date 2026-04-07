@@ -1,7 +1,11 @@
 """동화책 API 라우터"""
+import os
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.deps import get_current_user
@@ -686,13 +690,16 @@ def get_thumbnails(
 
 
 @router.post("/{book_id}/confirm")
-def confirm_book(
+async def confirm_book(
     book_id: int,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """동화책 확정 — 이후 수정 불가, 주문 가능 상태로 전환"""
+    """동화책 확정 — Book Print API 업로드 + 썸네일 생성 + 수정 불가 전환"""
     from app.models.book import Book
+    from app.services.bookprint import BookPrintService, BookPrintAPIError
+    from app.services.photo import UPLOAD_DIR
+
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="동화책을 찾을 수 없습니다")
@@ -700,6 +707,66 @@ def confirm_book(
         raise HTTPException(status_code=403, detail="본인의 동화책만 확정할 수 있습니다")
     if book.status != "editing":
         raise HTTPException(status_code=400, detail="편집 중인 동화책만 확정할 수 있습니다")
+
+    # 페이지 데이터 조회 (orders.py의 _get_pages_data와 동일 로직)
+    from app.models.page import Page
+    pages = db.query(Page).filter(Page.book_id == book.id).order_by(Page.page_number).all()
+    pages_data = []
+    for page in pages:
+        selected_image = None
+        for img in page.images:
+            if img.is_selected:
+                selected_image = img
+                break
+        image_path = ""
+        if selected_image and selected_image.image_path:
+            ip = selected_image.image_path
+            if os.path.isabs(ip) and os.path.exists(ip):
+                image_path = ip
+            elif ip.startswith("/"):
+                local = os.path.join(UPLOAD_DIR, os.path.basename(ip))
+                if os.path.exists(local):
+                    image_path = local
+            elif os.path.exists(ip):
+                image_path = ip
+        pages_data.append({
+            "text": page.text_content or "",
+            "image_path": image_path,
+            "page_number": page.page_number,
+            "page_type": page.page_type,
+        })
+
+    # 표지 이미지
+    cover_image_path = book.cover_image_path
+    if not cover_image_path or not os.path.exists(cover_image_path):
+        for pd in pages_data:
+            if pd.get("page_type") == "illustration" and pd.get("image_path"):
+                if os.path.exists(pd["image_path"]):
+                    cover_image_path = pd["image_path"]
+                    break
+
+    # Book Print API 업로드 + 썸네일
+    service = BookPrintService()
+    try:
+        book_uid = await service.upload_book(
+            title=book.title or f"{book.child_name}의 동화책",
+            book_spec_uid=book.book_spec_uid,
+            pages_data=pages_data,
+            cover_image_path=cover_image_path,
+            child_name=book.child_name,
+        )
+        book.bookprint_book_uid = book_uid
+
+        # 썸네일 다운로드
+        thumbnail_dir = os.path.join(UPLOAD_DIR, "thumbnails", book_uid)
+        await service.download_thumbnails(book_uid, thumbnail_dir)
+        book.thumbnail_dir = thumbnail_dir
+
+    except BookPrintAPIError as e:
+        logger.error(f"확정 중 API 오류: {e.message}")
+        raise HTTPException(status_code=502, detail=f"책 업로드 중 오류: {e.message}")
+    finally:
+        await service.close()
 
     book.status = "confirmed"
     db.commit()

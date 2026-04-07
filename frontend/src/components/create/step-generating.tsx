@@ -17,12 +17,10 @@ export function StepGenerating({
   onError,
 }: StepGeneratingProps) {
   const [generating, setGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
 
   async function startGeneration() {
     setGenerating(true);
-    setProgress(30);
     setStatusText("스토리를 만들고 있어요...");
 
     // 뒤로가기 차단
@@ -42,7 +40,6 @@ export function StepGenerating({
         return;
       }
 
-      setProgress(100);
       setStatusText("스토리가 완성되었어요!");
       setTimeout(() => onComplete(), 800);
     } catch {
@@ -51,11 +48,6 @@ export function StepGenerating({
       window.removeEventListener("popstate", handlePopState);
     }
   }
-
-  // 원형 진행률 SVG
-  const radius = 60;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   // 아직 시작 안 함 — 안내 + 버튼
   if (!generating) {
@@ -85,7 +77,7 @@ export function StepGenerating({
     );
   }
 
-  // 생성 중 — 진행률
+  // 생성 중 — 회전 애니메이션
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -93,21 +85,10 @@ export function StepGenerating({
       className="flex flex-col items-center justify-center min-h-[400px] space-y-8"
     >
       <div className="relative">
-        <svg width="160" height="160" className="transform -rotate-90">
-          <circle cx="80" cy="80" r={radius} fill="none" stroke="#FDE8E3" strokeWidth="8" />
-          <motion.circle
-            cx="80" cy="80" r={radius} fill="none"
-            stroke="#FFB5A7" strokeWidth="8" strokeLinecap="round"
-            strokeDasharray={circumference}
-            animate={{ strokeDashoffset }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="w-32 h-32 rounded-full border-4 border-secondary flex items-center justify-center">
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
-            <Sparkles className="w-6 h-6 text-primary mb-1" />
+            <Sparkles className="w-10 h-10 text-primary" />
           </motion.div>
-          <span className="text-2xl font-bold text-text">{progress}%</span>
         </div>
       </div>
 

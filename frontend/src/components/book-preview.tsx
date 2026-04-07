@@ -100,7 +100,7 @@ function StoryPage({ p, onEdit }: { p: PageItem; onEdit: () => void }) {
         cursor: "pointer",
       }}>
         <p style={{
-          fontFamily: "'Nanum Myeongjo',serif", fontSize: 24, fontWeight: 700,
+          fontFamily: "'Nanum Myeongjo',serif", fontSize: 30, fontWeight: 700,
           lineHeight: "60px", textAlign: "center", color: "#000",
           whiteSpace: "pre-wrap", wordBreak: "keep-all", margin: 0, padding: 16, width: "100%",
         }}>
@@ -170,14 +170,17 @@ function ColophonPage({ p, title, childName }: { p: PageItem; title: string; chi
 }
 
 function CoverPage({ coverSrc, title, childName }: { coverSrc: string; title: string; childName: string }) {
+  // 앞표지 상대좌표: 전체 x - 1060 (앞표지 시작점)
+  // front-photo: (1248.9-1060, 155.6) = (188.9, 155.6) 636.3×636.3
+  // front-subtitle: (1327.4-1060, 850.2) = (267.4, 850.2) 479.3×51.5
+  // author: (1477.7-1060, 926.1) = (417.7, 926.1) 178.8×39.6
   return (
     <>
-      {/* 배경색 */}
       <div style={{ position: "absolute", left: 0, top: 0, width: PW, height: PH, background: "#FFF8F0" }} />
       {/* 표지 사진 */}
       <div style={{
-        position: "absolute", left: 171, top: 156, width: 636, height: 636,
-        borderRadius: 12, overflow: "hidden", background: "#f5f0e8",
+        position: "absolute", left: 189, top: 155.6, width: 636, height: 636,
+        borderRadius: 20, overflow: "hidden", background: "#f5f0e8",
       }}>
         {coverSrc ? (
           <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -193,20 +196,20 @@ function CoverPage({ coverSrc, title, childName }: { coverSrc: string; title: st
           </div>
         )}
       </div>
-      {/* 제목 */}
+      {/* 제목 — subtitle */}
       <div style={{
-        position: "absolute", left: 249, top: 850, width: 479, height: 52,
+        position: "absolute", left: 267, top: 850, width: 479, height: 52,
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "'Jua', serif", fontSize: 28, fontWeight: 700, color: "#000",
+        fontFamily: "'Jua', serif", fontSize: 40, fontWeight: 700, color: "#000",
         textAlign: "center",
       }}>
         {title}
       </div>
-      {/* 저자 */}
+      {/* 저자 — author */}
       <div style={{
-        position: "absolute", left: 400, top: 926, width: 179, height: 40,
+        position: "absolute", left: 418, top: 926, width: 179, height: 40,
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "'Nanum Gothic', sans-serif", fontSize: 16, color: "#666",
+        fontFamily: "'Noto Sans KR', 'Nanum Gothic', sans-serif", fontSize: 16, color: "#666",
         textAlign: "center",
       }}>
         {childName}
@@ -215,17 +218,32 @@ function CoverPage({ coverSrc, title, childName }: { coverSrc: string; title: st
   );
 }
 
-function BackCoverPage() {
+function BackCoverPage({ title }: { title: string }) {
+  // 뒷표지는 전체 표지의 왼쪽 영역 (x: 0~1013)
+  // 하지만 미리보기에서는 1페이지=PW(978)로 렌더링하므로 좌표 그대로 사용
+  // text-w2mbi50b (subtitle): (372.0, 453.4) 269.3×39.6 tvN즐거운이야기 Bold 16
+  // graphic (로고): (372.0, 950.0) 269.3×50.0
   return (
     <div style={{
       position: "absolute", left: 0, top: 0, width: PW, height: PH,
       background: "#FFF8F0",
-      display: "flex", alignItems: "center", justifyContent: "center",
     }}>
+      {/* 뒷표지 subtitle (책 제목) */}
       <div style={{
-        fontFamily: "'Nanum Gothic', sans-serif", fontSize: 14, color: "#ccc",
+        position: "absolute", left: 372, top: 453, width: 269, height: 40,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Jua', sans-serif", fontSize: 16, fontWeight: 700, color: "#000",
+        textAlign: "center",
       }}>
-        (주)스위트북
+        {title}
+      </div>
+      {/* Dreambook 로고 */}
+      <div style={{
+        position: "absolute", left: 372, top: 950, width: 269, height: 50,
+        overflow: "hidden",
+      }}>
+        <img src="/logo.png" alt="Dreambook" style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          draggable={false} />
       </div>
     </div>
   );
@@ -381,7 +399,7 @@ export default function BookPreview({ pages, title, childName, onTextSave, cover
   function renderItem(item: SpreadItem) {
     switch (item.type) {
       case "cover": return <CoverPage coverSrc={coverSrc} title={title} childName={childName} />;
-      case "backcover": return <BackCoverPage />;
+      case "backcover": return <BackCoverPage title={title} />;
       case "blank": return <BlankPage />;
       case "page": {
         const p = item.data;
@@ -409,57 +427,19 @@ export default function BookPreview({ pages, title, childName, onTextSave, cover
       <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet" />
       <style>{`
         .__story-wrap:hover .__edit-hint { opacity: 1 !important; }
-        .__thumbs::-webkit-scrollbar { display: none; }
-        .__thumbs { scrollbar-width: none; }
+        .__bpv-thumbs::-webkit-scrollbar { display: none; }
+        .__bpv-thumbs { scrollbar-width: none; }
+        @media (max-width: 767px) {
+          .__bpv-layout { flex-direction: column !important; height: auto !important; }
+          .__bpv-viewer { min-height: 50vh !important; }
+          .__bpv-sidebar { flex-direction: row !important; overflow-x: auto !important; overflow-y: hidden !important; max-height: none !important; padding: 8px 4px !important; }
+          .__bpv-sidebar button { flex-shrink: 0 !important; }
+        }
       `}</style>
 
-      <div style={{ display: "flex", gap: 16, width: "100%", height: "calc(100vh - 200px)", minHeight: 300 }}>
-        {/* 썸네일 */}
-        <div className="__thumbs" style={{
-          display: "flex", flexDirection: "column", gap: 6,
-          overflowY: "auto", padding: "6px 2px", flexShrink: 0,
-        }}>
-          {spreads.map((sp, i) => {
-            const active = i === si;
-            return (
-              <button key={i} onClick={() => setSi(i)} style={{
-                width: sp.length === 1 ? 44 : 76, height: 40, flexShrink: 0,
-                borderRadius: 6, border: active ? "2px solid #E8836B" : "2px solid transparent",
-                background: active ? "#fff" : "#ece8e3", cursor: "pointer",
-                display: "flex", gap: 1, padding: 2,
-                opacity: active ? 1 : 0.55, transition: "all 0.15s",
-              }}>
-                {sp.map((item, idx) => {
-                  let thumbSrc = "";
-                  let label = "";
-                  if (item.type === "cover") { thumbSrc = coverSrc; label = "표지"; }
-                  else if (item.type === "backcover") { label = "뒷"; }
-                  else if (item.type === "blank") { label = ""; }
-                  else {
-                    const p = item.data;
-                    thumbSrc = imgUrl((p.images.find(x => x.is_selected) || p.images[0])?.image_path);
-                    if (p.page_type !== "illustration" && p.page_type !== "colophon") thumbSrc = "";
-                    label = String(p.page_number);
-                  }
-                  return (
-                    <div key={idx} style={{
-                      flex: 1, borderRadius: 3, overflow: "hidden",
-                      background: thumbSrc ? undefined : "#ddd",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      {thumbSrc
-                        ? <img src={thumbSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} crossOrigin="anonymous" draggable={false} />
-                        : <span style={{ fontSize: 7, color: "#999" }}>{label}</span>}
-                    </div>
-                  );
-                })}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 뷰어 */}
-        <div ref={boxRef} style={{
+      <div className="__bpv-layout" style={{ display: "flex", gap: 12, width: "100%", height: "calc(100vh - 200px)", minHeight: 400 }}>
+        {/* 뷰어 — 왼쪽 (모바일: 위) */}
+        <div ref={boxRef} className="__bpv-viewer" style={{
           flex: 1, display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           background: "#2a2420", borderRadius: 16,
@@ -569,6 +549,62 @@ export default function BookPreview({ pages, title, childName, onTextSave, cover
               </span>
             )}
           </div>
+        </div>
+
+        {/* 썸네일 사이드바 — 오른쪽 (모바일: 아래) */}
+        <div className="__bpv-thumbs __bpv-sidebar" style={{
+          display: "flex", flexDirection: "column", gap: 4,
+          overflowY: "auto", padding: "4px", flexShrink: 0,
+          maxHeight: "100%", width: 90,
+        }}>
+          {(() => {
+            // 단일 항목 리스트: 표지, 그림1~11(+페이지번호), 발행면, 뒷표지
+            type ThumbItem = { label: string; src: string; spreadIdx: number };
+            const items: ThumbItem[] = [];
+
+            // 표지
+            items.push({ label: "표지", src: coverSrc, spreadIdx: 0 });
+
+            // 일러스트 페이지들 — 해당 스프레드 인덱스 찾기
+            const illustPages2 = pages.filter(p => p.page_type === "illustration").sort((a, b) => a.page_number - b.page_number);
+            illustPages2.forEach((p, idx) => {
+              const src2 = imgUrl((p.images.find(x => x.is_selected) || p.images[0])?.image_path);
+              // 스프레드: [빈,간지]=1, [그림1,스토리1]=2, [그림2,스토리2]=3, ...
+              const spreadIdx2 = idx + 2;
+              items.push({ label: `${p.page_number}p`, src: src2, spreadIdx: spreadIdx2 });
+            });
+
+            // 발행면
+            const colIdx = spreads.length - 2; // [발행면, 빈]
+            items.push({ label: "발행면", src: "", spreadIdx: colIdx });
+
+            // 뒷표지
+            items.push({ label: "뒷표지", src: "", spreadIdx: spreads.length - 1 });
+
+            return items.map((item, i) => {
+              const active = si === item.spreadIdx;
+              return (
+                <button key={i} onClick={() => setSi(item.spreadIdx)} style={{
+                  width: "100%", flexShrink: 0, borderRadius: 6,
+                  border: active ? "2px solid #E8836B" : "2px solid transparent",
+                  background: active ? "#fff" : "#ece8e3", cursor: "pointer",
+                  padding: 2, opacity: active ? 1 : 0.55, transition: "all 0.15s",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                }}>
+                  <div style={{
+                    width: "100%", aspectRatio: "1/1", borderRadius: 4, overflow: "hidden",
+                    background: item.src ? undefined : "#ddd",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    {item.src
+                      ? <img src={item.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} crossOrigin="anonymous" draggable={false} />
+                      : <span style={{ fontSize: 9, color: "#999" }}>{item.label}</span>}
+                  </div>
+                  <span style={{ fontSize: 9, color: active ? "#E8836B" : "#999", lineHeight: 1 }}>{item.label}</span>
+                </button>
+              );
+            });
+          })()}
         </div>
       </div>
 

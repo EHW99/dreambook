@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Droplets, Palette, Box, Zap,
-  RefreshCw, Check, User, ImageIcon, Camera, Plus, Maximize2,
+  RefreshCw, Check, User, ImageIcon, Camera, Plus, Maximize2, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhotoLightbox } from "@/components/ui/photo-lightbox";
@@ -246,10 +246,24 @@ export function StepArtAndCharacter({
                     </div>
                   </div>
                 )}
-                <button type="button" onClick={(e) => { e.stopPropagation(); setLightboxIndex(index); }}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Maximize2 className="w-3 h-3" />
-                </button>
+                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setLightboxIndex(index); }}
+                    className="w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white">
+                    <Maximize2 className="w-3 h-3" />
+                  </button>
+                  <button type="button" onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm("이 사진을 삭제하시겠습니까?")) return;
+                    const res = await apiClient.deletePhoto(photo.id);
+                    if (!res.error) {
+                      setPhotos(prev => prev.filter(p => p.id !== photo.id));
+                      if (selectedPhotoId === photo.id) onPhotoChange(0);
+                    }
+                  }}
+                    className="w-6 h-6 rounded-full bg-black/40 hover:bg-red-500 flex items-center justify-center text-white">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </motion.div>
             ))
           )}

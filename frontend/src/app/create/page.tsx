@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, AlertCircle, Sparkles, ImageIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Sparkles, ImageIcon, RefreshCw } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
 import { WizardProgress } from "@/components/create/wizard-progress";
@@ -70,6 +70,9 @@ function CreateWizardContent() {
   const [storyPages, setStoryPages] = useState<PageItem[]>([]);
   const [editingPageId, setEditingPageId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
+
+  // step 6: 스토리 재생성
+  const [regeneratingStory, setRegeneratingStory] = useState(false);
 
   // step 7: 그림 생성 상태
   const [isGeneratingIllust, setIsGeneratingIllust] = useState(false);
@@ -227,20 +230,8 @@ function CreateWizardContent() {
       else setError(result.error || "저장에 실패했습니다");
 
     } else if (currentStep === 6) {
-      // 글편집 완료 → 그림 생성 (step 7)
+      // 글편집 완료 → 그림 생성 안내 (step 7)
       setCurrentStep(7);
-      setIsGeneratingIllust(true);
-
-      const result = await apiClient.generateIllustrations(book.id);
-      setIsGeneratingIllust(false);
-
-      if (result.data) {
-        // 그림 생성 완료 → 편집 페이지로
-        router.push(`/create/edit?book_id=${book.id}`);
-      } else {
-        setError(result.error || "그림 생성에 실패했습니다");
-        setCurrentStep(6); // 글편집으로 복귀
-      }
     }
   }
 
@@ -275,6 +266,34 @@ function CreateWizardContent() {
   }, []);
 
   // 글편집: 텍스트 저장
+  async function handleRegenerateStory() {
+    if (!book || regeneratingStory) return;
+    if (book.story_regen_count >= 3) return;
+    if (!confirm("스토리를 재생성하면 현재 텍스트가 모두 초기화됩니다.\n\n계속하시겠습니까?")) return;
+    setRegeneratingStory(true);
+    const res = await apiClient.regenerateStory(book.id);
+    if (res.data) {
+      setBook({ ...book, story_regen_count: (book.story_regen_count || 0) + 1, status: res.data.status });
+      setStoryPages(res.data.pages || []);
+    } else {
+      setError(res.error || "스토리 재생성에 실패했습니다");
+    }
+    setRegeneratingStory(false);
+  }
+
+  async function handleStartIllustration() {
+    if (!book) return;
+    setIsGeneratingIllust(true);
+    const result = await apiClient.generateIllustrations(book.id);
+    setIsGeneratingIllust(false);
+    if (result.data) {
+      router.push(`/create/edit?book_id=${book.id}`);
+    } else {
+      setError(result.error || "그림 생성에 실패했습니다");
+      setCurrentStep(6);
+    }
+  }
+
   async function handleSaveStoryText(pageId: number) {
     if (!book) return;
     const result = await apiClient.updatePageText(book.id, pageId, editText);
@@ -371,12 +390,27 @@ function CreateWizardContent() {
           {/* step 6: 글 편집 */}
           {currentStep === 6 && (
             <motion.div key="step-6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <div className="text-center mb-6">
+              <div className="text-center mb-4">
                 <h2 className="text-xl font-bold text-text mb-2">이야기를 확인하고 편집하세요</h2>
                 <p className="text-sm text-text-light">
                   AI가 만든 스토리를 확인하고, 원하는 대로 수정할 수 있어요.<br />
                   편집이 끝나면 이 텍스트를 기반으로 그림을 그려요.
                 </p>
+              </div>
+
+              {/* 스토리 재생성 */}
+              <div className="flex items-center justify-between mb-4 px-1">
+                <p className="text-xs text-text-lighter">
+                  스토리 재생성은 이 단계에서만 가능합니다 ({book?.story_regen_count || 0}/3회 사용)
+                </p>
+                <button
+                  onClick={handleRegenerateStory}
+                  disabled={regeneratingStory || (book?.story_regen_count ?? 0) >= 3}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-secondary hover:border-primary hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                >
+                  <RefreshCw className={`w-3 h-3 ${regeneratingStory ? "animate-spin" : ""}`} />
+                  {regeneratingStory ? "재생성 중..." : "스토리 재생성"}
+                </button>
               </div>
 
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
@@ -432,9 +466,31 @@ function CreateWizardContent() {
             </motion.div>
           )}
 
-          {/* step 7: 그림 생성 중 */}
+          {/* step 7: 그림 생성 */}
+          {currentStep === 7 && !isGeneratingIllust && (
+            <motion.div key="step-7-ready" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+              className="flex flex-col items-center justify-center min-h-[400px] space-y-8"
+            >
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+                <ImageIcon className="w-10 h-10 text-primary" />
+              </div>
+              <div className="text-center space-y-3 max-w-sm">
+                <h2 className="text-xl font-bold text-text">그림을 그릴 준비가 되었어요</h2>
+                <p className="text-sm text-text-light leading-relaxed">
+                  편집한 이야기를 바탕으로 AI가 11장의 일러스트와 표지를 그려요.
+                </p>
+              </div>
+              <Button onClick={handleStartIllustration} size="lg" className="gap-2">
+                <Sparkles className="w-5 h-5" />
+                그림 생성하기
+              </Button>
+              <p className="text-xs text-text-lighter">생성에 약 2~5분이 소요됩니다</p>
+            </motion.div>
+          )}
           {currentStep === 7 && isGeneratingIllust && (
-            <motion.div key="step-7" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center min-h-[400px] space-y-8">
+            <motion.div key="step-7-gen" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center min-h-[400px] space-y-8"
+            >
               <div className="relative">
                 <div className="w-32 h-32 rounded-full border-4 border-secondary flex items-center justify-center">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>

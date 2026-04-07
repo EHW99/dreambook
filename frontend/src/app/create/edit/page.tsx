@@ -26,7 +26,6 @@ function EditContent() {
   const [error, setError] = useState<string | null>(null);
 
   // 재생성 로딩
-  const [regeneratingStory, setRegeneratingStory] = useState(false);
   const [regeneratingIllust, setRegeneratingIllust] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -94,31 +93,6 @@ function EditContent() {
       setConfirming(false);
       setShowConfirmModal(false);
     }
-  };
-
-  /* 스토리 재생성 */
-  const handleRegenerateStory = async () => {
-    if (!book) return;
-    if (book.story_regen_count >= 3) {
-      showToast("스토리 재생성 횟수를 모두 사용했습니다");
-      return;
-    }
-    const confirmed = window.confirm(
-      "스토리를 재생성하면 현재 텍스트와 그림이 모두 초기화됩니다.\n재생성 후 일러스트를 다시 생성해야 합니다.\n\n계속하시겠습니까?"
-    );
-    if (!confirmed) return;
-    setRegeneratingStory(true);
-    const res = await apiClient.regenerateStory(book.id);
-    if (res.data) {
-      setPages(res.data.pages);
-      setBook((prev) =>
-        prev ? { ...prev, story_regen_count: res.data!.story_regen_count } : prev
-      );
-      showToast("스토리가 재생성되었습니다");
-    } else {
-      showToast(res.error || "재생성에 실패했습니다");
-    }
-    setRegeneratingStory(false);
   };
 
   /* 일러스트 재생성 */
@@ -198,20 +172,6 @@ function EditContent() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* 스토리 재생성 */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRegenerateStory}
-              disabled={regeneratingStory || book.story_regen_count >= 3}
-              className="gap-1.5 text-xs hidden sm:flex"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              스토리 재생성
-              <span className="text-text-lighter">
-                ({3 - book.story_regen_count}회)
-              </span>
-            </Button>
             {/* 일러스트 재생성 */}
             <Button
               variant="outline"
@@ -223,15 +183,6 @@ function EditContent() {
               <ImageIcon className="w-3.5 h-3.5" />
               {regeneratingIllust ? "생성 중..." : "그림 재생성"}
             </Button>
-            {/* 확정하기 */}
-            <Button
-              size="sm"
-              onClick={() => setShowConfirmModal(true)}
-              className="gap-1.5 bg-primary hover:bg-primary/90 text-white"
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>확정하기</span>
-            </Button>
           </div>
         </div>
       </div>
@@ -241,10 +192,7 @@ function EditContent() {
         {/* 안내 */}
         <div className="text-center mb-4">
           <p className="text-sm text-text-light">
-            실제 인쇄될 모습과 동일한 미리보기입니다. 이야기 텍스트를 클릭하여 편집할 수 있습니다.
-          </p>
-          <p className="text-xs text-text-lighter mt-1">
-            키보드 좌우 화살표 또는 스페이스바로 페이지를 넘길 수 있습니다
+            미리보기입니다. 실제 인쇄 결과와 다소 차이가 있을 수 있습니다. 이야기 텍스트를 클릭하여 편집할 수 있습니다.
           </p>
         </div>
 
@@ -266,41 +214,31 @@ function EditContent() {
           </div>
         )}
 
-        {/* 모바일용 하단 버튼 */}
-        <div className="flex gap-2 mt-4 sm:hidden">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRegenerateStory}
-            disabled={regeneratingStory || book.story_regen_count >= 3}
-            className="flex-1 gap-1 text-xs"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            스토리 ({3 - book.story_regen_count}회)
-          </Button>
+      </div>
+
+      {/* 하단 고정 CTA — 확정하기 */}
+      <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-sm border-t border-secondary/30">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={handleRegenerateIllust}
             disabled={regeneratingIllust}
-            className="flex-1 gap-1 text-xs"
+            className="gap-1.5 text-xs sm:hidden"
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            {regeneratingIllust ? "생성중..." : "그림"}
+            {regeneratingIllust ? "생성중..." : "그림 재생성"}
+          </Button>
+          <div className="flex-1" />
+          <p className="text-xs text-text-lighter hidden sm:block">편집이 완료되면 확정해주세요</p>
+          <Button
+            onClick={() => setShowConfirmModal(true)}
+            className="gap-2 bg-primary hover:bg-primary/90 text-white px-6 h-10"
+          >
+            <CheckCircle className="w-4 h-4" />
+            편집 완료 · 확정하기
           </Button>
         </div>
-
-        {/* 재생성 횟수 경고 */}
-        {book.story_regen_count >= 3 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-3 flex items-center gap-2 text-xs text-warning-dark bg-warning/20 px-4 py-2 rounded-xl justify-center"
-          >
-            <AlertCircle className="w-3.5 h-3.5" />
-            스토리 재생성 횟수를 모두 사용했습니다
-          </motion.div>
-        )}
       </div>
 
       {/* 확정 확인 모달 */}

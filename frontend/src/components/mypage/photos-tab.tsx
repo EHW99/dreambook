@@ -190,7 +190,7 @@ export function PhotosTab() {
               사진 업로드하기
             </Button>
             <p className="text-xs text-text-lighter">
-              JPG, PNG, WebP · 512×512 이상 · 10MB 이하
+              JPG, PNG, WebP · 10MB 이하
             </p>
           </div>
         </motion.div>
@@ -284,7 +284,7 @@ export function PhotosTab() {
       {/* 업로드 안내 (사진 있을 때) */}
       {photos.length > 0 && photos.length < 20 && (
         <p className="text-xs text-text-lighter text-center">
-          JPG, PNG, WebP · 512×512 이상 · 10MB 이하 · 드래그 앤 드롭으로도 추가할 수 있어요
+          JPG, PNG, WebP · 10MB 이하 · 드래그 앤 드롭으로도 추가할 수 있어요
         </p>
       )}
 

@@ -19,31 +19,7 @@ function MypageContent() {
   return (
     <PageTransition>
       <div className="max-w-5xl mx-auto px-4 py-8 pb-20 md:pb-8">
-        <h2 className="text-2xl font-bold text-text mb-2">마이페이지</h2>
-        <p className="text-sm text-text-light mb-6">{user?.email}</p>
-
-        {/* 바로가기 메뉴 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-          {MYPAGE_LINKS.map((link) => {
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex items-center gap-3 bg-white rounded-2xl shadow-soft p-4 hover:shadow-card transition-shadow"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-text text-sm">{link.label}</p>
-                  <p className="text-xs text-text-lighter">{link.desc}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-text-lighter flex-shrink-0" />
-              </Link>
-            );
-          })}
-        </div>
+        <h2 className="text-2xl font-bold text-text mb-6">마이페이지</h2>
 
         {/* 회원정보 */}
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card overflow-hidden p-4 sm:p-6 md:p-8">

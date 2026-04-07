@@ -30,7 +30,6 @@ def resize_image_for_api(file_path: str) -> io.BytesIO:
         img = img.resize((new_w, new_h), Image.LANCZOS)
         logger.info(f"[resize] {w}×{h} → {new_w}×{new_h}")
 
-    # RGBA 변환 (투명도 지원)
     if img.mode not in ("RGB", "RGBA"):
         img = img.convert("RGBA")
 
@@ -68,7 +67,5 @@ def call_with_retry(fn, max_retries: int = 3, base_wait: float = 15.0):
                     logger.warning(f"[retry] Rate limit 도달, {wait:.0f}초 후 재시도 ({attempt+1}/{max_retries})")
                     time.sleep(wait)
                     continue
-            # 429가 아닌 에러는 바로 raise
             raise
-    # 마지막 재시도까지 429면
     raise last_error  # type: ignore

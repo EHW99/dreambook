@@ -527,6 +527,109 @@ class BookPrintService:
         logger.info(f"[bookprint] 썸네일 다운로드 완료: cover={'O' if result['cover'] else 'X'}, pages={len(result['pages'])}/24")
         return result
 
+    # === Book Upload (without order) ===
+
+    async def upload_book(
+        self,
+        title: str,
+        book_spec_uid: str,
+        pages_data: list[dict],
+        cover_image_path: str | None,
+        child_name: str = "",
+    ) -> str:
+        """Book Print API에 책을 업로드한다 (주문/최종화 없이).
+
+        충전금 확인 → 책 생성 → 사진 업로드 → 표지 → 내지 삽입까지만 수행.
+        렌더링 썸네일 조회가 가능한 상태가 된다.
+
+        Returns:
+            bookUid
+        """
+        await self.ensure_sufficient_credits()
+
+        book_uid = await self.create_book(title, book_spec_uid)
+        logger.info(f"[bookprint] 책 생성 완료: {book_uid}")
+
+        # 사진 업로드
+        uploaded_files: dict[str, str] = {}
+
+        if cover_image_path and os.path.exists(cover_image_path):
+            try:
+                file_name = await self.upload_photo(book_uid, cover_image_path)
+                uploaded_files[cover_image_path] = file_name
+            except BookPrintAPIError as e:
+                logger.warning(f"[bookprint] 표지 사진 업로드 실패: {e.message}")
+
+        for page in pages_data:
+            if page.get("page_type") != "illustration":
+                continue
+            img_path = page.get("image_path", "")
+            if img_path and os.path.exists(img_path) and img_path not in uploaded_files:
+                try:
+                    file_name = await self.upload_photo(book_uid, img_path)
+                    uploaded_files[img_path] = file_name
+                except BookPrintAPIError as e:
+                    logger.warning(f"[bookprint] 사진 업로드 실패 (p{page['page_number']}): {e.message}")
+
+        # 표지 생성
+        cover_file = uploaded_files.get(cover_image_path, "")
+        if not cover_file:
+            for page in pages_data:
+                if page.get("page_type") == "illustration":
+                    cover_file = uploaded_files.get(page.get("image_path", ""), "")
+                    if cover_file:
+                        break
+
+        cover_params = {"subtitle": title, "author": child_name or ""}
+        if cover_file:
+            cover_params["coverPhoto"] = cover_file
+        await self.create_cover(book_uid, TPL_COVER, cover_params)
+
+        # 내지 삽입
+        last_result: dict = {}
+        content_pages = [p for p in pages_data if p.get("page_type") != "colophon"]
+        colophon_page = next((p for p in pages_data if p.get("page_type") == "colophon"), None)
+
+        for page in content_pages:
+            page_type = page.get("page_type", "")
+            text = page.get("text", "")
+            img_path = page.get("image_path", "")
+
+            if page_type == "title":
+                last_result = await self.insert_content(book_uid, TPL_TITLE_PAGE, {
+                    "monthYearTitle": title, "author": child_name or "",
+                }, break_before="page")
+            elif page_type == "illustration":
+                img_file = uploaded_files.get(img_path, "")
+                if img_file:
+                    last_result = await self.insert_content(book_uid, TPL_ILLUSTRATION, {"photo": img_file}, break_before="page")
+                else:
+                    last_result = await self.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
+            elif page_type == "story":
+                last_result = await self.insert_content(book_uid, TPL_STORY, {"storyText": text}, break_before="page")
+            else:
+                last_result = await self.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
+
+        # 발행면
+        if colophon_page:
+            last_side = last_result.get("pageSide", "right")
+            if last_side == "left":
+                await self.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
+            now = datetime.now()
+            publish_params: dict[str, str] = {
+                "title": title,
+                "publishDate": now.strftime("%Y년 %m월 %d일"),
+                "author": child_name or "AI 동화작가",
+                "hashtags": "#AI동화 #꿈꾸는나 #스위트북",
+                "publisher": "(주)스위트북",
+            }
+            if cover_file:
+                publish_params["photo"] = cover_file
+            await self.insert_content(book_uid, TPL_PUBLISH, publish_params, break_before="page")
+
+        logger.info(f"[bookprint] 책 업로드 완료: {book_uid}")
+        return book_uid
+
     # === Full Workflow ===
 
     async def execute_order_workflow(
@@ -672,13 +775,16 @@ class BookPrintService:
                 inserted_count += 1
 
             now = datetime.now()
-            last_result = await self.insert_content(book_uid, TPL_PUBLISH, {
+            publish_params: dict[str, str] = {
                 "title": title,
                 "publishDate": now.strftime("%Y년 %m월 %d일"),
                 "author": child_name or "AI 동화작가",
                 "hashtags": "#AI동화 #꿈꾸는나 #스위트북",
                 "publisher": "(주)스위트북",
-            }, break_before="page")
+            }
+            if cover_file:
+                publish_params["photo"] = cover_file
+            last_result = await self.insert_content(book_uid, TPL_PUBLISH, publish_params, break_before="page")
             inserted_count += 1
             logger.info(f"[bookprint] 발행면 삽입 완료: pageSide={last_result.get('pageSide', '?')}")
 

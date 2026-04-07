@@ -66,12 +66,12 @@ async def upload_photo(
             detail="파일 크기가 10MB를 초과합니다",
         )
 
-    # 4. 해상도 검증
+    # 4. 해상도 읽기
     is_valid_res, width, height = validate_resolution(file_data)
     if not is_valid_res:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="최소 512x512 이상의 이미지를 업로드해주세요",
+            detail="이미지 파일을 읽을 수 없습니다",
         )
 
     # 5. 개수 제한 검증

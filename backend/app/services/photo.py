@@ -60,12 +60,11 @@ def validate_file_size(file_data: bytes) -> bool:
 
 
 def validate_resolution(file_data: bytes) -> tuple[bool, int, int]:
-    """이미지 해상도가 512x512 이상인지 확인. (valid, width, height) 반환."""
+    """이미지 해상도를 읽어 반환. 제한 없음."""
     try:
         img = Image.open(BytesIO(file_data))
         width, height = img.size
-        is_valid = width >= MIN_RESOLUTION and height >= MIN_RESOLUTION
-        return is_valid, width, height
+        return True, width, height
     except Exception:
         return False, 0, 0
 
