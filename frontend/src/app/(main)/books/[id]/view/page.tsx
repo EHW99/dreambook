@@ -17,6 +17,35 @@ import {
 } from "@/lib/api";
 import BookViewer from "@/components/book-viewer";
 
+function ThumbnailLoading({ bookId, onLoaded }: { bookId: number; onLoaded: (t: { cover: string | null; pages: string[] }) => void }) {
+  const [dots, setDots] = useState("");
+
+  useEffect(() => {
+    const dotInterval = setInterval(() => setDots(d => d.length >= 3 ? "" : d + "."), 500);
+
+    const poll = setInterval(async () => {
+      const res = await apiClient.getThumbnails(bookId).catch(() => ({ data: null, error: null }));
+      if (res.data && res.data.pages.length > 0) {
+        clearInterval(poll);
+        clearInterval(dotInterval);
+        onLoaded(res.data);
+      }
+    }, 5000);
+
+    return () => { clearInterval(poll); clearInterval(dotInterval); };
+  }, [bookId, onLoaded]);
+
+  return (
+    <div className="flex items-center justify-center py-20">
+      <div className="text-center space-y-3">
+        <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full mx-auto" />
+        <p className="text-text-light text-sm">렌더링 준비 중{dots}</p>
+        <p className="text-text-lighter text-xs">잠시만 기다려주세요</p>
+      </div>
+    </div>
+  );
+}
+
 function BookViewContent() {
   const router = useRouter();
   const params = useParams();
@@ -189,7 +218,7 @@ function BookViewContent() {
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 pb-20 md:pb-4">
         {/* 상단 */}
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => router.back()}
+          <button onClick={() => router.push("/bookshelf")}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-secondary hover:border-primary hover:text-primary transition-all shadow-sm"
           >
             <ArrowLeft size={18} />
@@ -209,12 +238,7 @@ function BookViewContent() {
           <BookViewer cover={thumbnails.cover} pages={thumbnails.pages}
             title={book.title || "동화책"} author={book.child_name} />
         ) : (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <BookOpen className="w-12 h-12 mx-auto text-text-lighter mb-4" />
-              <p className="text-text-light">썸네일을 불러올 수 없습니다</p>
-            </div>
-          </div>
+          <ThumbnailLoading bookId={bookId!} onLoaded={(t) => setThumbnails(t)} />
         )}
       </div>
 

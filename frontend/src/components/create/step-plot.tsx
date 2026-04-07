@@ -146,6 +146,7 @@ export function StepPlot({ bookId, plotInput, jobName, onPlotChange, plots, onPl
             <Sparkles className="w-8 h-8 text-primary" />
           </motion.div>
           <p className="text-sm text-text-light">AI가 줄거리를 만들고 있어요...</p>
+          <p className="text-xs text-text-lighter">약 10~15초 소요</p>
         </div>
       )}
 

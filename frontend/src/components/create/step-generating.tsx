@@ -82,7 +82,7 @@ export function StepGenerating({
             스토리 생성하기
           </Button>
         </div>
-        <p className="text-xs text-text-lighter">생성에 약 10~20초가 소요됩니다</p>
+        <p className="text-xs text-text-lighter">생성에 약 1~2분이 소요됩니다</p>
       </motion.div>
     );
   }
@@ -104,7 +104,7 @@ export function StepGenerating({
 
       <motion.div key={statusText} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-2">
         <p className="text-lg font-bold text-text">{statusText}</p>
-        <p className="text-sm text-text-light">잠시만 기다려 주세요</p>
+        <p className="text-sm text-text-light">잠시만 기다려 주세요 (약 1~2분)</p>
       </motion.div>
 
       <div className="bg-warning/10 border border-warning/30 rounded-2xl px-4 py-3 max-w-sm">

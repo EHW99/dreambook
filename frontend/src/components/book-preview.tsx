@@ -132,8 +132,7 @@ function StoryPage({ p, onEdit }: { p: PageItem; onEdit: () => void }) {
 }
 
 function ColophonPage({ p, title, childName, coverSrc }: { p: PageItem; title: string; childName: string; coverSrc?: string }) {
-  const pageSrc = imgUrl((p.images.find(i => i.is_selected) || p.images[0])?.image_path);
-  const src = pageSrc || coverSrc || "";
+  const src = coverSrc || "";
   const now = new Date();
   const date = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
   return (
@@ -177,7 +176,7 @@ function CoverPage({ coverSrc, title, childName }: { coverSrc: string; title: st
   // author: (1477.7-1060, 926.1) = (417.7, 926.1) 178.8×39.6
   return (
     <>
-      <div style={{ position: "absolute", left: 0, top: 0, width: PW, height: PH, background: "#FFF8F0" }} />
+      <div style={{ position: "absolute", left: 0, top: 0, width: PW, height: PH, background: "#FFFFFF" }} />
       {/* 표지 사진 */}
       <div style={{
         position: "absolute", left: 189, top: 155.6, width: 636, height: 636,
@@ -227,7 +226,7 @@ function BackCoverPage({ title }: { title: string }) {
   return (
     <div style={{
       position: "absolute", left: 0, top: 0, width: PW, height: PH,
-      background: "#FFF8F0",
+      background: "#FFFFFF",
     }}>
       {/* 뒷표지 subtitle (책 제목) */}
       <div style={{

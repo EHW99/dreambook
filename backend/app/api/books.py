@@ -1,7 +1,7 @@
 """동화책 API 라우터"""
 import os
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -729,6 +729,7 @@ def get_thumbnails(
 @router.post("/{book_id}/confirm")
 async def confirm_book(
     book_id: int,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -782,23 +783,15 @@ async def confirm_book(
                     cover_image_path = pd["image_path"]
                     break
 
-    # Book Print API 업로드 + 썸네일
+    # 충전금 확인 + 책 생성만 동기로 (빠름)
     service = BookPrintService()
     try:
-        book_uid = await service.upload_book(
-            title=book.title or f"{book.child_name}의 동화책",
-            book_spec_uid=book.book_spec_uid,
-            pages_data=pages_data,
-            cover_image_path=cover_image_path,
-            child_name=book.child_name,
+        await service.ensure_sufficient_credits()
+        book_uid = await service.create_book(
+            book.title or f"{book.child_name}의 동화책",
+            book.book_spec_uid,
         )
         book.bookprint_book_uid = book_uid
-
-        # 썸네일 다운로드
-        thumbnail_dir = os.path.join(UPLOAD_DIR, "thumbnails", book_uid)
-        await service.download_thumbnails(book_uid, thumbnail_dir)
-        book.thumbnail_dir = thumbnail_dir
-
     except BookPrintAPIError as e:
         logger.error(f"확정 중 API 오류: {e.message}")
         raise HTTPException(status_code=502, detail=f"책 업로드 중 오류: {e.message}")
@@ -807,4 +800,107 @@ async def confirm_book(
 
     book.status = "confirmed"
     db.commit()
+
+    # 나머지(사진 업로드 + 내지 삽입 + 썸네일)는 전부 백그라운드
+    import asyncio
+    _title = book.title or f"{book.child_name}의 동화책"
+    _child_name = book.child_name
+    _spec_uid = book.book_spec_uid
+    _book_id = book.id
+
+    async def _background_upload():
+        svc = BookPrintService()
+        try:
+            # 사진 업로드
+            uploaded_files: dict[str, str] = {}
+            if cover_image_path and os.path.exists(cover_image_path):
+                try:
+                    fn = await svc.upload_photo(book_uid, cover_image_path)
+                    uploaded_files[cover_image_path] = fn
+                except Exception:
+                    pass
+            for pd in pages_data:
+                if pd.get("page_type") != "illustration":
+                    continue
+                ip = pd.get("image_path", "")
+                if ip and os.path.exists(ip) and ip not in uploaded_files:
+                    try:
+                        fn = await svc.upload_photo(book_uid, ip)
+                        uploaded_files[ip] = fn
+                    except Exception:
+                        pass
+
+            # 표지 생성
+            cover_file = uploaded_files.get(cover_image_path, "")
+            if not cover_file:
+                for pd in pages_data:
+                    if pd.get("page_type") == "illustration":
+                        cover_file = uploaded_files.get(pd.get("image_path", ""), "")
+                        if cover_file:
+                            break
+            cover_params = {"subtitle": _title, "author": _child_name or ""}
+            if cover_file:
+                cover_params["coverPhoto"] = cover_file
+            await svc.create_cover(book_uid, "4SezofiW67xk", cover_params)
+
+            # 내지 삽입
+            from app.services.bookprint import TPL_TITLE_PAGE, TPL_ILLUSTRATION, TPL_STORY, TPL_PUBLISH, TPL_BLANK
+            from datetime import datetime
+            last_result: dict = {}
+            content_pages = [p for p in pages_data if p.get("page_type") != "colophon"]
+            colophon_page = next((p for p in pages_data if p.get("page_type") == "colophon"), None)
+
+            for page in content_pages:
+                pt = page.get("page_type", "")
+                if pt == "title":
+                    last_result = await svc.insert_content(book_uid, TPL_TITLE_PAGE, {"monthYearTitle": _title, "author": _child_name or ""}, break_before="page")
+                elif pt == "illustration":
+                    img_file = uploaded_files.get(page.get("image_path", ""), "")
+                    if img_file:
+                        last_result = await svc.insert_content(book_uid, TPL_ILLUSTRATION, {"photo": img_file}, break_before="page")
+                    else:
+                        last_result = await svc.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
+                elif pt == "story":
+                    last_result = await svc.insert_content(book_uid, TPL_STORY, {"storyText": page.get("text", "")}, break_before="page")
+                else:
+                    last_result = await svc.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
+
+            if colophon_page:
+                if last_result.get("pageSide") == "left":
+                    await svc.insert_content(book_uid, TPL_BLANK, {}, break_before="page")
+                now = datetime.now()
+                publish_params: dict[str, str] = {
+                    "title": _title,
+                    "publishDate": now.strftime("%Y년 %m월 %d일"),
+                    "author": _child_name or "AI 동화작가",
+                    "hashtags": "#AI동화 #꿈꾸는나 #스위트북",
+                    "publisher": "(주)스위트북",
+                }
+                if cover_file:
+                    publish_params["photo"] = cover_file
+                await svc.insert_content(book_uid, TPL_PUBLISH, publish_params, break_before="page")
+
+            # 썸네일 렌더링 + 다운로드
+            thumbnail_dir = os.path.join(UPLOAD_DIR, "thumbnails", book_uid)
+            await svc.download_thumbnails(book_uid, thumbnail_dir)
+
+            # DB 업데이트
+            from app.database import SessionLocal
+            s = SessionLocal()
+            try:
+                b = s.query(Book).filter(Book.id == _book_id).first()
+                if b:
+                    b.thumbnail_dir = thumbnail_dir
+                    s.commit()
+            finally:
+                s.close()
+
+            logger.info(f"[confirm] 백그라운드 업로드+썸네일 완료: {book_uid}")
+        except Exception as e:
+            logger.error(f"[confirm] 백그라운드 작업 실패: {e}")
+        finally:
+            await svc.close()
+
+    background_tasks.add_task(asyncio.run, _background_upload())
+
     return {"message": "동화책이 확정되었습니다", "status": "confirmed"}
