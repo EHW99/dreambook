@@ -29,14 +29,14 @@ function imgUrl(path: string | null | undefined): string {
 
 /* ── 페이지 렌더러 ── */
 
-function TitlePage({ p, childName }: { p: PageItem; childName: string }) {
+function TitlePage({ p, childName, onEdit }: { p: PageItem; childName: string; onEdit?: () => void }) {
   return (
     <>
-      <div style={{
+      <div onClick={onEdit} style={{
         position: "absolute", left: 85.47, top: 407.25, width: 807.07, height: 97.08,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontFamily: "'Jua', serif", fontSize: 50, fontWeight: 700, color: "#000",
-        textAlign: "center",
+        textAlign: "center", cursor: onEdit ? "pointer" : "default",
       }}>
         {p.text_content || "제목"}
       </div>
@@ -112,11 +112,11 @@ function StoryPage({ p, onEdit }: { p: PageItem; onEdit: () => void }) {
         display: "flex", justifyContent: "center", opacity: 0, transition: "opacity 0.2s",
       }}>
         <span style={{
-          background: "rgba(232,131,107,0.9)", color: "#fff",
-          padding: "6px 16px", borderRadius: 20, fontSize: 13,
-          display: "flex", alignItems: "center", gap: 6,
+          color: "#E8836B",
+          padding: "10px 24px", fontSize: 22, fontWeight: 700,
+          display: "flex", alignItems: "center", gap: 10,
         }}>
-          <Pencil size={13} /> 클릭하여 편집
+          <Pencil size={20} /> 클릭하여 편집
         </span>
       </div>
       <div style={{
@@ -131,8 +131,9 @@ function StoryPage({ p, onEdit }: { p: PageItem; onEdit: () => void }) {
   );
 }
 
-function ColophonPage({ p, title, childName }: { p: PageItem; title: string; childName: string }) {
-  const src = imgUrl((p.images.find(i => i.is_selected) || p.images[0])?.image_path);
+function ColophonPage({ p, title, childName, coverSrc }: { p: PageItem; title: string; childName: string; coverSrc?: string }) {
+  const pageSrc = imgUrl((p.images.find(i => i.is_selected) || p.images[0])?.image_path);
+  const src = pageSrc || coverSrc || "";
   const now = new Date();
   const date = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
   return (
@@ -404,10 +405,10 @@ export default function BookPreview({ pages, title, childName, onTextSave, cover
       case "page": {
         const p = item.data;
         switch (p.page_type) {
-          case "title": return <TitlePage p={p} childName={childName} />;
+          case "title": return <TitlePage p={p} childName={childName} onEdit={onTextSave ? () => setEditPage(p) : undefined} />;
           case "illustration": return <IllustPage p={p} />;
           case "story": return <StoryPage p={p} onEdit={() => setEditPage(p)} />;
-          case "colophon": return <ColophonPage p={p} title={title} childName={childName} />;
+          case "colophon": return <ColophonPage p={p} title={title} childName={childName} coverSrc={coverSrc} />;
           default: return <BlankPage />;
         }
       }
@@ -565,13 +566,16 @@ export default function BookPreview({ pages, title, childName, onTextSave, cover
             // 표지
             items.push({ label: "표지", src: coverSrc, spreadIdx: 0 });
 
+            // 간지 (스프레드 1: [빈, 간지])
+            items.push({ label: "간지", src: "", spreadIdx: 1 });
+
             // 일러스트 페이지들 — 해당 스프레드 인덱스 찾기
             const illustPages2 = pages.filter(p => p.page_type === "illustration").sort((a, b) => a.page_number - b.page_number);
             illustPages2.forEach((p, idx) => {
               const src2 = imgUrl((p.images.find(x => x.is_selected) || p.images[0])?.image_path);
               // 스프레드: [빈,간지]=1, [그림1,스토리1]=2, [그림2,스토리2]=3, ...
               const spreadIdx2 = idx + 2;
-              items.push({ label: `${p.page_number}p`, src: src2, spreadIdx: spreadIdx2 });
+              items.push({ label: `${p.page_number}~${p.page_number + 1}p`, src: src2, spreadIdx: spreadIdx2 });
             });
 
             // 발행면
@@ -598,9 +602,9 @@ export default function BookPreview({ pages, title, childName, onTextSave, cover
                   }}>
                     {item.src
                       ? <img src={item.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} crossOrigin="anonymous" draggable={false} />
-                      : <span style={{ fontSize: 9, color: "#999" }}>{item.label}</span>}
+                      : <span style={{ fontSize: 11, color: "#888", fontWeight: 500 }}>{item.label}</span>}
                   </div>
-                  <span style={{ fontSize: 9, color: active ? "#E8836B" : "#999", lineHeight: 1 }}>{item.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? "#E8836B" : "#666", lineHeight: 1 }}>{item.label}</span>
                 </button>
               );
             });

@@ -273,8 +273,8 @@ function OrderContent() {
             transition={{ delay: 0.7 }}
             className="flex flex-col gap-3"
           >
-            <Button onClick={() => router.push("/mypage")} className="w-full">
-              마이페이지로 이동
+            <Button onClick={() => router.push("/bookshelf")} className="w-full">
+              내 책장으로 이동
             </Button>
             <Button
               variant="outline"

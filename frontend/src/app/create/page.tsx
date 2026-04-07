@@ -241,7 +241,7 @@ function CreateWizardContent() {
     if (currentStep === 7 && isGeneratingIllust) return;
     setError(null);
     if (currentStep === 1) {
-      router.push("/mypage");
+      router.push("/bookshelf");
     } else if (currentStep === 6) {
       // 글편집에서 뒤로가면 줄거리로 (스토리 재생성 의미)
       setCurrentStep(4);
@@ -322,7 +322,7 @@ function CreateWizardContent() {
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-text">동화책 만들기</h1>
-            <button onClick={() => router.push("/mypage")} className="text-sm text-text-light hover:text-text transition-colors">
+            <button onClick={() => router.push("/bookshelf")} className="text-sm text-text-light hover:text-text transition-colors">
               나중에 하기
             </button>
           </div>
@@ -534,7 +534,7 @@ function CreateWizardContent() {
 
             <Button
               onClick={handleNext}
-              disabled={saving || (currentStep === 3 && !characterConfirmed)}
+              disabled={saving || (currentStep === 3 && !characterConfirmed) || (currentStep === 4 && !plotInput.trim())}
               className="gap-2"
             >
               {saving ? (

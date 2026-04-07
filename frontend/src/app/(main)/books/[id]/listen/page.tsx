@@ -157,7 +157,7 @@ function AudiobookContent() {
         <div className="text-center space-y-4">
           <VolumeX className="w-12 h-12 text-text-lighter mx-auto" />
           <p className="text-error-dark">{error || "오디오 데이터를 찾을 수 없습니다"}</p>
-          <Button onClick={() => router.push("/mypage")}>마이페이지로</Button>
+          <Button onClick={() => router.push("/bookshelf")}>내 책장으로</Button>
         </div>
       </div>
     );
@@ -169,7 +169,7 @@ function AudiobookContent() {
         <div className="text-center space-y-4">
           <Volume2 className="w-12 h-12 text-text-lighter mx-auto" />
           <p className="text-text-light">아직 동화책 페이지가 없어요</p>
-          <Button onClick={() => router.push("/mypage")}>마이페이지로</Button>
+          <Button onClick={() => router.push("/bookshelf")}>내 책장으로</Button>
         </div>
       </div>
     );

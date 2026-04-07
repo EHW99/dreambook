@@ -311,6 +311,16 @@ def generate_illustrations_endpoint(
             detail="스토리가 먼저 생성되어야 합니다",
         )
 
+    # 재생성(editing 상태)일 때 횟수 체크
+    if book.status == "editing":
+        if book.illust_regen_count >= 2:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="일러스트 재생성 횟수를 모두 사용했습니다 (최대 2회)",
+            )
+        book.illust_regen_count += 1
+        db.commit()
+
     pages = generate_illustrations(db, book)
 
     return GenerateResponse(
