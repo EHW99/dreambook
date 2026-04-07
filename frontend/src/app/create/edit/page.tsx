@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, ArrowLeft, RefreshCw, Eye, Sparkles,
-  AlertCircle, ImageIcon, ShoppingCart,
+  AlertCircle, ImageIcon, CheckCircle,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ function EditContent() {
   // 재생성 로딩
   const [regeneratingStory, setRegeneratingStory] = useState(false);
   const [regeneratingIllust, setRegeneratingIllust] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   // 토스트
   const [toast, setToast] = useState<string | null>(null);
@@ -51,8 +53,16 @@ function EditContent() {
       apiClient.getPages(id),
     ]);
 
-    if (bookResult.data) setBook(bookResult.data);
-    else setError("동화책을 불러올 수 없습니다");
+    if (bookResult.data) {
+      // 확정/완료된 책은 편집 불가 → 뷰어로 이동
+      if (bookResult.data.status === "confirmed" || bookResult.data.status === "completed") {
+        router.replace(`/books/${id}/view`);
+        return;
+      }
+      setBook(bookResult.data);
+    } else {
+      setError("동화책을 불러올 수 없습니다");
+    }
 
     if (pagesResult.data) setPages(pagesResult.data);
     setLoading(false);
@@ -71,6 +81,20 @@ function EditContent() {
       showToast(res.error || "저장에 실패했습니다");
     }
   }, [book, showToast]);
+
+  /* 확정하기 */
+  const handleConfirm = async () => {
+    if (!book) return;
+    setConfirming(true);
+    const res = await apiClient.confirmBook(book.id);
+    if (res.data) {
+      router.replace(`/books/${book.id}/view`);
+    } else {
+      showToast(res.error || "확정에 실패했습니다");
+      setConfirming(false);
+      setShowConfirmModal(false);
+    }
+  };
 
   /* 스토리 재생성 */
   const handleRegenerateStory = async () => {
@@ -199,14 +223,14 @@ function EditContent() {
               <ImageIcon className="w-3.5 h-3.5" />
               {regeneratingIllust ? "생성 중..." : "그림 재생성"}
             </Button>
-            {/* 주문하기 */}
+            {/* 확정하기 */}
             <Button
               size="sm"
-              onClick={() => router.push(`/create/order?book_id=${bookId}`)}
+              onClick={() => setShowConfirmModal(true)}
               className="gap-1.5 bg-primary hover:bg-primary/90 text-white"
             >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              <span>주문하기</span>
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>확정하기</span>
             </Button>
           </div>
         </div>
@@ -278,6 +302,43 @@ function EditContent() {
           </motion.div>
         )}
       </div>
+
+      {/* 확정 확인 모달 */}
+      <AnimatePresence>
+        {showConfirmModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget && !confirming) setShowConfirmModal(false); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl shadow-hover p-7 max-w-sm w-full mx-4"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                </div>
+                <h4 className="text-lg font-bold text-text">동화책 확정</h4>
+              </div>
+              <p className="text-sm text-text-light mb-1">
+                확정하면 <strong>더 이상 수정할 수 없습니다.</strong>
+              </p>
+              <p className="text-sm text-text-light mb-6">
+                확정 후 뷰어에서 주문할 수 있습니다.
+              </p>
+              <div className="flex gap-3">
+                <Button variant="ghost" className="flex-1" onClick={() => setShowConfirmModal(false)} disabled={confirming}>
+                  취소
+                </Button>
+                <Button className="flex-1 bg-primary hover:bg-primary/90 text-white" onClick={handleConfirm} disabled={confirming}>
+                  {confirming ? "확정 중..." : "확정하기"}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

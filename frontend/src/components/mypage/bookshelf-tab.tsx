@@ -24,6 +24,7 @@ const STATUS_MAP: Record<string, { label: string; bg: string; text: string }> = 
   story_generated: { label: "편집중", bg: "bg-accent/80", text: "text-teal-900" },
   generating: { label: "생성중", bg: "bg-accent/80", text: "text-teal-900" },
   editing: { label: "편집중", bg: "bg-accent/80", text: "text-teal-900" },
+  confirmed: { label: "주문 대기", bg: "bg-primary/80", text: "text-white" },
   completed: { label: "완성", bg: "bg-success/80", text: "text-green-900" },
 };
 
@@ -126,6 +127,7 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
           const status = STATUS_MAP[book.status] || { label: book.status, bg: "bg-gray-200", text: "text-gray-700" };
           const isDraft = book.status === "draft" || book.status === "character_confirmed";
           const isEditing = book.status === "editing" || book.status === "story_generated";
+          const isConfirmed = book.status === "confirmed";
           const isCompleted = book.status === "completed";
           const isOrdered = orderedBookIds.has(book.id);
           const canDelete = true;
@@ -215,18 +217,7 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
                     </Button>
                   )}
 
-                  {isCompleted && !isOrdered && (
-                    <>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/view`)}>
-                        <EyeIcon className="w-3.5 h-3.5 mr-1" />보기
-                      </Button>
-                      <Button size="sm" className="flex-1" onClick={() => router.push(`/create/order?bookId=${book.id}`)}>
-                        <ShoppingCartIcon className="w-3.5 h-3.5 mr-1" />주문
-                      </Button>
-                    </>
-                  )}
-
-                  {isCompleted && isOrdered && (
+                  {(isConfirmed || isCompleted) && (
                     <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/view`)}>
                       <EyeIcon className="w-3.5 h-3.5 mr-1" />보기
                     </Button>

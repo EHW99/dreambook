@@ -432,11 +432,11 @@ def regenerate_story(
     """스토리 재생성 (텍스트만, 일러스트는 별도)"""
     book = _get_book_or_403(db, book_id, user)
 
-    # 완료된 책은 재생성 불가
-    if book.status == "completed":
+    # 확정/완료된 책은 재생성 불가
+    if book.status in ("confirmed", "completed"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="이미 주문 완료된 동화책은 재생성할 수 없습니다",
+            detail="확정된 동화책은 재생성할 수 없습니다",
         )
 
     if book.story_regen_count >= 3:
@@ -683,3 +683,24 @@ def get_thumbnails(
             pages.append(f"/uploads/{rel}")
 
     return {"cover": cover_url, "pages": pages}
+
+
+@router.post("/{book_id}/confirm")
+def confirm_book(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """동화책 확정 — 이후 수정 불가, 주문 가능 상태로 전환"""
+    from app.models.book import Book
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="동화책을 찾을 수 없습니다")
+    if book.user_id != user.id:
+        raise HTTPException(status_code=403, detail="본인의 동화책만 확정할 수 있습니다")
+    if book.status != "editing":
+        raise HTTPException(status_code=400, detail="편집 중인 동화책만 확정할 수 있습니다")
+
+    book.status = "confirmed"
+    db.commit()
+    return {"message": "동화책이 확정되었습니다", "status": "confirmed"}

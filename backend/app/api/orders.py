@@ -89,7 +89,7 @@ async def get_estimate(
     book = _get_book_or_error(db, book_id, user)
 
     # 편집 완료(editing/completed) 상태 확인
-    if book.status not in ("editing", "completed"):
+    if book.status not in ("editing", "confirmed", "completed"):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="편집이 완료된 동화책만 견적을 조회할 수 있습니다",
@@ -170,10 +170,10 @@ async def create_order(
     book = _get_book_or_error(db, book_id, user)
 
     # 상태 확인
-    if book.status not in ("editing", "completed"):
+    if book.status not in ("confirmed",):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="편집이 완료된 동화책만 주문할 수 있습니다",
+            detail="확정된 동화책만 주문할 수 있습니다",
         )
 
     # 이미 주문이 존재하는지 확인

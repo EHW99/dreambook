@@ -491,6 +491,14 @@ class ApiClient {
     );
   }
 
+  async confirmBook(bookId: number) {
+    return this.request<{ message: string; status: string }>(
+      `/api/books/${bookId}/confirm`,
+      { method: "POST" },
+      true
+    );
+  }
+
   async getThumbnails(bookId: number) {
     return this.request<{ cover: string | null; pages: string[] }>(
       `/api/books/${bookId}/thumbnails`,
