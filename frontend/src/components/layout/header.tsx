@@ -10,7 +10,6 @@ import { useRouter, usePathname } from "next/navigation";
 const NAV_LINKS = [
   { href: "/create", label: "동화 만들기", auth: true },
   { href: "/bookshelf", label: "내 책장", auth: true },
-  { href: "/gallery", label: "공개 갤러리" },
   { href: "/mypage/photos", label: "아이 사진", auth: true },
   { href: "/mypage/vouchers", label: "이용권", auth: true },
   { href: "/mypage/orders", label: "주문 내역", auth: true },

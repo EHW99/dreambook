@@ -11,7 +11,6 @@ const TABS = [
   { href: "/", label: "홈", icon: Home },
   { href: "/create", label: "만들기", icon: Sparkles, auth: true },
   { href: "/bookshelf", label: "내 책장", icon: BookOpen, auth: true },
-  { href: "/gallery", label: "갤러리", icon: Image },
   { href: "/mypage", label: "MY", icon: User, auth: true },
 ];
 

@@ -355,6 +355,18 @@ class BookPrintService:
 
         return data
 
+    # === Book Delete ===
+
+    async def delete_book_from_api(self, book_uid: str) -> bool:
+        """Book Print API에서 책 삭제 (draft 상태만 가능)"""
+        try:
+            await self._request("DELETE", f"/books/{book_uid}")
+            logger.info(f"[bookprint] API 책 삭제 완료: {book_uid}")
+            return True
+        except BookPrintAPIError as e:
+            logger.warning(f"[bookprint] API 책 삭제 실패 (무시): {e.message}")
+            return False
+
     # === Finalization ===
 
     async def finalize_book(self, book_uid: str) -> dict:

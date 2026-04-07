@@ -36,7 +36,7 @@ def translate_job_with_gpt(job_name: str) -> dict:
         )
 
         response = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
+            model=settings.TEXT_MODEL,
             messages=[
                 {
                     "role": "system",

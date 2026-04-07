@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
+from app.config import get_settings
+
 logger = logging.getLogger("ai_cost_monitor")
 
 
@@ -71,7 +73,7 @@ class CostMonitor:
         """스토리 생성 API 호출 기록"""
         record = APICallRecord(
             service="story",
-            model="gpt-4o",
+            model=get_settings().TEXT_MODEL,
             timestamp=datetime.now(timezone.utc).isoformat(),
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
@@ -100,7 +102,7 @@ class CostMonitor:
         """캐릭터 시트 생성 API 호출 기록"""
         record = APICallRecord(
             service="character",
-            model="gpt-image-1",
+            model=get_settings().IMAGE_MODEL,
             timestamp=datetime.now(timezone.utc).isoformat(),
             image_count=image_count,
             success=success,
@@ -126,7 +128,7 @@ class CostMonitor:
         """일러스트 생성 API 호출 기록"""
         record = APICallRecord(
             service="illustration",
-            model="gpt-image-1",
+            model=get_settings().IMAGE_MODEL,
             timestamp=datetime.now(timezone.utc).isoformat(),
             image_count=image_count,
             success=success,

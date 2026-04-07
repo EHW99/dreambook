@@ -215,15 +215,36 @@ async def create_order(
 
     service = BookPrintService()
     try:
-        # 전체 워크플로우 실행
-        result = await service.execute_order_workflow(
-            title=book.title or f"{book.child_name}의 동화책",
-            book_spec_uid=book.book_spec_uid,
-            pages_data=pages_data,
-            cover_image_path=cover_image_path,
-            shipping=shipping,
-            child_name=book.child_name,
-        )
+        book_uid = book.bookprint_book_uid
+
+        if book_uid:
+            # 이미 업로드+finalize된 책 → 충전금 + 주문만
+            await service.ensure_sufficient_credits()
+            try:
+                order_result = await service.create_order(book_uid, shipping)
+            except BookPrintAPIError as e:
+                if e.status_code == 402:
+                    await service.sandbox_charge()
+                    order_result = await service.create_order(book_uid, shipping)
+                else:
+                    raise
+            result = {
+                "book_uid": book_uid,
+                "order_uid": order_result.get("orderUid"),
+                "order_status": order_result.get("orderStatus", 20),
+                "paid_credit_amount": order_result.get("paidCreditAmount", 0),
+                "order_data": order_result,
+            }
+        else:
+            # 업로드 안 된 책 → 전체 워크플로우
+            result = await service.execute_order_workflow(
+                title=book.title or f"{book.child_name}의 동화책",
+                book_spec_uid=book.book_spec_uid,
+                pages_data=pages_data,
+                cover_image_path=cover_image_path,
+                shipping=shipping,
+                child_name=book.child_name,
+            )
 
         # DB에 주문 레코드 생성
         order = Order(

@@ -289,7 +289,7 @@ def generate_story_with_gpt(
         logger.info(f"[ai_story] 생성 요청: {child_name}, {job_name}, {child_age}세, {child_gender}")
 
         response = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
+            model=settings.TEXT_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

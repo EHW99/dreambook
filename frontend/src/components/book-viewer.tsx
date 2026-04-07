@@ -13,6 +13,7 @@ interface BookViewerProps {
   pages: string[];
   title?: string;
   author?: string;
+  compact?: boolean; // 팝업 모드: 버튼 안쪽, 제목 숨김, 높이 축소
 }
 
 interface Spread {
@@ -44,6 +45,7 @@ function buildSpreads(cover: string | null, pages: string[]): Spread[] {
 function imgSrc(path: string | null): string {
   if (!path) return "";
   if (path.startsWith("http")) return path;
+  if (path.startsWith("/samples")) return path;
   return `${API_BASE}${path}`;
 }
 
@@ -57,7 +59,7 @@ function ImageFallback() {
   );
 }
 
-export default function BookViewer({ cover, pages, title, author }: BookViewerProps) {
+export default function BookViewer({ cover, pages, title, author, compact = false }: BookViewerProps) {
   const [si, setSi] = useState(0);
   const [direction, setDirection] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -162,21 +164,21 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
         .__bv-thumbs::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* Title — 책 바로 위 오른쪽 */}
-      <div className="flex items-center justify-end gap-2 mb-2 px-1">
+      {/* Title — 책 바로 위 오른쪽 (compact에서는 숨김) */}
+      {!compact && <div className="flex items-center justify-end gap-2 mb-2 px-1">
         {title && (
           <span className="text-xs sm:text-sm font-semibold" style={{ color: ACCENT }}>{title}</span>
         )}
         {author && (
           <span className="text-xs sm:text-sm" style={{ color: "#bbb" }}>by {author} 작가님</span>
         )}
-      </div>
+      </div>}
 
       {/* Book area */}
       <div className="relative flex items-center justify-center">
         {/* Nav — 데스크톱만 */}
         <button onClick={prev} disabled={isFirst}
-          className="hidden md:flex absolute -left-14 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full items-center justify-center border transition-all"
+          className={`hidden md:flex absolute ${compact ? "left-2" : "-left-14"} top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full items-center justify-center border transition-all`}
           style={{
             background: "white",
             borderColor: isFirst ? "transparent" : "#e0dcd8",
@@ -188,7 +190,7 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
           <ChevronLeft size={20} />
         </button>
         <button onClick={next} disabled={isLast}
-          className="hidden md:flex absolute -right-14 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full items-center justify-center border transition-all"
+          className={`hidden md:flex absolute ${compact ? "right-2" : "-right-14"} top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full items-center justify-center border transition-all`}
           style={{
             background: "white",
             borderColor: isLast ? "transparent" : "#e0dcd8",
@@ -213,8 +215,8 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
             style={{
               /* 높이: 화면 맞춤. 모바일은 vw 기반으로 넘침 방지 */
               height: isSingle
-                ? "min(65vh, 620px)"
-                : "min(65vh, 620px)",
+                ? compact ? "min(50vh, 450px)" : "min(65vh, 620px)"
+                : compact ? "min(50vh, 450px)" : "min(65vh, 620px)",
               /* 스프레드일 때 width 제한: 2페이지가 화면을 넘지 않게 */
               maxWidth: isSingle ? "min(65vh * 0.977, 606px)" : "100%",
               filter: "drop-shadow(0 4px 24px rgba(0,0,0,0.12)) drop-shadow(0 1px 4px rgba(0,0,0,0.08))",
@@ -247,7 +249,7 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
       </div>
 
       {/* Thumbnail strip */}
-      <div className="relative mt-6 sm:mt-8">
+      <div className={`relative ${compact ? "mt-3" : "mt-6 sm:mt-8"}`}>
         <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
           style={{ background: "linear-gradient(to right, white, transparent)" }} />
         <div className="absolute right-0 top-0 bottom-0 w-8 z-10 pointer-events-none"

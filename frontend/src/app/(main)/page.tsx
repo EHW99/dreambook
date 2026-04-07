@@ -1,8 +1,8 @@
 "use client";
 
 import { useVoucherGate } from "@/lib/voucher-gate-context";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { motion, useInView, AnimatePresence } from "framer-motion";
+import { useRef, useState } from "react";
 import {
   Sparkles,
   BookOpen,
@@ -11,7 +11,9 @@ import {
   Star,
   Check,
   ArrowRight,
+  X,
 } from "lucide-react";
+import BookViewer from "@/components/book-viewer";
 
 /* ───────── 애니메이션 헬퍼 ───────── */
 function FadeInSection({ children, className = "", delay = 0 }: {
@@ -35,30 +37,105 @@ function FadeInSection({ children, className = "", delay = 0 }: {
   );
 }
 
+/* ───────── 샘플 동화책 섹션 ───────── */
+function SampleBooksSection() {
+  const [viewerBook, setViewerBook] = useState<typeof SAMPLE_BOOKS[0] | null>(null);
+  const viewerData = viewerBook ? {
+    cover: `/samples/${viewerBook.id}/cover.jpg`,
+    pages: Array.from({ length: 24 }, (_, i) => `/samples/${viewerBook.id}/${i}.jpg`),
+  } : null;
+
+  return (
+    <>
+      <section className="py-14 sm:py-20 bg-white/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <FadeInSection className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-3">
+              이미 많은 아이들이 꿈을 펼치고 있어요
+            </h2>
+            <p className="text-text-light text-lg max-w-2xl mx-auto mb-2">
+              아이의 이름과 꿈꾸는 직업이 세상에 단 하나뿐인 동화가 됩니다.
+            </p>
+            <p className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-1.5 rounded-full mt-2" style={{ background: "rgba(232,131,107,0.1)", color: "#E8836B" }}>
+              <Star className="w-3.5 h-3.5" />
+              실제 Dreambook 서비스로 제작된 동화책입니다
+            </p>
+          </FadeInSection>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
+            {SAMPLE_BOOKS.map((book, index) => (
+              <FadeInSection key={book.id} delay={index * 0.1}>
+                <button onClick={() => setViewerBook(book)} className="group w-full text-left">
+                  <div className="relative aspect-square rounded-xl overflow-hidden mb-3"
+                    style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+                    <img src={`/samples/${book.id}/cover_photo.png`} alt={book.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-text text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" /> 미리보기
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-bold text-text truncate group-hover:text-primary transition-colors">{book.title}</h3>
+                  <p className="text-xs text-text-lighter mt-0.5">{book.author} · {book.job}</p>
+                </button>
+              </FadeInSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BookViewer 팝업 */}
+      <AnimatePresence>
+        {viewerBook && viewerData && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) setViewerBook(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+              style={{ boxShadow: "0 30px 80px rgba(0,0,0,0.2)" }}
+            >
+              {/* 헤더 */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-secondary/30 flex-shrink-0">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-text truncate">{viewerBook.title}</h3>
+                  <p className="text-xs text-text-lighter">{viewerBook.author} · {viewerBook.job}</p>
+                </div>
+                <button onClick={() => setViewerBook(null)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-secondary/50 transition-colors">
+                  <X size={18} className="text-text-light" />
+                </button>
+              </div>
+              {/* 뷰어 */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                <BookViewer
+                  cover={viewerData.cover}
+                  pages={viewerData.pages}
+                  title={viewerBook.title}
+                  author={viewerBook.author}
+                  compact
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 /* ───────── 데이터 ───────── */
 
 const SAMPLE_BOOKS = [
-  {
-    id: "sample-1",
-    title: "소방관이 된 지민이",
-    description: "용감한 지민이가 소방관이 되어 마을을 지키는 이야기",
-    coverColor: "from-red-200 to-orange-200",
-    emoji: "🚒",
-  },
-  {
-    id: "sample-2",
-    title: "우주비행사 하은이",
-    description: "호기심 가득한 하은이가 우주를 탐험하는 이야기",
-    coverColor: "from-indigo-200 to-purple-200",
-    emoji: "🚀",
-  },
-  {
-    id: "sample-3",
-    title: "요리사 서준이",
-    description: "맛있는 요리를 만드는 서준이의 특별한 하루",
-    coverColor: "from-yellow-200 to-amber-200",
-    emoji: "👨‍🍳",
-  },
+  { id: "bk_psP9hSKrV3uT", title: "용감한 소방관 동준이", author: "임동준", job: "소방관" },
+  { id: "bk_5md3I6fjGYuG", title: "사랑의 노래를 부른 서윤이", author: "이서윤", job: "가수" },
+  { id: "bk_Vz79yxEQXSY8", title: "축구왕 임하준의 멋진 하루", author: "임하준", job: "축구선수" },
+  { id: "bk_4wzYIERSPhZu", title: "아율의 아름다운 선율", author: "김아율", job: "피아니스트" },
+  { id: "bk_1UjfshTW9cJm", title: "용감한 경찰관 김시우", author: "김시우", job: "경찰관" },
 ];
 
 const ART_STYLES = [
@@ -234,73 +311,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── 샘플 동화책 섹션 ── */}
-        <section className="py-14 sm:py-20 bg-white/50">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <FadeInSection className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold font-display text-text mb-4">
-                이미 많은 아이들이 꿈을 펼치고 있어요
-              </h2>
-              <p className="text-text-light text-lg max-w-2xl mx-auto">
-                아이의 이름과 꿈꾸는 직업이 세상에 단 하나뿐인 동화가 됩니다.
-              </p>
-            </FadeInSection>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {SAMPLE_BOOKS.map((book, index) => (
-                <FadeInSection key={book.id} delay={index * 0.15}>
-                  <div
-                    data-testid="sample-book-card"
-                    className="group cursor-pointer"
-                  >
-                    {/* 책 형태 3D 효과 */}
-                    <div className="relative mx-auto" style={{ perspective: "800px" }}>
-                      {/* 그림자 + 페이지 레이어 */}
-                      <div className="absolute inset-0 translate-x-1 translate-y-1 bg-text/5 rounded-2xl" />
-                      <div className="absolute inset-0 translate-x-0.5 translate-y-0.5 bg-white border border-gray-100 rounded-2xl" />
-                      {/* 메인 카드 */}
-                      <div className="relative bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-hover transition-all duration-300 group-hover:-translate-y-1">
-                        {/* 표지 영역 — 책 느낌 */}
-                        <div className={`relative h-52 sm:h-56 bg-gradient-to-br ${book.coverColor} flex flex-col items-center justify-center overflow-hidden`}>
-                          {/* 장식 요소 */}
-                          <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/20" />
-                          <div className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-white/15" />
-                          <div className="absolute top-1/4 right-1/4 w-5 h-5 rounded-full bg-white/10" />
-                          {/* 책등 라인 */}
-                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-black/10 rounded-l-2xl" />
-                          {/* 이모지 + 텍스트 */}
-                          <span className="text-7xl mb-3 group-hover:scale-110 transition-transform duration-300 drop-shadow-sm">
-                            {book.emoji}
-                          </span>
-                          <span className="text-base font-bold text-text/70 px-4 text-center leading-tight">
-                            {book.title}
-                          </span>
-                          {/* 하단 태그 */}
-                          <span className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/40 text-xs font-medium text-text/60">
-                            <BookOpen className="w-3 h-3" />
-                            AI 동화책
-                          </span>
-                        </div>
-                        {/* 하단 설명 */}
-                        <div className="p-5">
-                          <h3 className="text-lg font-bold text-text mb-1.5 group-hover:text-primary transition-colors">
-                            {book.title}
-                          </h3>
-                          <p className="text-sm text-text-light leading-relaxed mb-3">
-                            {book.description}
-                          </p>
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                            미리보기
-                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </FadeInSection>
-              ))}
-            </div>
-          </div>
-        </section>
+        <SampleBooksSection />
 
         {/* ── 그림체 샘플 섹션 ── */}
         <section className="py-14 sm:py-20">

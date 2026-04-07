@@ -36,11 +36,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/gallery" className="text-sm text-text-light hover:text-primary transition-colors">
-                  공개 갤러리
-                </Link>
-              </li>
-              <li>
                 <Link href="/mypage/photos" className="text-sm text-text-light hover:text-primary transition-colors">
                   아이 사진
                 </Link>

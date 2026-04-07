@@ -10,6 +10,18 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: str = ""
 
+    # ── AI 모델 설정 ──
+    # 텍스트 모델: 스토리 생성, 줄거리 생성, 직업 번역에 사용
+    # 선택지: gpt-4o, gpt-4o-mini
+    TEXT_MODEL: str = "gpt-4o-mini"
+
+    # 이미지 모델: 캐릭터 시트, 일러스트, 표지 생성에 사용
+    # 선택지: gpt-image-1, gpt-image-1-mini, gpt-image-1.5
+    IMAGE_MODEL: str = "gpt-image-1.5"
+
+    # 이미지 품질: low / medium / high
+    IMAGE_QUALITY: str = "low"
+
     # JWT
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60

@@ -109,11 +109,11 @@ def generate_character_image(
         def _api_call():
             photo_buf.seek(0)
             return client.images.edit(
-                model="gpt-image-1.5",
+                model=settings.IMAGE_MODEL,
                 image=photo_buf,
                 prompt=prompt,
                 size="1024x1024",
-                quality="low",
+                quality=settings.IMAGE_QUALITY,
                 output_format="png",
             )
 

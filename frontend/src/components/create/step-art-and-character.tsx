@@ -379,24 +379,25 @@ export function StepArtAndCharacter({
                 {artStyle ? "버튼을 눌러 캐릭터를 생성해보세요" : "그림체를 먼저 선택해주세요"}
               </p>
             </div>
-            <Button
-              onClick={handleGenerate}
-              disabled={generating || !artStyle}
-              size="lg"
-              className="gap-2"
-            >
-              {generating ? (
-                <>
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                  생성 중...
-                </>
-              ) : (
-                <>
-                  <ImageIcon className="w-5 h-5" />
-                  캐릭터 생성하기
-                </>
-              )}
-            </Button>
+            {generating ? (
+              <div className="text-center space-y-3">
+                <div className="w-16 h-16 mx-auto rounded-full border-4 border-secondary flex items-center justify-center">
+                  <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                </div>
+                <p className="text-sm font-bold text-text">캐릭터를 생성하고 있어요...</p>
+                <p className="text-xs text-text-lighter">약 15~30초 정도 소요됩니다. 이 화면을 닫지 마세요.</p>
+              </div>
+            ) : (
+              <Button
+                onClick={handleGenerate}
+                disabled={!artStyle}
+                size="lg"
+                className="gap-2"
+              >
+                <ImageIcon className="w-5 h-5" />
+                캐릭터 생성하기
+              </Button>
+            )}
           </div>
         ) : (
           <>
@@ -454,25 +455,25 @@ export function StepArtAndCharacter({
               </AnimatePresence>
             </div>
 
-            <div className="flex items-center justify-center gap-4 mt-5">
-              <Button
-                onClick={handleGenerate}
-                disabled={generating || !canRegenerate}
-                variant="outline"
-                className="gap-2"
-              >
-                {generating ? (
-                  <>
+            <div className="flex flex-col items-center gap-3 mt-5">
+              {generating ? (
+                <div className="text-center space-y-2">
+                  <div className="w-10 h-10 mx-auto rounded-full border-3 border-secondary flex items-center justify-center">
                     <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
-                    생성 중...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    다른 캐릭터 생성
-                  </>
-                )}
-              </Button>
+                  </div>
+                  <p className="text-sm text-text-light">캐릭터를 생성하고 있어요... (약 15~30초)</p>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!canRegenerate}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  다른 캐릭터 생성
+                </Button>
+              )}
               <span className="text-sm text-text-light">
                 남은 횟수: <span className={`font-bold ${remainingRegens === 0 ? "text-error-dark" : "text-primary"}`}>{remainingRegens}회</span>
               </span>

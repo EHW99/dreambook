@@ -94,7 +94,7 @@ def generate_plots_with_gpt(
         )
 
         response = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
+            model=settings.TEXT_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
