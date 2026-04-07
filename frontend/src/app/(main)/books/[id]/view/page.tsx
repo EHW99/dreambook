@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
+import { PageTransition } from "@/components/page-transition";
 import { Button } from "@/components/ui/button";
 import { apiClient, BookItem, PageItem } from "@/lib/api";
 import BookViewer from "@/components/book-viewer";
@@ -41,10 +42,10 @@ function BookViewContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#2a2420]">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center space-y-4">
           <div className="animate-spin w-10 h-10 border-3 border-primary border-t-transparent rounded-full mx-auto" />
-          <p className="text-white/60">동화책을 불러오는 중...</p>
+          <p className="text-text-light">동화책을 불러오는 중...</p>
         </div>
       </div>
     );
@@ -52,11 +53,11 @@ function BookViewContent() {
 
   if (error || !book) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center space-y-4">
           <BookOpen className="w-12 h-12 text-text-lighter mx-auto" />
           <p className="text-error-dark">{error || "동화책을 찾을 수 없습니다"}</p>
-          <Button onClick={() => router.push("/mypage")}>마이페이지로</Button>
+          <Button onClick={() => router.push("/bookshelf")}>내 책장으로</Button>
         </div>
       </div>
     );
@@ -65,21 +66,16 @@ function BookViewContent() {
   const hasThumbnails = thumbnails && thumbnails.pages.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#faf9f7" }}>
-      {/* 헤더 */}
-      <div className="flex items-center gap-3 px-5 py-3">
+    <PageTransition>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 pb-20 md:pb-4">
+        {/* 뒤로가기 */}
         <button
           onClick={() => router.back()}
-          className="text-text-light hover:text-text transition-colors flex items-center gap-2"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-secondary hover:border-primary hover:text-primary transition-all shadow-sm mb-4"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">돌아가기</span>
+          <ArrowLeft size={18} />
+          <span className="text-sm font-medium">내 책장</span>
         </button>
-        <div className="flex-1" />
-      </div>
-
-      {/* 뷰어 */}
-      <div className="flex-1 px-4 pb-4">
         {hasThumbnails ? (
           <BookViewer
             cover={thumbnails.cover}
@@ -103,7 +99,7 @@ function BookViewContent() {
           </div>
         )}
       </div>
-    </div>
+    </PageTransition>
   );
 }
 

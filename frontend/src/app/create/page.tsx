@@ -307,7 +307,7 @@ function CreateWizardContent() {
               나중에 하기
             </button>
           </div>
-          <WizardProgress currentStep={currentStep} />
+          <WizardProgress currentStep={currentStep} variant="B" />
         </div>
       </div>
 

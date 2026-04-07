@@ -46,7 +46,14 @@ def translate_job_with_gpt(job_name: str) -> dict:
                         "- job_name_en: English job title (e.g. 'firefighter')\n"
                         "- job_outfit: Visual description of the job's typical outfit/appearance for illustration "
                         "(e.g. 'wearing a red firefighter helmet and yellow fireproof coat')\n"
-                        "Keep job_outfit under 20 words. Focus on visually distinctive clothing/tools."
+                        "Keep job_outfit under 20 words. Focus on visually distinctive clothing/tools.\n\n"
+                        "IMPORTANT: The character is a child (age 5-7). "
+                        "Never describe revealing, skin-exposing, or tight-fitting clothing. "
+                        "Always use full-coverage child-safe alternatives. Examples:\n"
+                        "- swimmer → 'wearing a full-body athletic wetsuit, swimming goggles, and a swim cap'\n"
+                        "- ballet dancer → 'wearing a long-sleeve leotard with leggings and ballet shoes'\n"
+                        "- cheerleader → 'wearing a long-sleeve cheerleading uniform with pants'\n"
+                        "- gymnast → 'wearing a full-body gymnastics suit with long sleeves'"
                     ),
                 },
                 {"role": "user", "content": job_name},

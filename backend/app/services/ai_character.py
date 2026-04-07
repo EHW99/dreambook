@@ -10,6 +10,8 @@ from pathlib import Path
 
 from openai import OpenAI, BadRequestError
 
+from app.services.image_utils import resize_image_for_api, call_with_retry
+
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -101,19 +103,21 @@ def generate_character_image(
             timeout=120.0,
         )
 
-        # 아이 사진 파일을 열어서 images.edit에 전달
-        photo_file = open(photo_path, "rb")
-        try:
-            response = client.images.edit(
-                model="gpt-image-1-mini",
-                image=photo_file,
+        # 아이 사진을 리사이즈하여 API에 전달
+        photo_buf = resize_image_for_api(photo_path)
+
+        def _api_call():
+            photo_buf.seek(0)
+            return client.images.edit(
+                model="gpt-image-1.5",
+                image=photo_buf,
                 prompt=prompt,
                 size="1024x1024",
-                quality="medium",
+                quality="low",
                 output_format="png",
             )
-        finally:
-            photo_file.close()
+
+        response = call_with_retry(_api_call)
 
         # base64 인코딩된 이미지 디코딩
         b64_data = response.data[0].b64_json

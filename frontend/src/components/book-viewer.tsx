@@ -2,21 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
-
-/* ================================================================
- *  BookViewer — 완성 책 뷰어
- *
- *  레퍼런스: 스위트북 미리보기 뷰어
- *  - 밝은 배경, 하단 썸네일 스트립
- *  - 제목/저자 표시, 프로그레스 바
- *  - 미묘한 종이 그림자/질감
- *
- *  cover.jpg: 뒷표지+책등+앞표지 전체 (가로형)
- *  0.jpg~23.jpg: 내지 24페이지
- * ================================================================ */
+import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const ACCENT = "#E8836B";
+const PAGE_RATIO = 978 / 1000.8;
 
 interface BookViewerProps {
   cover: string | null;
@@ -34,30 +24,20 @@ interface Spread {
 
 function buildSpreads(cover: string | null, pages: string[]): Spread[] {
   const spreads: Spread[] = [];
-
-  // 표지 (단독)
   spreads.push({ type: "cover", left: null, right: cover, label: "커버" });
-
-  // [빈, 간지(0.jpg)]
   spreads.push({ type: "spread", left: null, right: pages[0] || null, label: "1" });
-
-  // [그림, 스토리] 쌍: 1+2, 3+4, ..., 21+22
   for (let i = 1; i < pages.length - 1; i += 2) {
-    const left = pages[i] || null;
-    const right = pages[i + 1] || null;
-    const startPage = i + 1;
-    const endPage = i + 2;
-    spreads.push({ type: "spread", left, right, label: `${startPage}-${endPage}` });
+    spreads.push({
+      type: "spread",
+      left: pages[i] || null,
+      right: pages[i + 1] || null,
+      label: `${i + 1}-${i + 2}`,
+    });
   }
-
-  // [발행면(23.jpg), 빈]
   if (pages.length >= 24) {
     spreads.push({ type: "spread", left: pages[23] || null, right: null, label: "24" });
   }
-
-  // 뒷표지 (단독)
   spreads.push({ type: "backcover", left: cover, right: null, label: "뒷표지" });
-
   return spreads;
 }
 
@@ -67,10 +47,19 @@ function imgSrc(path: string | null): string {
   return `${API_BASE}${path}`;
 }
 
+function ImageFallback() {
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center gap-2"
+      style={{ background: "#f5f2ed" }}>
+      <ImageOff size={28} style={{ color: "#ccc" }} />
+      <span className="text-xs" style={{ color: "#bbb" }}>이미지 준비 중</span>
+    </div>
+  );
+}
+
 export default function BookViewer({ cover, pages, title, author }: BookViewerProps) {
   const [si, setSi] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const thumbStripRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
@@ -95,91 +84,70 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
     if (si > 0) goto(si - 1);
   }, [si, goto]);
 
-  // Scroll active thumbnail into view
   useEffect(() => {
     const strip = thumbStripRef.current;
     if (!strip) return;
     const active = strip.children[si] as HTMLElement;
-    if (active) {
-      active.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    }
+    if (active) active.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [si]);
 
-  // Keyboard
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); next(); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
-      else if (e.key === "Escape" && isFullscreen) setIsFullscreen(false);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [next, prev, isFullscreen]);
+  }, [next, prev]);
 
-  // Touch swipe
   const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
   };
 
-  // Fullscreen
-  const toggleFullscreen = () => {
-    if (!isFullscreen) containerRef.current?.requestFullscreen?.();
-    else document.exitFullscreen?.();
-  };
-  useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", handler);
-    return () => document.removeEventListener("fullscreenchange", handler);
-  }, []);
-
-  // Cover image cropping helper
   const CoverImage = ({ side, alt }: { side: "front" | "back"; alt: string }) => {
+    const [hasError, setHasError] = useState(false);
     const src = imgSrc(cover);
-    if (!src) return <div className="w-full h-full bg-[#FFF8F0]" />;
+    if (!src || hasError) return <ImageFallback />;
     return (
       <div className="w-full h-full overflow-hidden">
-        <img
-          src={src} alt={alt} draggable={false} crossOrigin="anonymous"
-          className="h-full object-cover"
+        <img src={src} alt={alt} draggable={false} crossOrigin="anonymous"
+          className="h-full object-cover" onError={() => setHasError(true)}
           style={{
             width: "200%", maxWidth: "none",
             objectPosition: side === "front" ? "right center" : "left center",
             transform: side === "front" ? "translateX(-50%)" : undefined,
+            clipPath: side === "back" ? "inset(0 52% 0 0)" : undefined,
           }}
         />
       </div>
     );
   };
 
-  // Page component with paper effect
-  const Page = ({ src, position }: { src: string | null; position: "left" | "right" | "single" }) => {
-    const roundedClass = position === "left" ? "rounded-l-[3px]"
-      : position === "right" ? "rounded-r-[3px]"
-      : "rounded-[3px]";
-
+  const PageView = ({ src, position }: { src: string | null; position: "left" | "right" | "single" }) => {
+    const [hasError, setHasError] = useState(false);
+    const rounded = position === "left" ? "rounded-l-[4px]"
+      : position === "right" ? "rounded-r-[4px]" : "rounded-[4px]";
     return (
-      <div className={`relative bg-white ${roundedClass} overflow-hidden`}
-        style={{
-          width: isSingle ? "min(42vw, 400px)" : "min(36vw, 340px)",
-          aspectRatio: isSingle ? "978/1000.8" : "978/1000.8",
-        }}
+      <div className={`relative bg-white ${rounded} overflow-hidden`}
+        style={{ height: "100%", aspectRatio: `${PAGE_RATIO}` }}
       >
-        {src ? (
+        {src && !hasError ? (
           <img src={imgSrc(src)} alt="" className="w-full h-full object-contain"
-            crossOrigin="anonymous" draggable={false} />
+            crossOrigin="anonymous" draggable={false} onError={() => setHasError(true)} />
+        ) : src && hasError ? (
+          <ImageFallback />
         ) : (
           <div className="w-full h-full bg-white" />
         )}
-        {/* Inner spine shadow */}
         {position === "left" && (
-          <div className="absolute top-0 right-0 bottom-0 w-8 pointer-events-none"
-            style={{ background: "linear-gradient(to left, rgba(0,0,0,0.06), transparent)" }} />
+          <div className="absolute top-0 right-0 bottom-0 w-[15px] pointer-events-none"
+            style={{ background: "linear-gradient(to left, rgba(0,0,0,0.12), transparent)" }} />
         )}
         {position === "right" && (
-          <div className="absolute top-0 left-0 bottom-0 w-8 pointer-events-none"
-            style={{ background: "linear-gradient(to right, rgba(0,0,0,0.06), transparent)" }} />
+          <div className="absolute top-0 left-0 bottom-0 w-[15px] pointer-events-none"
+            style={{ background: "linear-gradient(to right, rgba(0,0,0,0.12), transparent)" }} />
         )}
       </div>
     );
@@ -188,33 +156,27 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
   return (
     <div ref={containerRef}
       className="relative w-full flex flex-col select-none"
-      style={{
-        background: isFullscreen ? "#f5f3f0" : "transparent",
-        borderRadius: isFullscreen ? 0 : 16,
-        height: isFullscreen ? "100vh" : "auto",
-      }}
       onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
     >
-      {/* Main viewer area */}
-      <div className="relative flex items-center justify-center"
-        style={{
-          background: "#f5f3f0",
-          borderRadius: 16,
-          minHeight: "min(70vh, 560px)",
-          padding: "40px 60px",
-        }}
-      >
-        {/* Fullscreen button */}
-        <button onClick={toggleFullscreen}
-          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center border-none cursor-pointer transition-all hover:bg-black/10"
-          style={{ background: "rgba(0,0,0,0.04)", color: "#999" }}
-        >
-          {isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
-        </button>
+      <style>{`
+        .__bv-thumbs::-webkit-scrollbar { display: none; }
+      `}</style>
 
-        {/* Prev button */}
+      {/* Title — 책 바로 위 오른쪽 */}
+      <div className="flex items-center justify-end gap-2 mb-2 px-1">
+        {title && (
+          <span className="text-xs sm:text-sm font-semibold" style={{ color: ACCENT }}>{title}</span>
+        )}
+        {author && (
+          <span className="text-xs sm:text-sm" style={{ color: "#bbb" }}>by {author} 작가님</span>
+        )}
+      </div>
+
+      {/* Book area */}
+      <div className="relative flex items-center justify-center">
+        {/* Nav — 데스크톱만 */}
         <button onClick={prev} disabled={isFirst}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full flex items-center justify-center border transition-all"
+          className="hidden md:flex absolute -left-14 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full items-center justify-center border transition-all"
           style={{
             background: "white",
             borderColor: isFirst ? "transparent" : "#e0dcd8",
@@ -225,10 +187,8 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
         >
           <ChevronLeft size={20} />
         </button>
-
-        {/* Next button */}
         <button onClick={next} disabled={isLast}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full flex items-center justify-center border transition-all"
+          className="hidden md:flex absolute -right-14 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full items-center justify-center border transition-all"
           style={{
             background: "white",
             borderColor: isLast ? "transparent" : "#e0dcd8",
@@ -240,27 +200,29 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
           <ChevronRight size={20} />
         </button>
 
-        {/* Book display */}
+        {/* Book */}
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={si}
             custom={direction}
-            initial={{ opacity: 0, x: direction > 0 ? 40 : -40 }}
+            initial={{ opacity: 0, x: direction > 0 ? 30 : -30 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction > 0 ? -40 : 40 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            className="flex"
+            exit={{ opacity: 0, x: direction > 0 ? -30 : 30 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="flex items-center justify-center"
             style={{
-              filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.1)) drop-shadow(0 12px 40px rgba(0,0,0,0.06))",
+              /* 높이: 화면 맞춤. 모바일은 vw 기반으로 넘침 방지 */
+              height: isSingle
+                ? "min(65vh, 620px)"
+                : "min(65vh, 620px)",
+              /* 스프레드일 때 width 제한: 2페이지가 화면을 넘지 않게 */
+              maxWidth: isSingle ? "min(65vh * 0.977, 606px)" : "100%",
+              filter: "drop-shadow(0 4px 24px rgba(0,0,0,0.12)) drop-shadow(0 1px 4px rgba(0,0,0,0.08))",
             }}
           >
             {isSingle ? (
-              /* Single page: Cover or Back Cover */
-              <div className="relative rounded-[3px] overflow-hidden bg-white"
-                style={{
-                  width: "min(42vw, 400px)",
-                  aspectRatio: "978/1000.8",
-                }}
+              <div className="h-full rounded-[4px] overflow-hidden bg-white"
+                style={{ aspectRatio: `${PAGE_RATIO}` }}
               >
                 {cur.type === "cover" ? (
                   <CoverImage side="front" alt="앞표지" />
@@ -269,61 +231,50 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
                 )}
               </div>
             ) : (
-              /* Spread: Two pages */
-              <div className="flex">
-                <Page src={cur.left} position="left" />
-                {/* Spine */}
-                <div className="w-[1px] self-stretch" style={{ background: "rgba(0,0,0,0.08)" }} />
-                <Page src={cur.right} position="right" />
+              <div className="flex h-full" style={{ maxWidth: "100%" }}>
+                <PageView src={cur.left} position="left" />
+                <div className="relative w-[2px] self-stretch flex-shrink-0" style={{ background: "rgba(0,0,0,0.10)" }}>
+                  <div className="absolute top-0 bottom-0 -left-[3px] w-[4px] pointer-events-none"
+                    style={{ background: "linear-gradient(to right, transparent, rgba(0,0,0,0.04))" }} />
+                  <div className="absolute top-0 bottom-0 -right-[3px] w-[4px] pointer-events-none"
+                    style={{ background: "linear-gradient(to left, transparent, rgba(0,0,0,0.04))" }} />
+                </div>
+                <PageView src={cur.right} position="right" />
               </div>
             )}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Title + Author */}
-      <div className="flex items-center justify-center gap-3 py-4">
-        {title && (
-          <span className="text-sm font-semibold" style={{ color: "#E8836B" }}>
-            {title}
-          </span>
-        )}
-        {author && (
-          <span className="text-sm" style={{ color: "#999" }}>
-            by {author} 작가님
-          </span>
-        )}
-      </div>
-
       {/* Thumbnail strip */}
-      <div className="relative">
+      <div className="relative mt-6 sm:mt-8">
+        <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(to right, white, transparent)" }} />
+        <div className="absolute right-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(to left, white, transparent)" }} />
+
         <div ref={thumbStripRef}
-          className="flex gap-2 overflow-x-auto px-4 pb-2 justify-center"
+          className="__bv-thumbs flex gap-1.5 overflow-x-auto px-8 pb-1"
           style={{ scrollbarWidth: "none" }}
         >
-          <style>{`
-            .__bv-thumbs::-webkit-scrollbar { display: none; }
-          `}</style>
           {spreads.map((sp, i) => {
             const active = i === si;
             const isSingleThumb = sp.type === "cover" || sp.type === "backcover";
-
             return (
               <button key={i} onClick={() => goto(i)}
                 className="flex-shrink-0 flex flex-col items-center gap-1 bg-transparent border-none cursor-pointer p-0"
               >
-                {/* Thumbnail image */}
-                <div className="flex gap-[1px] rounded overflow-hidden transition-all"
+                <div className="flex gap-[1px] overflow-hidden transition-all"
                   style={{
-                    width: isSingleThumb ? 60 : 110,
-                    height: 56,
-                    border: active ? "2px solid #7B61FF" : "2px solid transparent",
+                    /* 모바일: 작게, 데스크톱: 크게 — CSS clamp */
+                    width: isSingleThumb ? "clamp(48px, 6vw, 72px)" : "clamp(96px, 12vw, 144px)",
+                    height: "clamp(46px, 6vw, 70px)",
+                    border: active ? `2px solid ${ACCENT}` : "2px solid transparent",
                     borderRadius: 4,
-                    opacity: active ? 1 : 0.7,
+                    opacity: active ? 1 : 0.65,
                   }}
                 >
                   {isSingleThumb ? (
-                    /* Single thumbnail */
                     <div className="w-full h-full bg-[#f0ede8] overflow-hidden">
                       {sp.right && sp.type === "cover" ? (
                         <img src={imgSrc(sp.right)} alt="" className="h-full object-cover"
@@ -331,14 +282,13 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
                           crossOrigin="anonymous" draggable={false} />
                       ) : sp.left && sp.type === "backcover" ? (
                         <img src={imgSrc(sp.left)} alt="" className="h-full object-cover"
-                          style={{ width: "200%", maxWidth: "none", objectPosition: "left center" }}
+                          style={{ width: "200%", maxWidth: "none", objectPosition: "left center", clipPath: "inset(0 52% 0 0)" }}
                           crossOrigin="anonymous" draggable={false} />
                       ) : (
                         <div className="w-full h-full bg-[#f0ede8]" />
                       )}
                     </div>
                   ) : (
-                    /* Spread thumbnail */
                     <>
                       <div className="flex-1 h-full bg-[#f0ede8] overflow-hidden">
                         {sp.left ? (
@@ -355,10 +305,7 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
                     </>
                   )}
                 </div>
-                {/* Label */}
-                <span className="text-[10px] transition-colors"
-                  style={{ color: active ? "#7B61FF" : "#aaa" }}
-                >
+                <span className="text-[10px]" style={{ color: active ? ACCENT : "#aaa" }}>
                   {sp.label}
                 </span>
               </button>
@@ -367,13 +314,16 @@ export default function BookViewer({ cover, pages, title, author }: BookViewerPr
         </div>
 
         {/* Progress bar */}
-        <div className="h-[3px] mx-4 mt-1 mb-1 rounded-full overflow-hidden" style={{ background: "#e8e5e0" }}>
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: "#7B61FF" }}
-            animate={{ width: `${progress * 100}%` }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          />
+        <div className="flex items-center gap-3 mx-4 mt-0.5">
+          <div className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: "#e8e5e0" }}>
+            <motion.div className="h-full rounded-full" style={{ background: ACCENT }}
+              animate={{ width: `${progress * 100}%` }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            />
+          </div>
+          <span className="text-[11px] tabular-nums flex-shrink-0" style={{ color: "#aaa" }}>
+            {si + 1} / {spreads.length}
+          </span>
         </div>
       </div>
     </div>

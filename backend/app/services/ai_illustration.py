@@ -9,6 +9,8 @@ import logging
 
 from openai import OpenAI, BadRequestError
 
+from app.services.image_utils import resize_image_for_api, call_with_retry
+
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -112,18 +114,20 @@ def generate_illustration_image(
             timeout=120.0,
         )
 
-        photo_file = open(character_sheet_path, "rb")
-        try:
-            response = client.images.edit(
-                model="gpt-image-1-mini",
-                image=photo_file,
+        photo_buf = resize_image_for_api(character_sheet_path)
+
+        def _api_call():
+            photo_buf.seek(0)
+            return client.images.edit(
+                model="gpt-image-1.5",
+                image=photo_buf,
                 prompt=prompt,
                 size="1024x1024",
-                quality="medium",
+                quality="low",
                 output_format="png",
             )
-        finally:
-            photo_file.close()
+
+        response = call_with_retry(_api_call)
 
         b64_data = response.data[0].b64_json
         image_bytes = base64.b64decode(b64_data)
@@ -260,18 +264,20 @@ def generate_cover_image_ai(
             timeout=120.0,
         )
 
-        photo_file = open(character_sheet_path, "rb")
-        try:
-            response = client.images.edit(
-                model="gpt-image-1-mini",
-                image=photo_file,
+        photo_buf = resize_image_for_api(character_sheet_path)
+
+        def _api_call():
+            photo_buf.seek(0)
+            return client.images.edit(
+                model="gpt-image-1.5",
+                image=photo_buf,
                 prompt=prompt,
                 size="1024x1024",
-                quality="medium",
+                quality="low",
                 output_format="png",
             )
-        finally:
-            photo_file.close()
+
+        response = call_with_retry(_api_call)
 
         b64_data = response.data[0].b64_json
         image_bytes = base64.b64decode(b64_data)

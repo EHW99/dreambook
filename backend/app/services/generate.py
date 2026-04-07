@@ -354,7 +354,7 @@ def generate_illustrations(
         return i, image_path
 
     image_results: dict[int, str] = {}
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = {
             executor.submit(_gen_task, i, ip): i
             for i, ip in enumerate(illust_pages)

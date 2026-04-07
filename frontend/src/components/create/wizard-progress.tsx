@@ -13,69 +13,120 @@ const STEPS = [
   { number: 7, label: "그림" },
 ];
 
+const TOTAL = STEPS.length;
+
+// ── 3단계 그룹 매핑 ──
+const GROUPS = [
+  { label: "정보 입력", steps: [1, 2, 3] },
+  { label: "동화 생성", steps: [4, 5] },
+  { label: "편집/완성", steps: [6, 7] },
+];
+
 interface WizardProgressProps {
   currentStep: number;
+  variant?: "A" | "B" | "C";
 }
 
-export function WizardProgress({ currentStep }: WizardProgressProps) {
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// A) 심플 바 — 숫자/라벨 없이 얇은 진행 바만
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function VariantA({ currentStep }: { currentStep: number }) {
+  const progress = ((currentStep - 1) / (TOTAL - 1)) * 100;
+
   return (
-    <div className="w-full overflow-x-auto pb-2 -mx-2 px-2">
-      <div className="flex items-center justify-between min-w-full">
-        {STEPS.map((step, index) => {
-          const isCompleted = currentStep > step.number;
-          const isCurrent = currentStep === step.number;
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
+        <motion.div
+          className="h-full bg-primary rounded-full"
+          initial={false}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        />
+      </div>
+      <span className="text-xs text-text-lighter shrink-0">
+        {currentStep}/{TOTAL}
+      </span>
+    </div>
+  );
+}
 
-          return (
-            <div key={step.number} className="flex items-center">
-              <div className="flex flex-col items-center">
-                <motion.div
-                  initial={false}
-                  animate={{
-                    scale: isCurrent ? 1.1 : 1,
-                    backgroundColor: isCompleted
-                      ? "#B5EAD7"
-                      : isCurrent
-                      ? "#FFB5A7"
-                      : "#FDE8E3",
-                  }}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    isCompleted
-                      ? "text-white"
-                      : isCurrent
-                      ? "text-white ring-4 ring-primary/20"
-                      : "text-text-lighter"
-                  }`}
-                >
-                  {isCompleted ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    step.number
-                  )}
-                </motion.div>
-                <span
-                  className={`mt-1 text-[10px] whitespace-nowrap ${
-                    isCurrent
-                      ? "text-primary font-bold"
-                      : isCompleted
-                      ? "text-success-dark font-medium"
-                      : "text-text-lighter"
-                  }`}
-                >
-                  {step.label}
-                </span>
-              </div>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// B) 현재 스텝만 표시 — 나머지 숨김
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function VariantB({ currentStep }: { currentStep: number }) {
+  const current = STEPS.find((s) => s.number === currentStep);
+  const progress = ((currentStep - 1) / (TOTAL - 1)) * 100;
 
-              {index < STEPS.length - 1 && (
-                <div
-                  className={`w-6 sm:w-10 h-0.5 mx-1 mt-[-14px] ${
-                    isCompleted ? "bg-success" : "bg-secondary"
-                  }`}
-                />
-              )}
-            </div>
-          );
-        })}
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-text">
+          <span className="font-bold text-primary">Step {currentStep}</span>
+          <span className="text-text-lighter mx-1.5">·</span>
+          <span className="font-medium">{current?.label}</span>
+        </p>
+        <span className="text-xs text-text-lighter">{currentStep}/{TOTAL}</span>
+      </div>
+      <div className="h-1 bg-secondary/50 rounded-full overflow-hidden">
+        <motion.div
+          className="h-full bg-primary rounded-full"
+          initial={false}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        />
       </div>
     </div>
   );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// C) 3단계 그룹 — 정보입력 / 동화생성 / 편집완성
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function VariantC({ currentStep }: { currentStep: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      {GROUPS.map((group, gi) => {
+        const isCompleted = currentStep > Math.max(...group.steps);
+        const isCurrent = group.steps.includes(currentStep);
+
+        return (
+          <div key={group.label} className="flex items-center flex-1 gap-2">
+            <div className="flex-1">
+              <div
+                className={`text-center py-2 rounded-xl text-xs font-medium transition-all ${
+                  isCompleted
+                    ? "bg-success/20 text-success-dark"
+                    : isCurrent
+                    ? "bg-primary/15 text-primary-dark font-bold"
+                    : "bg-secondary/30 text-text-lighter"
+                }`}
+              >
+                {isCompleted ? (
+                  <span className="flex items-center justify-center gap-1">
+                    <Check className="w-3 h-3" />
+                    {group.label}
+                  </span>
+                ) : (
+                  group.label
+                )}
+              </div>
+            </div>
+            {gi < GROUPS.length - 1 && (
+              <div className={`w-4 h-0.5 shrink-0 ${isCompleted ? "bg-success" : "bg-secondary/40"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 메인 컴포넌트 ──
+export function WizardProgress({ currentStep, variant = "A" }: WizardProgressProps) {
+  switch (variant) {
+    case "A": return <VariantA currentStep={currentStep} />;
+    case "B": return <VariantB currentStep={currentStep} />;
+    case "C": return <VariantC currentStep={currentStep} />;
+    default: return <VariantA currentStep={currentStep} />;
+  }
 }

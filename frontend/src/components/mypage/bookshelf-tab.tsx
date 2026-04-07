@@ -12,9 +12,9 @@ import {
   ShoppingCartIcon,
   TrashIcon,
   EditIcon,
-  HeadphonesIcon,
   AlertTriangleIcon,
 } from "@/components/icons";
+import { MoreHorizontal } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -53,6 +53,8 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
   const [error, setError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<BookListItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
 
   const fetchBooks = async () => {
     setLoading(true);
@@ -71,6 +73,7 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
     if (result.error) setError(result.error);
     else setBooks((prev) => prev.filter((b) => b.id !== deleteTarget.id));
     setDeleteTarget(null);
+    setDeleteConfirmText("");
     setIsDeleting(false);
   };
 
@@ -125,7 +128,7 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
           const isEditing = book.status === "editing" || book.status === "story_generated";
           const isCompleted = book.status === "completed";
           const isOrdered = orderedBookIds.has(book.id);
-          const canDelete = isDraft && !isOrdered;
+          const canDelete = true;
           const cover = coverUrl(book.cover_image_path);
 
           return (
@@ -134,18 +137,15 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05, duration: 0.3 }}
-              className="bg-white border border-secondary/60 rounded-2xl overflow-hidden shadow-soft hover:shadow-hover transition-all duration-200 group"
+              className="bg-white border border-secondary/60 rounded-2xl overflow-hidden shadow-soft hover:shadow-hover transition-all duration-200 group flex flex-col"
             >
               {/* 표지 (정사각형) */}
-              <div
-                className="relative aspect-square overflow-hidden cursor-pointer"
-                onClick={() => handleContinue(book)}
-              >
+              <div className="relative aspect-square overflow-hidden">
                 {cover ? (
                   <img
                     src={cover}
                     alt={book.title || "표지"}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover"
                     crossOrigin="anonymous"
                   />
                 ) : (
@@ -155,30 +155,54 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
                   </div>
                 )}
 
-                {/* 상태 배지 */}
-                <div className={`absolute top-3 right-3 text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm ${
+                {/* 상태 배지 — 왼쪽 위 */}
+                <div className={`absolute top-3 left-3 text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm ${
                   isOrdered ? "bg-primary/80 text-white" : `${status.bg} ${status.text}`
                 }`}>
                   {isOrdered ? "주문완료" : status.label}
                 </div>
+
+                {/* ⋯ 메뉴 — 오른쪽 위 */}
+                <div className="absolute top-2 right-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === book.id ? null : book.id); }}
+                    className="w-5 h-5 rounded-full flex items-center justify-center bg-black/25 hover:bg-black/50 text-white backdrop-blur-sm transition-colors"
+                  >
+                    <MoreHorizontal size={10} />
+                  </button>
+                  {menuOpenId === book.id && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
+                      <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-secondary/60 rounded-xl shadow-hover py-1 min-w-[120px]">
+                        <button
+                          onClick={() => { setMenuOpenId(null); setDeleteTarget(book); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-error-dark hover:bg-error/10 transition-colors"
+                        >
+                          <TrashIcon className="w-3.5 h-3.5" />
+                          삭제
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* 정보 */}
-              <div className="p-4">
+              <div className="p-4 flex flex-col flex-1">
                 <h3 className="font-bold text-text text-sm truncate mb-1">
                   {book.title || `${book.child_name}의 동화책`}
                 </h3>
-                <div className="flex items-center gap-2 text-xs text-text-light mb-3">
+                <div className="flex items-center gap-2 text-xs text-text-light">
                   {book.job_name && <span>{book.job_name}</span>}
                   {book.job_name && book.art_style && <span className="text-text-lighter">·</span>}
                   {book.art_style && <span>{ART_LABELS[book.art_style] || book.art_style}</span>}
                 </div>
-                <p className="text-xs text-text-lighter mb-4">
+                <p className="text-xs text-text-lighter mt-1">
                   {formatDate(book.updated_at || book.created_at)}
                 </p>
 
-                {/* 액션 버튼 */}
-                <div className="flex gap-2">
+                {/* 액션 버튼 — 하단 고정 */}
+                <div className="flex gap-2 mt-auto pt-3">
                   {isDraft && (
                     <Button size="sm" className="flex-1" onClick={() => handleContinue(book)}>
                       <EditIcon className="w-3.5 h-3.5 mr-1" />이어서 만들기
@@ -196,9 +220,6 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
                       <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/view`)}>
                         <EyeIcon className="w-3.5 h-3.5 mr-1" />보기
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/listen`)}>
-                        <HeadphonesIcon className="w-3.5 h-3.5 mr-1" />듣기
-                      </Button>
                       <Button size="sm" className="flex-1" onClick={() => router.push(`/create/order?bookId=${book.id}`)}>
                         <ShoppingCartIcon className="w-3.5 h-3.5 mr-1" />주문
                       </Button>
@@ -206,21 +227,11 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
                   )}
 
                   {isCompleted && isOrdered && (
-                    <>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/view`)}>
-                        <EyeIcon className="w-3.5 h-3.5 mr-1" />보기
-                      </Button>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/listen`)}>
-                        <HeadphonesIcon className="w-3.5 h-3.5 mr-1" />듣기
-                      </Button>
-                    </>
-                  )}
-
-                  {canDelete && (
-                    <Button size="sm" variant="ghost" className="text-text-lighter hover:text-error-dark" onClick={() => setDeleteTarget(book)}>
-                      <TrashIcon className="w-3.5 h-3.5" />
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/books/${book.id}/view`)}>
+                      <EyeIcon className="w-3.5 h-3.5 mr-1" />보기
                     </Button>
                   )}
+
                 </div>
               </div>
             </motion.div>
@@ -244,35 +255,60 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
 
       {/* 삭제 확인 */}
       <AnimatePresence>
-        {deleteTarget && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}
-          >
+        {deleteTarget && (() => {
+          const targetOrdered = orderedBookIds.has(deleteTarget.id);
+          return (
             <motion.div
-              initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
-              className="bg-white rounded-3xl shadow-hover p-7 max-w-sm w-full mx-4"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+              onClick={(e) => { if (e.target === e.currentTarget) { setDeleteTarget(null); setDeleteConfirmText(""); } }}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center">
-                  <TrashIcon className="w-5 h-5 text-error-dark" />
+              <motion.div
+                initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
+                className="bg-white rounded-3xl shadow-hover p-7 max-w-sm w-full mx-4"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center">
+                    <TrashIcon className="w-5 h-5 text-error-dark" />
+                  </div>
+                  <h4 className="text-lg font-bold text-text">동화책 삭제</h4>
                 </div>
-                <h4 className="text-lg font-bold text-text">동화책 삭제</h4>
-              </div>
-              <p className="text-sm text-text-light mb-1">
-                <strong>&quot;{deleteTarget.title || `${deleteTarget.child_name}의 동화책`}&quot;</strong>
-              </p>
-              <p className="text-sm text-text-light mb-6">삭제하면 복구할 수 없습니다.</p>
-              <div className="flex gap-3">
-                <Button variant="ghost" className="flex-1" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>취소</Button>
-                <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={isDeleting}>
-                  {isDeleting ? "삭제 중..." : "삭제하기"}
-                </Button>
-              </div>
+                <p className="text-sm text-text-light mb-1">
+                  <strong>&quot;{deleteTarget.title || `${deleteTarget.child_name}의 동화책`}&quot;</strong>
+                </p>
+                {targetOrdered ? (
+                  <>
+                    <div className="bg-error/10 border border-error/20 rounded-xl p-3 my-3">
+                      <p className="text-xs text-error-dark font-semibold mb-1">이미 주문된 책입니다</p>
+                      <p className="text-xs text-error-dark/80">삭제하면 주문도 함께 취소됩니다. 이 작업은 되돌릴 수 없습니다.</p>
+                    </div>
+                    <p className="text-xs text-text-light mb-2">확인을 위해 <strong className="text-error-dark">"주문 취소 후 삭제"</strong>를 입력하세요.</p>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="주문 취소 후 삭제"
+                      className="w-full border-2 border-secondary rounded-xl px-3 py-2 text-sm text-center outline-none transition-colors focus:border-error mb-4"
+                    />
+                  </>
+                ) : (
+                  <p className="text-sm text-text-light mb-6">삭제하면 복구할 수 없습니다.</p>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="ghost" className="flex-1" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }} disabled={isDeleting}>취소</Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={handleDelete}
+                    disabled={isDeleting || (targetOrdered && deleteConfirmText !== "주문 취소 후 삭제")}
+                  >
+                    {isDeleting ? "삭제 중..." : targetOrdered ? "주문 취소 및 삭제" : "삭제하기"}
+                  </Button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
     </div>
   );

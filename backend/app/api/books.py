@@ -165,7 +165,7 @@ def delete(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """동화책 삭제 (작성중 상태만: draft, character_confirmed)"""
+    """동화책 삭제 — 주문된 책은 주문 취소 후 삭제"""
     book = get_book_by_id(db, book_id)
     if not book:
         raise HTTPException(
@@ -177,11 +177,26 @@ def delete(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="본인의 동화책만 삭제할 수 있습니다",
         )
-    if book.status not in ("draft", "character_confirmed"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="작성 중인 동화책만 삭제할 수 있습니다",
-        )
+
+    # 주문이 있으면 취소 먼저
+    from app.models.order import Order
+    order = db.query(Order).filter(Order.book_id == book.id).first()
+    if order and order.bookprint_order_uid:
+        try:
+            from app.services.bookprint import BookPrintService, BookPrintAPIError
+            import asyncio
+            service = BookPrintService()
+            asyncio.get_event_loop().run_until_complete(
+                service.cancel_order(order.bookprint_order_uid)
+            )
+            asyncio.get_event_loop().run_until_complete(service.close())
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"주문 취소 실패 (무시): {e}")
+    if order:
+        db.delete(order)
+        db.flush()
+
     delete_book(db, book)
     return {"message": "동화책이 삭제되었습니다"}
 
