@@ -867,18 +867,28 @@ async def confirm_book(
                 logger.error(f"[upload] {label} 업로드 최종 실패: {path}")
                 return None
 
+            # 병렬 업로드 (순차 대비 약 4배 빠름)
+            upload_tasks = []
+            upload_paths = []
+
             if cover_image_path and os.path.exists(cover_image_path):
-                fn = await _upload_with_retry(cover_image_path, "표지")
-                if fn:
-                    uploaded_files[cover_image_path] = fn
+                upload_tasks.append(_upload_with_retry(cover_image_path, "표지"))
+                upload_paths.append(cover_image_path)
+
+            seen = {cover_image_path} if cover_image_path else set()
             for pd in pages_data:
                 if pd.get("page_type") != "illustration":
                     continue
                 ip = pd.get("image_path", "")
-                if ip and os.path.exists(ip) and ip not in uploaded_files:
-                    fn = await _upload_with_retry(ip, f"p{pd.get('page_number', '?')}")
-                    if fn:
-                        uploaded_files[ip] = fn
+                if ip and os.path.exists(ip) and ip not in seen:
+                    upload_tasks.append(_upload_with_retry(ip, f"p{pd.get('page_number', '?')}"))
+                    upload_paths.append(ip)
+                    seen.add(ip)
+
+            results = await asyncio.gather(*upload_tasks)
+            for path, fn in zip(upload_paths, results):
+                if fn:
+                    uploaded_files[path] = fn
 
             # 표지 생성
             cover_file = uploaded_files.get(cover_image_path, "")
