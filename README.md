@@ -63,7 +63,7 @@ cd dreambook
 # 백엔드
 cd backend
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env          # Windows: copy .env.example .env
 # .env 파일에 API Key 입력:
 #   BOOKPRINT_API_KEY=발급받은_Sandbox_Key
 #   OPENAI_API_KEY=발급받은_OpenAI_Key
