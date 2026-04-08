@@ -1,7 +1,7 @@
 """주문 API 라우터"""
 import os
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -163,6 +163,7 @@ def _calculate_local_estimate(book: Book) -> dict:
 async def create_order(
     book_id: int,
     req: OrderRequest,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -218,31 +219,25 @@ async def create_order(
         book_uid = book.bookprint_book_uid
 
         if book_uid:
-            # book_uid가 있으면 Book Print API에서 실제 상태 확인
+            # book_uid가 있으면 finalize 완료로 간주하고 주문 시도
+            # 만약 아직 finalize 전이면 주문 실패 → 전체 워크플로우로 폴백
+            logger.info(f"book_uid={book_uid} 존재 — 주문 시도")
             try:
-                bp_detail = await service.get_book_detail(book_uid)
-                bp_status = bp_detail.get("status", "")
-            except Exception:
-                bp_status = ""
-
-            if bp_status != "finalized":
-                # finalize 안 된 책 → book_uid 무효화하고 전체 워크플로우로 전환
-                logger.warning(f"book_uid={book_uid}이 finalized 아님 (status={bp_status}), 전체 워크플로우 실행")
+                await service.ensure_sufficient_credits()
+                try:
+                    order_result = await service.create_order(book_uid, shipping)
+                except BookPrintAPIError as e:
+                    if e.status_code == 402:
+                        await service.sandbox_charge()
+                        order_result = await service.create_order(book_uid, shipping)
+                    else:
+                        raise
+            except BookPrintAPIError:
+                # 주문 실패 (finalize 미완료 등) → book_uid 무효화, 전체 워크플로우로 폴백
+                logger.warning(f"book_uid={book_uid} 주문 실패 — 전체 워크플로우로 폴백")
                 book_uid = None
                 book.bookprint_book_uid = None
                 db.commit()
-
-        if book_uid:
-            # 이미 업로드+finalize된 책 → 충전금 + 주문만
-            await service.ensure_sufficient_credits()
-            try:
-                order_result = await service.create_order(book_uid, shipping)
-            except BookPrintAPIError as e:
-                if e.status_code == 402:
-                    await service.sandbox_charge()
-                    order_result = await service.create_order(book_uid, shipping)
-                else:
-                    raise
             result = {
                 "book_uid": book_uid,
                 "order_uid": order_result.get("orderUid"),
@@ -285,18 +280,29 @@ async def create_order(
         db.commit()
         db.refresh(order)
 
-        # 렌더링 썸네일 다운로드 (비동기, 실패해도 주문은 유지)
-        book_uid = result.get("book_uid")
-        if book_uid:
-            try:
-                from app.services.photo import UPLOAD_DIR
-                thumbnail_dir = os.path.join(UPLOAD_DIR, "thumbnails", book_uid)
-                thumbnails = await service.download_thumbnails(book_uid, thumbnail_dir)
-                book.thumbnail_dir = thumbnail_dir
-                db.commit()
-                logger.info(f"썸네일 다운로드 완료: {len(thumbnails.get('pages', []))}/24")
-            except Exception as e:
-                logger.warning(f"썸네일 다운로드 실패 — 나중에 재시도 가능: {e}")
+        # 썸네일이 아직 없으면 백그라운드로 다운로드 (확정 경로에서 이미 받았으면 스킵)
+        final_book_uid = result.get("book_uid")
+        if final_book_uid and not book.thumbnail_dir:
+            async def _bg_thumbnails():
+                svc = BookPrintService()
+                try:
+                    from app.services.photo import UPLOAD_DIR
+                    td = os.path.join(UPLOAD_DIR, "thumbnails", final_book_uid)
+                    await svc.download_thumbnails(final_book_uid, td)
+                    from app.database import SessionLocal
+                    s = SessionLocal()
+                    try:
+                        b = s.query(Book).filter(Book.id == book.id).first()
+                        if b:
+                            b.thumbnail_dir = td
+                            s.commit()
+                    finally:
+                        s.close()
+                except Exception as e:
+                    logger.warning(f"썸네일 백그라운드 다운로드 실패: {e}")
+                finally:
+                    await svc.close()
+            background_tasks.add_task(_bg_thumbnails)
 
         return order
 

@@ -21,6 +21,7 @@ from app.models.page_image import PageImage
 from app.services.photo import UPLOAD_DIR, ensure_upload_dir
 from app.services.ai_story import (
     generate_story_with_gpt_or_dummy,
+    generate_scene_descriptions,
     StoryGenerationError,
     STORY_PAGE_COUNT,
     TOTAL_BOOK_PAGES,
@@ -336,9 +337,34 @@ def generate_illustrations(
     illust_pages = [p for p in pages if p.page_type == "illustration"]
     story_pages = [p for p in pages if p.page_type == "story"]
 
+    # ★ 확정된 텍스트로 scene_description 일괄 생성
+    child_age = _calc_child_age(book.child_birth_date)
+    stories_for_scene = [
+        {"text": sp.text_content, "story_number": i + 1}
+        for i, sp in enumerate(story_pages) if sp.text_content
+    ]
+    if stories_for_scene:
+        scene_descs = generate_scene_descriptions(
+            stories=stories_for_scene,
+            child_name=book.child_name,
+            job_name=book.job_name or "직업",
+            art_style=art_style,
+            child_age=child_age,
+            child_gender=book.child_gender or "male",
+        )
+        # scene_description DB 업데이트
+        for i, illust_page in enumerate(illust_pages):
+            if i < len(scene_descs):
+                illust_page.scene_description = scene_descs[i]
+                # 대응하는 story 페이지에도 동일 값
+                if i < len(story_pages):
+                    story_pages[i].scene_description = scene_descs[i]
+        db.commit()
+        logger.info(f"[generate] scene_description {len(scene_descs)}개 생성 완료")
+
     generated_count = 0
 
-    # 병렬 일러스트 생성 (동시 4개)
+    # 병렬 일러스트 생성 (동시 2개)
     # AI API 호출은 I/O-bound이므로 ThreadPoolExecutor로 병렬화
     def _gen_task(i: int, illust_page: Page) -> tuple[int, str]:
         story_text = story_pages[i].text_content if i < len(story_pages) else ""

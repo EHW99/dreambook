@@ -2,7 +2,7 @@
 
 OpenAI GPT-4o-mini를 사용하여 동화 스토리를 생성한다.
 24페이지 고정 구성: 제목(1p) + [그림+이야기]×11(2~23p) + 판권(24p)
-LLM은 이야기 11개 + scene_description 11개를 생성한다.
+LLM은 이야기 텍스트 11개를 생성한다. scene_description은 별도 단계에서 생성.
 OPENAI_API_KEY가 없으면 더미 스토리로 폴백한다.
 """
 import json
@@ -32,7 +32,6 @@ class StoryGenerationError(Exception):
 class StoryEntry(BaseModel):
     story_number: int
     text: str
-    scene_description: str
 
 
 class StoryOutput(BaseModel):
@@ -54,83 +53,59 @@ ART_STYLE_KEYWORDS = {
 
 # ──────────────────────────────────────────────
 # Few-shot 예시 — 3개 직업 (소방관, 의사, 요리사)
-# 각 직업마다 이야기 1(도입), 6(전환), 9(절정), 11(결말)
-# 톤, 분량(3~4문장), 도입/절정/결말 품질의 기준을 보여준다
+# 각 직업마다 이야기 1(도입), 10(절정 직후), 11(결말)
+# 톤, 분량(3~4문장), 현실감, 오감 묘사, 감정선의 기준을 보여준다
 # ──────────────────────────────────────────────
 FEW_SHOT_FIREFIGHTER = """{
-  "title": "용감한 소방관 하준이",
+  "title": "소방관 하준이의 뜨거운 하루",
   "stories": [
     {
       "story_number": 1,
-      "text": "오늘도 소방관 하준이의 하루가 시작되었어요. 빨간 소방복의 단추를 하나하나 채우고, 반짝이는 헬멧을 쓰자 기분이 정말 좋았어요. 소방서 앞에는 커다란 빨간 소방차가 하준이를 기다리고 있었어요. '좋아, 오늘도 마을을 지키러 출발이다!' 하준이는 힘차게 소방차에 올라탔답니다.",
-      "scene_description": "A confident child firefighter (age 6) in a bright red uniform buttoning up their coat, standing in front of a gleaming red fire truck at the fire station entrance. The child has a determined and cheerful expression, morning sunlight casting a warm glow. Background: the fire station with its large open bay doors, a clear blue sky, other firefighter equipment neatly organized. Composition: character on the left, the impressive fire truck behind them, warm morning light, space at top for text."
+      "text": "소방서에 출동 벨이 울리자 하준이는 방화복을 입고 헬멧을 눌러 썼어요. 묵직한 장비를 어깨에 메고 소방차에 올라타니, 사이렌 소리와 함께 차가 힘차게 달리기 시작했어요. 창밖으로 스쳐 지나가는 거리를 바라보며 하준이는 장갑 끈을 꽉 조였어요. 어디선가 하준이를 기다리는 사람이 있을 테니까요."
     },
     {
-      "story_number": 6,
-      "text": "소방서로 돌아온 하준이는 소방차를 꼼꼼히 점검했어요. 호스에서 물이 잘 나오는지, 사다리가 높이높이 올라가는지 하나하나 살폈어요. 선배 소방관이 '하준이, 장비를 잘 관리하는 것도 사람들을 지키는 일이야'라고 말해 주었어요. 하준이는 고개를 끄덕이며 더 열심히 점검했답니다.",
-      "scene_description": "A child firefighter carefully inspecting a fire truck, crouched down checking the hose connection with a focused and serious expression. An adult firefighter stands nearby with a warm encouraging smile. Background: inside a spacious fire station garage with sunlight streaming through the open bay door, other equipment on walls, a Dalmatian dog sitting nearby. Composition: child on the right, fire truck dominating the left, adult figure in mid-ground, space at bottom for text."
-    },
-    {
-      "story_number": 9,
-      "text": "삐뽀삐뽀! 빵집에서 큰불이 났어요! 하준이는 소방차에서 뛰어내려 무거운 호스를 꽉 잡았어요. 뜨거운 연기가 자욱했지만, 안에 할머니가 갇혀 계신다는 말에 하준이는 물러서지 않았어요. '제가 꼭 구해 드릴게요!' 하준이는 물을 힘껏 뿌리며 연기 속으로 용감하게 뛰어 들어갔답니다.",
-      "scene_description": "A brave child firefighter (age 6) charging into a smoke-filled bakery doorway, gripping a fire hose with both hands and spraying a powerful stream of water. Flames flicker from the windows above, and thick gray smoke billows into the sky. Fellow firefighters in the background operate the fire truck and cheer the child on. The child's expression is fierce and determined, helmet reflecting the orange glow of the fire. Background: a small-town street with concerned neighbors watching from a safe distance, fire truck with flashing red lights. Composition: dynamic action shot, child running from the right toward the burning building on the left, dramatic lighting from the flames, space at top for text."
+      "story_number": 10,
+      "text": "마지막 불꽃까지 꺼지자, 시커먼 연기 사이로 파란 하늘이 보이기 시작했어요. 건물 밖에서 기다리던 할머니가 하준이의 그을린 손을 꼭 잡으며 '고맙다, 고마워' 하고 말씀하셨어요. 할머니의 따뜻한 눈물이 하준이 손등 위로 떨어졌어요. 뜨거운 불보다 더 뜨거운 것이 가슴속에서 퍼져 나갔답니다."
     },
     {
       "story_number": 11,
-      "text": "노을이 물드는 저녁, 하준이는 소방서 옥상에 올라 반짝이는 마을을 내려다보았어요. 오늘 하루 동안 도와준 사람들의 환한 웃음이 떠올라 마음이 따뜻해졌어요. 하준이는 헬멧을 꼭 안으며 작은 목소리로 속삭였어요. '이 마을은 내가 지킨다. 내일도, 모레도, 언제까지나.'",
-      "scene_description": "A child firefighter standing on a fire station rooftop, hugging their yellow helmet close to their chest with a deeply content and peaceful smile. Background: a breathtaking sunset painting the sky in layers of orange, pink, and purple; the small town below has warm golden lights twinkling in windows. A few birds fly across the colorful sky. Composition: character silhouetted on the left gazing at the vast sunset on the right, cinematic wide-angle feel, space at bottom for text."
+      "text": "소방서 옥상에 올라서니 저녁노을이 온 마을을 주황빛으로 물들이고 있었어요. 여기저기 하나둘 켜지는 불빛이 오늘 지켜낸 사람들의 저녁 식탁 같았어요. 하준이는 까맣게 그을린 장갑을 가만히 내려다보며 중얼거렸어요. '내일도 이 마을의 불빛을 지키는 사람이 되어야지.'"
     }
   ]
 }"""
 
 FEW_SHOT_DOCTOR = """{
-  "title": "다정한 의사 수아",
+  "title": "의사 수아의 특별한 하루",
   "stories": [
     {
       "story_number": 1,
-      "text": "수아 의사 선생님의 하루가 밝게 시작되었어요. 하얀 가운을 입고 청진기를 목에 걸자, 병원 복도에서 간호사가 '수아 선생님, 오늘 진료 환자분들이 기다리고 있어요!'라고 알려주었어요. 수아는 환하게 웃으며 진료실 문을 열었어요. '자, 오늘도 환자분들을 건강하게 만들어 드리자!' 수아의 목소리에 병원이 활기를 띠었답니다.",
-      "scene_description": "A small child doctor (age 6) in a white coat with a stethoscope, walking confidently down a bright hospital corridor. A nurse beside them is gesturing toward a consultation room door. The child has a warm, professional smile. Background: a modern hospital hallway with clean walls, medical posters, sunflowers in vases, and sunlight streaming through large windows. Composition: child walking from left to right down the corridor, nurse beside them, welcoming and bright atmosphere, space at top for text."
+      "text": "하얀 가운을 입고 청진기를 목에 건 수아가 병원 복도를 걸어갔어요. 간호사가 '수아 선생님, 오늘 첫 환자가 오셨어요' 하고 알려주었어요. 진료실 문을 열자 겁먹은 표정의 아이가 엄마 뒤에 숨어 있었어요. 수아는 아이의 눈높이에 맞춰 앉으며 다정하게 미소를 지었답니다."
     },
     {
-      "story_number": 6,
-      "text": "수아는 청진기를 귀에 꽂고 환자의 가슴에 살며시 대 보았어요. '심장이 튼튼하게 뛰고 있어요, 걱정 마세요!' 수아의 다정한 말에 불안해하던 환자의 얼굴이 조금씩 밝아졌어요. 수아는 처방전을 꼼꼼히 쓰며 말했어요. '이 약을 드시면 금방 나으실 거예요.' 환자의 보호자가 '감사합니다, 수아 선생님' 하고 고개를 숙이자 수아는 환하게 웃었답니다.",
-      "scene_description": "A child doctor (age 6) in a white coat gently placing a stethoscope on a patient's chest in a bright examination room. The patient sitting on the exam bed looks relieved and is beginning to smile. The child doctor writes a prescription on a clipboard with a caring and professional expression. A family member stands beside the bed, hands clasped in gratitude. Background: a clean, modern clinic with pastel-colored walls, anatomical posters, warm sunlight through the window. Composition: child doctor on the left with stethoscope, patient in the center on the bed, family member on the right, warm and reassuring atmosphere, space at bottom for text."
-    },
-    {
-      "story_number": 9,
-      "text": "그때 복도에서 다급한 목소리가 들려왔어요. '수아 선생님, 응급 환자입니다!' 교통사고로 크게 다친 환자가 응급실에 실려 왔어요. 수아는 떨리는 마음을 꾹 누르고 재빨리 수술 준비를 지시했어요. 집중해서 수술을 진행하고, 마침내 환자의 상태가 안정되자 수술실에 안도의 한숨이 퍼졌답니다.",
-      "scene_description": "A child doctor (age 6) in a white coat and surgical mask, standing in a brightly lit operating room with intense focus, hands raised ready for surgery. Medical monitors beep in the background, a surgical team of nurses assists. The child doctor's eyes show fierce determination above the mask. Background: a modern operating room with overhead surgical lights, medical instruments neatly arranged, a sense of high-stakes urgency. Composition: dramatic close-up angle, child doctor in the center under bright surgical light, team around them, tension and professionalism, space at bottom for text."
+      "story_number": 10,
+      "text": "며칠 동안 열이 내리지 않던 아이의 체온이 드디어 정상으로 돌아왔어요. 수아가 '다 나았어요, 이제 괜찮아요' 하고 말하자 아이가 이불 속에서 고개를 내밀며 환하게 웃었어요. 옆에 있던 엄마가 수아의 손을 꼭 잡으며 고개를 숙였어요. 수아도 모르게 코끝이 찡해졌답니다."
     },
     {
       "story_number": 11,
-      "text": "하루가 끝나고, 수아는 병원 창가에 앉아 노을을 바라보았어요. 오늘 수술이 성공해서 환자가 웃으며 퇴원하던 모습이 자꾸자꾸 떠올랐어요. 수아는 청진기를 가만히 만지며 생각했어요. '아픈 사람들의 웃음을 되찾아 주는 것, 이게 바로 내가 하는 일이야.' 병원 밖으로 첫 번째 별이 반짝 빛났답니다.",
-      "scene_description": "A child doctor sitting peacefully on a wide hospital windowsill, legs dangling, gently holding their stethoscope and gazing at a beautiful sunset outside. Their expression is soft and thoughtful, with a gentle smile. Background: through the large window, a stunning sunset with the first evening star visible; inside, a warm lamp casts a golden glow on the child. A thank-you card from a patient is propped up on the windowsill beside them. Composition: character centered at the window, warm interior light contrasting with the colorful sky outside, intimate and peaceful mood, space at top for text."
+      "text": "환자가 모두 돌아간 텅 빈 진료실에 노을빛이 길게 내려앉았어요. 수아는 오늘 만났던 환자들의 얼굴을 하나하나 떠올리며 청진기를 가운 위에 올려놓았어요. 창밖에 별 하나가 반짝이자, 수아는 조용히 속삭였어요. '내일도 이 자리에서 한 사람 한 사람, 꼭 낫게 해 줄 거야.'"
     }
   ]
 }"""
 
 FEW_SHOT_CHEF = """{
-  "title": "꼬마 요리사 지우의 맛있는 하루",
+  "title": "요리사 지우의 맛있는 도전",
   "stories": [
     {
       "story_number": 1,
-      "text": "요리사 지우는 오늘도 신나게 주방 문을 열었어요. 하얀 요리사 모자를 쓰고 앞치마를 두르자, 벌써부터 맛있는 냄새가 코끝을 간질였어요. 주방에는 알록달록한 채소와 싱싱한 과일이 가득했어요. '좋아, 오늘은 특별한 요리를 만들어 볼 거야!' 지우는 소매를 걷어붙이며 활짝 웃었답니다.",
-      "scene_description": "A cheerful child chef (age 6) wearing a tall white chef hat and checkered apron, pushing open the doors of a bright professional kitchen with an eager smile. Colorful fresh vegetables, fruits, and ingredients are arranged beautifully on the counters. Background: a spacious kitchen with copper pots hanging from the ceiling, steam rising softly, warm lighting. Composition: child entering from the left pushing doors open, the magnificent kitchen spread before them, warm and inviting atmosphere, space at top for text."
+      "text": "새벽 시장에서 막 도착한 채소 상자를 열자, 싱싱한 풀 내음이 주방 가득 퍼졌어요. 지우는 잘 익은 토마토를 손바닥 위에 올리고 꾹 눌러 보았어요. '좋아, 오늘 재료는 최고야.' 도마 위에 칼을 가지런히 놓고 앞치마 끈을 단단히 묶자 긴 하루가 시작되었답니다."
     },
     {
-      "story_number": 6,
-      "text": "지우는 커다란 볼에 밀가루와 달걀을 넣고 열심히 반죽했어요. 하얀 밀가루가 코끝에 묻었지만 지우는 신경 쓰지 않았어요. 반죽을 동글동글 모양을 내자, 예쁜 쿠키가 완성되었어요. '이건 별 모양, 이건 하트 모양!' 지우는 하나하나 정성껏 만들며 노래를 불렀답니다.",
-      "scene_description": "A child chef energetically kneading dough in a large mixing bowl, with flour dusted on their nose and cheeks. Star and heart shaped cookies are arranged on a baking tray beside them. The child is singing happily while working. Background: a warm kitchen counter with bowls of colorful sprinkles, cookie cutters in various shapes, an oven glowing with warmth behind them. Flour particles floating in a beam of sunlight. Composition: close-up of the child and the baking workspace, warm and cozy kitchen atmosphere, space at bottom for text."
-    },
-    {
-      "story_number": 9,
-      "text": "드디어 요리 경연대회 결승전! 심사위원들 앞에서 지우의 손이 바쁘게 움직였어요. 프라이팬을 높이 들어 올려 휙! 하고 볶음밥을 공중에 날리자, 관객석에서 '우와!' 하는 탄성이 터져 나왔어요. 마지막으로 예쁜 접시에 정성껏 담아내자, 심사위원들이 한 입 먹고 눈을 동그랗게 떴어요. '우승은 꼬마 요리사 지우!' 트로피를 높이 들어 올린 지우의 눈에 기쁨의 눈물이 반짝였답니다.",
-      "scene_description": "A child chef (age 6) on a grand cooking competition stage, triumphantly holding a golden trophy above their head with both hands, tears of joy sparkling in their eyes. Confetti rains down from above. On the cooking station beside them, a beautifully plated dish gleams under the stage lights. Three impressed judges at a long table are standing and applauding enthusiastically. A large cheering audience fills the background with raised hands. Background: a dazzling competition stage with bright spotlights, a giant banner reading 'COOKING CHAMPIONSHIP', colorful confetti everywhere. Composition: child in the center holding the trophy high, judges on the left applauding, audience behind, dramatic stage lighting with golden spotlight on the child, space at top for text."
+      "story_number": 10,
+      "text": "마지막 접시 위에 허브 잎 하나를 올려놓는 순간, 홀에서 박수 소리가 들려왔어요. 손님이 주방 쪽을 향해 엄지를 치켜세우고 있었어요. 접시 위에는 국물 한 방울도 남아 있지 않았어요. 지우는 이마의 땀을 훔치며 생각했어요. 오늘 흘린 땀이 하나도 아깝지 않다고."
     },
     {
       "story_number": 11,
-      "text": "해가 질 무렵, 지우는 레스토랑 창가에 앉아 오늘 하루를 떠올렸어요. 손님들이 '세상에서 제일 맛있어요!'라며 빈 접시를 보여주던 모습이 눈에 선했어요. 지우는 수줍게 웃으며 말했어요. '맛있는 음식으로 사람들을 행복하게 만드는 것, 이게 바로 요리사인 나의 하루야.' 주방에 퍼진 달콤한 향기처럼, 지우의 따뜻한 마음도 온 세상에 퍼져 나갔답니다.",
-      "scene_description": "A child chef sitting by the window of their restaurant at sunset, looking out with a content and proud expression. Empty plates on nearby tables show satisfied customers have left. The warm glow of sunset fills the elegant restaurant interior. A few thank-you notes from customers are pinned on the kitchen board behind. Background: a cozy restaurant interior bathed in golden sunset light, clean kitchen visible through the pass, warm and peaceful atmosphere. Composition: child on the left gazing out the window, the restaurant stretching behind, golden hour light, space at top for text."
+      "text": "손님이 모두 떠난 조용한 주방에서 지우는 도마와 칼을 정성껏 닦았어요. 환풍기 소리만 울리는 주방에 고소한 볶음 요리의 잔향이 아직 남아 있었어요. 깨끗해진 조리대에 내일의 메뉴 메모를 붙이며, 지우는 혼잣말했어요. '내일은 오늘보다 더 맛있게 만들어 볼 거야.'"
     }
   ]
 }"""
@@ -186,6 +161,13 @@ def _build_system_prompt(
   - 이야기 8~10: 절정 (도전과 해결, 성취감)
   - 이야기 11: 결말 (따뜻한 여운, 내일에 대한 다짐)
 
+## 현실감 규칙
+- 모든 사건은 해당 직업의 현장에서 실제로 벌어지는 활동이어야 합니다.
+- 직업인이 매일 하는 구체적인 업무 과정을 묘사하세요 (도구 사용, 절차, 협업 등).
+- 이야기 흐름과 관련 없는 돌발 사건을 끼워 넣지 마세요. 모든 장면이 하나의 줄거리 안에서 자연스럽게 연결되어야 합니다.
+- 소리, 냄새, 촉감, 온도 같은 오감 묘사를 포함하여 현장감을 살리세요.
+- 감정선을 풍부하게 — 긴장, 설렘, 집중, 뿌듯함 등 장면마다 주인공의 감정이 드러나야 합니다.
+
 ## 줄거리 준수
 - 사용자가 제공한 줄거리 방향이 있다면, 반드시 그 줄거리를 중심으로 11개 이야기를 전개하세요.
 - 줄거리에 나온 핵심 사건과 상황이 이야기 속에 자연스럽게 녹아들어야 합니다.
@@ -197,13 +179,9 @@ def _build_system_prompt(
 - 비현실적인 직업 묘사 금지 (소방관이 불을 마법으로 끄는 등)
 - 성별/인종 고정관념 금지
 
-## scene_description 규칙
-- 영어로 작성하세요 (이미지 생성 AI에 전달됨).
-- 캐릭터의 외형, 표정, 동작, 배경을 구체적으로 묘사하세요.
-- 캐릭터는 항상 {child_age}세 {gender_en} 모습이어야 합니다 (직업 복장을 입은 {gender_en}).
-- 캐릭터를 묘사할 때 "a {gender_en} (age {child_age})"로 표현하세요.
-- 텍스트 배치 영역(상단 또는 하단)을 고려한 구도를 명시하세요.
-- 각 장면이 이전 장면과 다른 배경/상황이 되도록 다양하게 묘사하세요."""
+## 출력 형식
+- title: 책 제목
+- stories: 11개의 이야기 (story_number 1~11, text만 포함)"""
 
     if art_keywords:
         base += f"\n- 그림체 스타일: {art_keywords}"
@@ -218,8 +196,8 @@ def _build_user_prompt(
 ) -> str:
     """사용자 프롬프트 구성 (Few-shot 포함)"""
     prompt = f"""## 예시 (3개 직업)
-다음은 소방관, 의사, 요리사 동화의 이야기 1, 6, 9, 11번 예시입니다.
-각 이야기의 톤, 분량(3~4문장), 도입/절정/결말의 감성을 참고하세요:
+다음은 소방관, 의사, 요리사 동화의 이야기 1(도입), 10(절정 직후), 11(결말) 예시입니다.
+현실감 있는 직업 묘사, 오감 표현, 감정선의 수준을 참고하세요:
 
 ### 소방관 예시
 {FEW_SHOT_FIREFIGHTER}
@@ -250,7 +228,7 @@ def _build_user_prompt(
     prompt += """
 
 정확히 11개의 이야기(story_number 1~11)를 생성해주세요.
-각 이야기의 text는 한국어 3~4문장으로 장면을 생생하게 묘사하고, scene_description은 영어로 구체적인 장면 묘사입니다.
+각 이야기의 text는 한국어 3~4문장으로 장면을 생생하게 묘사해주세요.
 특히 이야기 1(도입)과 이야기 11(결말)에 공을 들여주세요."""
 
     return prompt
@@ -267,7 +245,7 @@ def generate_story_with_gpt(
     """GPT-4o를 사용하여 동화 스토리를 생성한다.
 
     Returns:
-        {"title": str, "stories": [{"story_number": int, "text": str, "scene_description": str}, ...]}
+        {"title": str, "stories": [{"story_number": int, "text": str}, ...]}
 
     Raises:
         StoryGenerationError: API 호출 실패 시
@@ -347,36 +325,24 @@ def _generate_dummy_story_data(
     """더미 스토리 데이터 생성 (API 키 없을 때 폴백)"""
     g = _gender_en(child_gender)
     dummy_stories = [
-        (f"오늘도 {job_name} {child_name}의 하루가 시작되었어요. 유니폼 단추를 하나하나 채우고 준비를 마치자, 기분이 정말 좋았어요. '좋아, 오늘도 열심히 해 볼까!' {child_name}는 씩씩한 발걸음으로 출발했답니다.",
-         f"A confident {g} (age {child_age}) dressed as a {job_name}, getting ready for work with a cheerful determined expression, bright workplace entrance with morning sunlight"),
-        (f"{child_name}가 도착한 곳에는 {job_name}가 쓰는 도구들이 가득했어요. 하나하나 살펴보니 모두 신기한 것들이었어요. '이건 뭐에 쓰는 거예요?' {child_name}가 호기심 가득한 눈으로 물었답니다.",
-         f"A {g} {job_name} exploring their new workspace with sparkling curious eyes, surrounded by professional tools and equipment, bright and welcoming setting"),
-        (f"선배가 {child_name}에게 중요한 도구를 건네주었어요. '이건 {job_name}의 가장 소중한 도구야. 잘 써 봐!' {child_name}는 두 손으로 소중히 받으며 고개를 끄덕였어요. 이 도구와 함께라면 뭐든 할 수 있을 것 같았어요.",
-         f"A {g} {job_name} carefully receiving an important tool from an adult mentor, holding it with both hands reverently, indoor professional setting with warm light"),
-        (f"{child_name}는 친구들 앞에서 {job_name}가 하는 일을 설명해 주었어요. 친구들은 눈을 동그랗게 뜨고 '와, 정말 멋지다!'라고 소리쳤어요. {child_name}는 뿌듯한 마음에 어깨가 으쓱해졌답니다.",
-         f"A {g} {job_name} proudly explaining their job to a group of impressed children, the other kids looking up with wide eyes and admiration, outdoor setting with playground"),
-        (f"드디어 {child_name}에게 첫 번째 임무가 주어졌어요! 심장이 콩닥콩닥 뛰었지만, 심호흡을 하고 용기를 냈어요. '할 수 있어!' {child_name}는 스스로에게 속삭이며 힘차게 출발했답니다.",
-         f"A {g} {job_name} receiving their first mission, looking determined with a mix of nervous excitement, taking a deep breath before starting, busy workplace background"),
-        (f"{child_name}는 열심히 일하면서 {job_name}의 일이 얼마나 소중한지 깨달았어요. 누군가를 돕고 나니 마음이 따뜻해졌어요. '이런 기분이구나!' {child_name}는 환하게 웃으며 더 열심히 했답니다.",
-         f"A {g} {job_name} actively working and helping others with a warm fulfilled expression, community members smiling gratefully, warm and cozy atmosphere"),
-        (f"그런데 갑자기 어려운 문제가 생겼어요! 모두가 걱정했지만, {child_name}는 당황하지 않고 차분하게 생각했어요. '분명 방법이 있을 거야.' {child_name}는 이마에 손을 대고 곰곰이 생각했답니다.",
-         f"A {g} {job_name} facing a big challenge, standing calmly with hand on chin in a thinking pose while others around look worried, dramatic but child-friendly scene"),
-        (f"{child_name}는 번뜩이는 아이디어로 문제를 해결했어요! '해냈다!' 주변 사람들이 모두 박수를 쳐 주었어요. {child_name}의 얼굴에 환한 미소가 퍼졌어요. 세상에서 가장 기쁜 순간이었답니다.",
-         f"A {g} {job_name} celebrating a triumphant moment, jumping with joy while a crowd of people clap and cheer around them, confetti or sparkles in the air, bright and festive mood"),
-        (f"사람들이 {child_name}에게 다가와 고마움을 전했어요. '정말 고마워, {child_name}!' 따뜻한 말 한마디에 {child_name}의 마음이 꽉 찼어요. 눈시울이 살짝 뜨거워졌지만, 행복한 눈물이었답니다.",
-         f"A {g} {job_name} being thanked by grateful townspeople, receiving hugs and handshakes, the child looking deeply moved with glistening eyes, warm sunset light, town square with flowers"),
-        (f"{child_name}는 하루를 마무리하며 오늘 있었던 일들을 떠올렸어요. 처음에는 떨렸지만, 열심히 해 냈어요. {job_name}가 되어 사람들의 웃음을 만들 수 있다는 게 정말 행복했답니다.",
-         f"A {g} {job_name} walking along a beautiful sunset path, looking content and reflective, golden hour light casting long warm shadows, peaceful neighborhood scenery"),
-        (f"노을이 물드는 하늘 아래, {child_name}는 가만히 별이 뜨기를 기다렸어요. 첫 번째 별이 반짝이자, {child_name}는 두 손을 모으고 속삭였어요. '내일도 멋진 {job_name}로서, 모든 사람들을 웃게 만들 거야.' {child_name}의 다짐은 별빛처럼 반짝반짝 빛났답니다.",
-         f"A {g} {job_name} standing on a gentle hilltop under a magnificent twilight sky, hands clasped together making a wish as the first star appears. The child's expression is peaceful, hopeful, and full of quiet determination. Background: layers of purple, orange and indigo sky with a single bright star, town lights twinkling below. Composition: child silhouetted against the vast sky, cinematic and emotional, space at top for text."),
+        f"오늘도 {job_name} {child_name}의 하루가 시작되었어요. 유니폼 단추를 하나하나 채우고 준비를 마치자, 기분이 정말 좋았어요. '좋아, 오늘도 열심히 해 볼까!' {child_name}는 씩씩한 발걸음으로 출발했답니다.",
+        f"{child_name}가 도착한 곳에는 {job_name}가 쓰는 도구들이 가득했어요. 하나하나 살펴보니 모두 신기한 것들이었어요. '이건 뭐에 쓰는 거예요?' {child_name}가 호기심 가득한 눈으로 물었답니다.",
+        f"선배가 {child_name}에게 중요한 도구를 건네주었어요. '이건 {job_name}의 가장 소중한 도구야. 잘 써 봐!' {child_name}는 두 손으로 소중히 받으며 고개를 끄덕였어요. 이 도구와 함께라면 뭐든 할 수 있을 것 같았어요.",
+        f"{child_name}는 친구들 앞에서 {job_name}가 하는 일을 설명해 주었어요. 친구들은 눈을 동그랗게 뜨고 '와, 정말 멋지다!'라고 소리쳤어요. {child_name}는 뿌듯한 마음에 어깨가 으쓱해졌답니다.",
+        f"드디어 {child_name}에게 첫 번째 임무가 주어졌어요! 심장이 콩닥콩닥 뛰었지만, 심호흡을 하고 용기를 냈어요. '할 수 있어!' {child_name}는 스스로에게 속삭이며 힘차게 출발했답니다.",
+        f"{child_name}는 열심히 일하면서 {job_name}의 일이 얼마나 소중한지 깨달았어요. 누군가를 돕고 나니 마음이 따뜻해졌어요. '이런 기분이구나!' {child_name}는 환하게 웃으며 더 열심히 했답니다.",
+        f"그런데 갑자기 어려운 문제가 생겼어요! 모두가 걱정했지만, {child_name}는 당황하지 않고 차분하게 생각했어요. '분명 방법이 있을 거야.' {child_name}는 이마에 손을 대고 곰곰이 생각했답니다.",
+        f"{child_name}는 번뜩이는 아이디어로 문제를 해결했어요! '해냈다!' 주변 사람들이 모두 박수를 쳐 주었어요. {child_name}의 얼굴에 환한 미소가 퍼졌어요. 세상에서 가장 기쁜 순간이었답니다.",
+        f"사람들이 {child_name}에게 다가와 고마움을 전했어요. '정말 고마워, {child_name}!' 따뜻한 말 한마디에 {child_name}의 마음이 꽉 찼어요. 눈시울이 살짝 뜨거워졌지만, 행복한 눈물이었답니다.",
+        f"{child_name}는 하루를 마무리하며 오늘 있었던 일들을 떠올렸어요. 처음에는 떨렸지만, 열심히 해 냈어요. {job_name}가 되어 사람들의 웃음을 만들 수 있다는 게 정말 행복했답니다.",
+        f"노을이 물드는 하늘 아래, {child_name}는 가만히 별이 뜨기를 기다렸어요. 첫 번째 별이 반짝이자, {child_name}는 두 손을 모으고 속삭였어요. '내일도 멋진 {job_name}로서, 모든 사람들을 웃게 만들 거야.' {child_name}의 다짐은 별빛처럼 반짝반짝 빛났답니다.",
     ]
 
     stories = []
-    for i, (text, scene) in enumerate(dummy_stories):
+    for i, text in enumerate(dummy_stories):
         stories.append({
             "story_number": i + 1,
             "text": text,
-            "scene_description": scene,
         })
 
     return {
@@ -396,7 +362,7 @@ def generate_story_with_gpt_or_dummy(
     """API 키가 있으면 GPT-4o, 없으면 더미 스토리를 반환한다.
 
     Returns:
-        {"title": str, "stories": [{"story_number": int, "text": str, "scene_description": str}, ...]}
+        {"title": str, "stories": [{"story_number": int, "text": str}, ...]}
 
     Raises:
         StoryGenerationError: API 키가 있는데 호출 실패 시
@@ -415,3 +381,166 @@ def generate_story_with_gpt_or_dummy(
         child_age=child_age,
         child_gender=child_gender,
     )
+
+
+# ──────────────────────────────────────────────
+# scene_description 생성 (그림 생성 직전에 호출)
+# ──────────────────────────────────────────────
+
+class SceneDescriptionEntry(BaseModel):
+    story_number: int
+    scene_description: str
+
+
+class SceneDescriptionOutput(BaseModel):
+    scenes: list[SceneDescriptionEntry]
+
+
+def _build_scene_description_prompt(
+    stories: list[dict],
+    child_name: str,
+    job_name: str,
+    art_style: str,
+    child_age: int,
+    child_gender: str,
+) -> str:
+    """scene_description 생성용 프롬프트를 구성한다."""
+    gender_en = _gender_en(child_gender)
+    art_keywords = ART_STYLE_KEYWORDS.get(art_style, "illustration style")
+
+    stories_text = "\n".join(
+        f"  이야기 {s['story_number']}: {s['text']}" for s in stories
+    )
+
+    return f"""당신은 동화책 일러스트 프롬프트 전문가입니다.
+아래 한국어 동화 텍스트를 읽고, 각 이야기에 대한 영어 scene_description을 생성하세요.
+
+## 주인공 정보
+- 이름: {child_name}
+- 나이: {child_age}세
+- 성별: {gender_en}
+- 직업: {job_name}
+- 그림체: {art_keywords}
+
+## scene_description 규칙
+- 영어로 작성하세요 (이미지 생성 AI에 전달됨).
+- 캐릭터의 외형, 표정, 동작, 배경을 구체적으로 묘사하세요.
+- 캐릭터는 항상 {child_age}세 {gender_en} 모습이어야 합니다 (직업 복장을 입은 {gender_en}).
+- 캐릭터를 묘사할 때 "a {gender_en} (age {child_age})"로 표현하세요.
+- 텍스트 배치 영역(상단 또는 하단)을 고려한 구도를 명시하세요.
+- 각 장면이 이전 장면과 다른 배경/상황이 되도록 다양하게 묘사하세요.
+- 그림체 스타일: {art_keywords}
+
+## 한국어 이야기 텍스트
+{stories_text}
+
+정확히 {len(stories)}개의 scene_description을 생성하세요. story_number는 위와 동일하게 매칭하세요."""
+
+
+def generate_scene_descriptions(
+    stories: list[dict],
+    child_name: str,
+    job_name: str,
+    art_style: str,
+    child_age: int,
+    child_gender: str,
+) -> list[str]:
+    """확정된 한국어 텍스트를 기반으로 영어 scene_description을 생성한다.
+
+    Args:
+        stories: [{"text": "한국어 텍스트", "story_number": int}, ...]
+        child_name: 아이 이름
+        job_name: 직업명
+        art_style: 그림체
+        child_age: 나이
+        child_gender: 성별
+
+    Returns:
+        scene_description 문자열 리스트 (stories와 동일 순서)
+    """
+    settings = get_settings()
+
+    if not settings.OPENAI_API_KEY:
+        logger.info("OPENAI_API_KEY 미설정 — 더미 scene_description 폴백")
+        gender_en = _gender_en(child_gender)
+        return [
+            f"A {gender_en} (age {child_age}) dressed as a {job_name}, scene {s['story_number']}"
+            for s in stories
+        ]
+
+    prompt = _build_scene_description_prompt(
+        stories=stories,
+        child_name=child_name,
+        job_name=job_name,
+        art_style=art_style,
+        child_age=child_age,
+        child_gender=child_gender,
+    )
+
+    try:
+        client = OpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            timeout=120.0,
+        )
+
+        response = client.beta.chat.completions.parse(
+            model=settings.TEXT_MODEL,
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
+            max_tokens=4096,
+            response_format=SceneDescriptionOutput,
+        )
+
+        parsed = response.choices[0].message.parsed
+
+        # 비용 모니터링
+        from app.services.cost_monitor import get_cost_monitor
+        monitor = get_cost_monitor()
+        usage = getattr(response, "usage", None)
+        prompt_tokens = getattr(usage, "prompt_tokens", 0) if usage else 0
+        completion_tokens = getattr(usage, "completion_tokens", 0) if usage else 0
+        total_tokens = getattr(usage, "total_tokens", 0) if usage else (prompt_tokens + completion_tokens)
+        monitor.log_story_call(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            success=True,
+        )
+
+    except Exception as e:
+        from app.services.cost_monitor import get_cost_monitor
+        get_cost_monitor().log_story_call(success=False, error=str(e))
+        logger.error(f"scene_description 생성 실패: {e}")
+        raise StoryGenerationError(f"scene_description 생성 중 오류가 발생했습니다: {e}")
+
+    if parsed is None:
+        raise StoryGenerationError("scene_description 생성 결과가 비어 있습니다")
+
+    # story_number 순서로 정렬하여 반환
+    scene_map = {s.story_number: s.scene_description for s in parsed.scenes}
+    return [scene_map.get(s["story_number"], "") for s in stories]
+
+
+def generate_single_scene_description(
+    text: str,
+    child_name: str,
+    job_name: str,
+    art_style: str,
+    child_age: int,
+    child_gender: str,
+) -> str:
+    """단일 이야기 텍스트에 대한 scene_description을 생성한다.
+
+    개별 페이지 이미지 재생성 시 사용.
+    """
+    results = generate_scene_descriptions(
+        stories=[{"text": text, "story_number": 1}],
+        child_name=child_name,
+        job_name=job_name,
+        art_style=art_style,
+        child_age=child_age,
+        child_gender=child_gender,
+    )
+    return results[0] if results else ""

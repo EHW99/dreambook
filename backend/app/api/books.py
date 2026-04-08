@@ -561,16 +561,44 @@ def regenerate_image(
     image_path = None
 
     # 캐릭터 시트 조회 (파일 시스템 경로로 변환)
-    from app.services.generate import _get_selected_character_sheet_path, _calc_child_age
+    from app.services.generate import _get_selected_character_sheet_path, _get_selected_character_info, _calc_child_age
     char_path = _get_selected_character_sheet_path(db, book.id)
+    _, char_art_style = _get_selected_character_info(db, book.id)
+    art_style = char_art_style or book.art_style or "watercolor"
+    child_age = _calc_child_age(book.child_birth_date)
+    child_gender = book.child_gender or "male"
 
-    if page.scene_description:
-        child_age = _calc_child_age(book.child_birth_date)
-        child_gender = book.child_gender or "male"
+    # ★ 대응하는 story 페이지의 텍스트로 scene_description 새로 생성
+    # illustration 페이지(짝수)의 다음 페이지(홀수)가 대응하는 story 페이지
+    story_page = db.query(Page).filter(
+        Page.book_id == book_id,
+        Page.page_number == page.page_number + 1,
+        Page.page_type == "story",
+    ).first()
+    story_text = story_page.text_content if story_page and story_page.text_content else ""
+
+    if story_text:
+        from app.services.ai_story import generate_single_scene_description
+        scene_desc = generate_single_scene_description(
+            text=story_text,
+            child_name=book.child_name,
+            job_name=book.job_name or "직업",
+            art_style=art_style,
+            child_age=child_age,
+            child_gender=child_gender,
+        )
+        # DB에도 업데이트
+        page.scene_description = scene_desc
+        if story_page:
+            story_page.scene_description = scene_desc
+    else:
+        scene_desc = page.scene_description or ""
+
+    if scene_desc:
         ai_bytes = generate_illustration_or_dummy(
             character_sheet_path=char_path or "",
-            scene_description=page.scene_description,
-            art_style=book.art_style or "watercolor",
+            scene_description=scene_desc,
+            art_style=art_style,
             child_name=book.child_name,
             job_name=book.job_name or "직업",
             child_age=child_age,

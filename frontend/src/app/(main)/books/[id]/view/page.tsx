@@ -205,7 +205,7 @@ function BookViewContent() {
   }
 
   const hasThumbnails = thumbnails && thumbnails.pages.length > 0;
-  const canOrder = book.status === "confirmed";
+  const canOrder = book.status === "confirmed" && hasThumbnails;
 
   // 입력 필드 공통 스타일
   const inputClass = (field: string) =>
@@ -224,13 +224,18 @@ function BookViewContent() {
             <ArrowLeft size={18} />
             <span className="text-sm font-medium">내 책장</span>
           </button>
-          {canOrder && (
+          {book.status === "confirmed" && !hasThumbnails ? (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 text-text-light text-sm">
+              <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+              책을 준비하고 있어요
+            </div>
+          ) : canOrder ? (
             <Button onClick={openOrderModal}
               className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-full px-6"
             >
               <ShoppingCart size={16} />주문하기
             </Button>
-          )}
+          ) : null}
         </div>
 
         {/* 뷰어 */}
@@ -310,8 +315,8 @@ function BookViewContent() {
                   </p>
 
                   <div className="flex flex-col gap-3">
-                    <Button onClick={() => { setShowOrderModal(false); router.push("/bookshelf"); }} className="w-full">
-                      내 책장으로 이동
+                    <Button onClick={() => { setShowOrderModal(false); router.push("/mypage/orders"); }} className="w-full">
+                      주문내역 보기
                     </Button>
                     <Button variant="outline" onClick={() => setShowOrderModal(false)} className="w-full">
                       계속 보기

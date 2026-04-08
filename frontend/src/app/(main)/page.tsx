@@ -131,11 +131,11 @@ function SampleBooksSection() {
 /* ───────── 데이터 ───────── */
 
 const SAMPLE_BOOKS = [
-  { id: "bk_psP9hSKrV3uT", title: "용감한 소방관 동준이", author: "임동준", job: "소방관" },
-  { id: "bk_5md3I6fjGYuG", title: "사랑의 노래를 부른 서윤이", author: "이서윤", job: "가수" },
-  { id: "bk_Vz79yxEQXSY8", title: "축구왕 임하준의 멋진 하루", author: "임하준", job: "축구선수" },
-  { id: "bk_4wzYIERSPhZu", title: "아율의 아름다운 선율", author: "김아율", job: "피아니스트" },
-  { id: "bk_1UjfshTW9cJm", title: "용감한 경찰관 김시우", author: "김시우", job: "경찰관" },
+  { id: "bk_37HdJ9vmkRK8", title: "소방관 이서준의 용감한 하루", author: "이서준", job: "소방관" },
+  { id: "bk_bMfUsD33vZnZ", title: "가수 지유의 빛나는 무대", author: "김지유", job: "가수" },
+  { id: "bk_23USbYBfRPTR", title: "축구선수 임시우의 승리의 골", author: "임시우", job: "축구선수" },
+  { id: "bk_2Ad3vR9hAzUo", title: "요리사 이하윤의 특별한 도전", author: "이하윤", job: "요리사" },
+  { id: "bk_6CEC3tVHdAXa", title: "우주비행사 서우의 특별한 탐험", author: "이서우", job: "우주비행사" },
 ];
 
 const ART_STYLES = [

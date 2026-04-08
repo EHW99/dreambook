@@ -58,7 +58,7 @@ def translate_job_with_gpt(job_name: str) -> dict:
                 },
                 {"role": "user", "content": job_name},
             ],
-            temperature=0.3,
+            temperature=0.5,
             max_tokens=200,
             response_format=JobTranslation,
         )
