@@ -183,3 +183,7 @@ npm run dev
 | `BOOKPRINT_API_KEY` | O | Book Print API Sandbox 키 |
 | `OPENAI_API_KEY` | O | OpenAI API 키 |
 | `SECRET_KEY` | O | JWT 서명용 비밀키 |
+
+---
+
+이 프로젝트는 (주)스위트북 채용 과제 제출용으로 작성되었습니다.
