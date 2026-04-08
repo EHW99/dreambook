@@ -42,13 +42,17 @@
 </tr>
 </table>
 
+### 사용자 워크플로우
+
+![User Flow](screenshots/workflow.png)
+
 ---
 
 ## 실행 방법
 
 ### 사전 준비
 
-- Python 3.10+
+- Python 3.10 권장
 - Node.js 18+
 - [api.sweetbook.com](https://api.sweetbook.com) 가입 후 Sandbox API Key 발급
 - [platform.openai.com](https://platform.openai.com) 에서 OpenAI API Key 발급
