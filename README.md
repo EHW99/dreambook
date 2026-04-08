@@ -23,17 +23,24 @@
 
 ## 서비스 화면
 
-### 메인 페이지
-![메인 페이지](screenshots/1메인.jpg)
-
-### 샘플 동화책 — 실제 Dreambook 서비스로 제작된 동화책 5권을 바로 열람할 수 있습니다
-![샘플 동화책](screenshots/2온보딩.jpg)
-
-### 동화책 뷰어 — Book Print API의 렌더링 결과를 그대로 보여줍니다
-![동화책 뷰어](screenshots/3예시.jpg)
-
-### 발행면 — 직접 제작한 커스텀 템플릿으로 실제 인쇄될 모습을 확인할 수 있습니다
-![발행면](screenshots/4실제.jpg)
+<table>
+<tr>
+<td width="50%"><strong>메인 페이지</strong></td>
+<td width="50%"><strong>샘플 동화책 — 실제 서비스로 제작된 5권 열람</strong></td>
+</tr>
+<tr>
+<td><img src="screenshots/1메인.jpg" width="100%"></td>
+<td><img src="screenshots/2온보딩.jpg" width="100%"></td>
+</tr>
+<tr>
+<td width="50%"><strong>동화책 뷰어 — Book Print API 렌더링 결과 그대로 표시</strong></td>
+<td width="50%"><strong>발행면 — 직접 제작한 커스텀 템플릿으로 인쇄될 모습 확인</strong></td>
+</tr>
+<tr>
+<td><img src="screenshots/3예시.jpg" width="100%"></td>
+<td><img src="screenshots/4실제.jpg" width="100%"></td>
+</tr>
+</table>
 
 ---
 
@@ -124,7 +131,7 @@ npm run dev
 |--------|----------|
 | Claude Code (claude-opus-4-6) | 프로젝트 설계, 프론트엔드·백엔드 구현, Book Print API 연동, 코드 리뷰 |
 | OpenAI GPT-4o-mini | 동화 스토리 생성, 줄거리 후보 생성 |
-| OpenAI GPT Image (gpt-image-1) | 캐릭터 시트 생성, 페이지 일러스트 생성, 표지 이미지 생성 |
+| OpenAI GPT Image (gpt-image-1.5) | 캐릭터 시트 생성, 페이지 일러스트 생성, 표지 이미지 생성 |
 | ChatGPT (이미지 생성) | 로고, 사이트 아이콘 제작 |
 | Google Gemini | 온보딩 페이지 소개 이미지 제작 |
 
@@ -160,7 +167,7 @@ npm run dev
 | 프론트엔드 | Next.js 14 (App Router), Tailwind CSS, Framer Motion |
 | 백엔드 | FastAPI, SQLAlchemy, SQLite |
 | AI (텍스트) | OpenAI GPT-4o-mini |
-| AI (이미지) | OpenAI GPT Image (gpt-image-1, images.edit) |
+| AI (이미지) | OpenAI GPT Image (gpt-image-1.5, images.edit) |
 | 인증 | JWT + bcrypt |
 | 책 인쇄 | Book Print API (Sandbox) |
 
