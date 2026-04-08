@@ -489,8 +489,8 @@ class BookPrintService:
         client = await self._get_client()
         headers = self._headers()
 
-        # 1. 전 페이지 렌더 요청 (24페이지)
-        for pn in range(24):
+        # 1. 렌더 요청 (SQUAREBOOK_HC 24p = 렌더 14페이지)
+        for pn in range(14):
             try:
                 await self._request("POST", "/render/page-thumbnail", json_data={
                     "bookUid": book_uid,
@@ -522,8 +522,8 @@ class BookPrintService:
             except Exception as e:
                 logger.warning(f"[bookprint] 표지 썸네일 다운로드 실패: {e}")
 
-        # 4. 내지 다운로드 (0~23)
-        for pn in range(24):
+        # 4. 내지 다운로드
+        for pn in range(14):
             page_path = os.path.join(out_dir, f"{pn}.jpg")
             for attempt in range(2):
                 try:
