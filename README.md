@@ -68,7 +68,7 @@ cp .env.example .env          # Windows: copy .env.example .env
 #   BOOKPRINT_API_KEY=발급받은_Sandbox_Key
 #   OPENAI_API_KEY=발급받은_OpenAI_Key
 #   SECRET_KEY=임의의_긴_문자열
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # 프론트엔드 (새 터미널)
 cd ../frontend
