@@ -40,7 +40,7 @@ function ThumbnailLoading({ bookId, onLoaded }: { bookId: number; onLoaded: (t: 
       <div className="text-center space-y-3">
         <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full mx-auto" />
         <p className="text-text-light text-sm">렌더링 준비 중{dots}</p>
-        <p className="text-text-lighter text-xs">약 2~3분 정도 소요됩니다</p>
+        <p className="text-text-lighter text-xs">약 30초~1분 정도 소요됩니다</p>
       </div>
     </div>
   );
@@ -276,7 +276,7 @@ function BookViewContent() {
                   <h3 className="text-lg font-bold text-text mb-2">동화책을 만들고 있어요</h3>
                   <motion.p key={orderStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     className="text-sm text-text-light">{orderStep}</motion.p>
-                  <p className="text-xs text-text-lighter mt-4">잠시만 기다려주세요. 1~2분 정도 소요됩니다.</p>
+                  <p className="text-xs text-text-lighter mt-4">잠시만 기다려주세요. 30초~1분 정도 소요됩니다.</p>
                 </div>
 
               /* ── 주문 완료 ── */
