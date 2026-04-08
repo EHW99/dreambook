@@ -364,11 +364,15 @@ def generate_illustrations(
 
     generated_count = 0
 
+    # commit 후 ORM 객체가 expire되므로, 스레드에서 쓸 값을 미리 꺼내둔다
+    story_texts = [sp.text_content or "" for sp in story_pages]
+    scene_descs_cache = [ip.scene_description or "" for ip in illust_pages]
+
     # 병렬 일러스트 생성 (동시 2개)
     # AI API 호출은 I/O-bound이므로 ThreadPoolExecutor로 병렬화
     def _gen_task(i: int, illust_page: Page) -> tuple[int, str]:
-        story_text = story_pages[i].text_content if i < len(story_pages) else ""
-        scene_desc = illust_page.scene_description or ""
+        story_text = story_texts[i] if i < len(story_texts) else ""
+        scene_desc = scene_descs_cache[i]
         image_path = _generate_single_illustration(
             book=book,
             page_number=illust_page.page_number,

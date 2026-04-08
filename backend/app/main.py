@@ -1,3 +1,7 @@
+import asyncio, sys
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
