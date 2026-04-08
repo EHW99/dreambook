@@ -848,26 +848,37 @@ async def confirm_book(
     _book_id = book.id
 
     async def _background_upload():
+        import asyncio
         svc = BookPrintService()
         try:
-            # 사진 업로드
+            # 사진 업로드 (타임아웃 15초, 실패 시 1회 재시도)
             uploaded_files: dict[str, str] = {}
+
+            async def _upload_with_retry(path: str, label: str) -> str | None:
+                for attempt in range(2):
+                    try:
+                        fn = await svc.upload_photo(book_uid, path)
+                        logger.info(f"[upload] {label} 업로드 성공")
+                        return fn
+                    except Exception as e:
+                        logger.warning(f"[upload] {label} 업로드 실패 (시도 {attempt+1}/2): {e}")
+                        if attempt == 0:
+                            await asyncio.sleep(3)
+                logger.error(f"[upload] {label} 업로드 최종 실패: {path}")
+                return None
+
             if cover_image_path and os.path.exists(cover_image_path):
-                try:
-                    fn = await svc.upload_photo(book_uid, cover_image_path)
+                fn = await _upload_with_retry(cover_image_path, "표지")
+                if fn:
                     uploaded_files[cover_image_path] = fn
-                except Exception:
-                    pass
             for pd in pages_data:
                 if pd.get("page_type") != "illustration":
                     continue
                 ip = pd.get("image_path", "")
                 if ip and os.path.exists(ip) and ip not in uploaded_files:
-                    try:
-                        fn = await svc.upload_photo(book_uid, ip)
+                    fn = await _upload_with_retry(ip, f"p{pd.get('page_number', '?')}")
+                    if fn:
                         uploaded_files[ip] = fn
-                    except Exception:
-                        pass
 
             # 표지 생성
             cover_file = uploaded_files.get(cover_image_path, "")
