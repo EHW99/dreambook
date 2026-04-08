@@ -48,7 +48,7 @@
 
 ### 사전 준비
 
-- Python 3.11+
+- Python 3.10+
 - Node.js 18+
 - [api.sweetbook.com](https://api.sweetbook.com) 가입 후 Sandbox API Key 발급
 - [platform.openai.com](https://platform.openai.com) 에서 OpenAI API Key 발급
