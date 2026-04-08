@@ -17,9 +17,9 @@ DEV_PASSWORD = "12345678"
 DEV_NAME = "체험사용자"
 DEV_PHONE = "01012345678"
 
-# samples/ 폴더 경로 (sweetbook/ 기준)
+# samples/ 폴더 경로 (app/ 기준)
 SAMPLES_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
     "samples",
 )
 
