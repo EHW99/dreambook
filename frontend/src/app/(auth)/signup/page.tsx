@@ -137,6 +137,15 @@ export default function SignupPage() {
               </p>
             </div>
 
+            {/* 체험 계정 안내 */}
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 mb-4">
+              <p className="text-sm font-medium text-text mb-1">체험용 계정이 준비되어 있습니다</p>
+              <p className="text-xs text-text-light">
+                <Link href="/login" className="text-primary font-medium hover:underline">로그인 페이지</Link>에서
+                "체험 계정으로 로그인" 버튼을 누르면 샘플 사진이 포함된 계정으로 바로 체험할 수 있습니다.
+              </p>
+            </div>
+
             {/* 폼 카드 */}
             <div className="bg-white rounded-3xl shadow-card p-8">
               <h2 className="text-xl font-bold text-text mb-6 text-center">회원가입</h2>

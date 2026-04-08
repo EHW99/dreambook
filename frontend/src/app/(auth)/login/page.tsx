@@ -88,6 +88,34 @@ export default function LoginPage() {
                 </div>
               )}
 
+              {/* 체험 로그인 */}
+              <div className="mb-6">
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={async () => {
+                    setIsLoading(true);
+                    setError("");
+                    const result = await login("dev@test.com", "12345678");
+                    if (result.error) {
+                      setError(result.error);
+                      setIsLoading(false);
+                      return;
+                    }
+                    router.push("/");
+                  }}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 text-base font-bold text-white hover:from-amber-500 hover:to-orange-500 transition-all shadow-lg"
+                >
+                  체험용 계정으로 시작하기
+                </button>
+                <p className="text-xs text-text-light text-center mt-2">샘플 사진이 포함된 계정입니다</p>
+              </div>
+
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+                <div className="relative flex justify-center text-xs"><span className="bg-white px-3 text-text-lighter">또는 직접 로그인</span></div>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-text mb-1.5">
@@ -126,28 +154,6 @@ export default function LoginPage() {
                   {isLoading ? "로그인 중..." : "로그인"}
                 </Button>
               </form>
-
-              {/* 체험 로그인 */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={async () => {
-                    setIsLoading(true);
-                    setError("");
-                    const result = await login("dev@test.com", "12345678");
-                    if (result.error) {
-                      setError(result.error);
-                      setIsLoading(false);
-                      return;
-                    }
-                    router.push("/");
-                  }}
-                  className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors"
-                >
-                  체험용 계정으로 시작하기
-                </button>
-              </div>
 
               <div className="mt-4 text-center text-sm text-text-light">
                 계정이 없으신가요?{" "}
