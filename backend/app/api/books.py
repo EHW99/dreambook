@@ -940,6 +940,7 @@ async def confirm_book(
                     publish_params["photo"] = cover_file
                 await svc.insert_content(book_uid, TPL_PUBLISH, publish_params, break_before="page")
 
+
             # finalize (최종화)
             await svc.finalize_book(book_uid)
             logger.info(f"[confirm] finalize 완료: {book_uid}")

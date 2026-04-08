@@ -504,42 +504,32 @@ class BookPrintService:
 
         result: dict[str, Any] = {"cover": None, "pages": []}
 
-        # 3. 표지 다운로드
-        cover_path = os.path.join(out_dir, "cover.jpg")
-        for attempt in range(2):
-            try:
-                r = await client.get(
-                    f"{self.base_url}/render/thumbnail/{book_uid}/cover.jpg",
-                    headers=headers, timeout=30.0,
-                )
-                if r.status_code == 200:
-                    with open(cover_path, "wb") as f:
-                        f.write(r.content)
-                    result["cover"] = cover_path
-                    break
-                elif r.status_code == 404 and attempt == 0:
-                    await asyncio.sleep(3)
-            except Exception as e:
-                logger.warning(f"[bookprint] 표지 썸네일 다운로드 실패: {e}")
-
-        # 4. 내지 다운로드
-        for pn in range(14):
-            page_path = os.path.join(out_dir, f"{pn}.jpg")
+        # 3. 병렬 다운로드 (표지 + 내지 24페이지, 실패 시 1회 재시도)
+        async def _download_one(url: str, save_path: str) -> str | None:
             for attempt in range(2):
                 try:
-                    r = await client.get(
-                        f"{self.base_url}/render/thumbnail/{book_uid}/{pn}.jpg",
-                        headers=headers, timeout=30.0,
-                    )
+                    r = await client.get(url, headers=headers, timeout=30.0)
                     if r.status_code == 200:
-                        with open(page_path, "wb") as f:
+                        with open(save_path, "wb") as f:
                             f.write(r.content)
-                        result["pages"].append(page_path)
-                        break
+                        return save_path
                     elif r.status_code == 404 and attempt == 0:
                         await asyncio.sleep(3)
                 except Exception as e:
-                    logger.warning(f"[bookprint] 썸네일 다운로드 실패 (page {pn}): {e}")
+                    logger.warning(f"[bookprint] 썸네일 다운로드 실패 ({save_path}): {e}")
+            return None
+
+        cover_path = os.path.join(out_dir, "cover.jpg")
+        tasks = [_download_one(f"{self.base_url}/render/thumbnail/{book_uid}/cover.jpg", cover_path)]
+        page_paths = []
+        for pn in range(24):
+            pp = os.path.join(out_dir, f"{pn}.jpg")
+            page_paths.append(pp)
+            tasks.append(_download_one(f"{self.base_url}/render/thumbnail/{book_uid}/{pn}.jpg", pp))
+
+        dl_results = await asyncio.gather(*tasks)
+        result["cover"] = dl_results[0]
+        result["pages"] = [p for p in dl_results[1:] if p]
 
         logger.info(f"[bookprint] 썸네일 다운로드 완료: cover={'O' if result['cover'] else 'X'}, pages={len(result['pages'])}/24")
         return result

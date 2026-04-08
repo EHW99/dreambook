@@ -350,7 +350,7 @@ function OrderContent() {
           </motion.p>
 
           <p className="text-xs text-text-lighter mt-4">
-            잠시만 기다려주세요. 이 과정은 1~2분 정도 소요됩니다.
+            잠시만 기다려주세요. 이 과정은 30초~1분 정도 소요됩니다.
           </p>
         </motion.div>
       </div>
