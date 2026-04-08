@@ -57,8 +57,8 @@
 
 ```bash
 # 저장소 클론
-git clone https://github.com/your-repo/dreambook.git
-cd dreambook/app
+git clone https://github.com/EHW99/dreambook.git
+cd dreambook
 
 # 백엔드
 cd backend
