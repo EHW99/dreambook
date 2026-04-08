@@ -25,6 +25,14 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """서버 시작/종료 라이프사이클"""
+    # SECRET_KEY 미설정 시 임시 키 생성 + 경고
+    import logging as _logging
+    _logger = _logging.getLogger(__name__)
+    if not settings.SECRET_KEY:
+        import secrets
+        settings.SECRET_KEY = secrets.token_urlsafe(32)
+        _logger.warning("SECRET_KEY가 설정되지 않았습니다. 임시 키를 생성합니다. 프로덕션에서는 반드시 .env에 SECRET_KEY를 설정하세요.")
+
     # startup
     import app.models  # noqa: F401
     Base.metadata.create_all(bind=engine)

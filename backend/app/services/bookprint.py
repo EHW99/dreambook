@@ -259,6 +259,11 @@ class BookPrintService:
         })
         return result["data"]["bookUid"]
 
+    async def get_book_detail(self, book_uid: str) -> dict[str, Any]:
+        """책 상세 조회 → 상태(status) 포함"""
+        result = await self._request("GET", f"/books/{book_uid}")
+        return result.get("data", {})
+
     # === Photos API ===
 
     async def upload_photo(self, book_uid: str, file_path: str) -> str:

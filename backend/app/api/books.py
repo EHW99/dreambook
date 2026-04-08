@@ -145,6 +145,18 @@ def update(
                 detail="사진을 찾을 수 없습니다",
             )
 
+    # status 변경 시 허용된 전이만 통과
+    ALLOWED_STATUS_TRANSITIONS = {
+        "draft": {"character_confirmed"},
+    }
+    if req.status is not None and req.status != book.status:
+        allowed = ALLOWED_STATUS_TRANSITIONS.get(book.status, set())
+        if req.status not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"'{book.status}' → '{req.status}' 상태 전환은 허용되지 않습니다",
+            )
+
     # step 5→6 전환 시 캐릭터 선택 여부 서버 측 검증
     if req.current_step is not None and req.current_step >= 6 and book.current_step <= 5:
         from app.models.character_sheet import CharacterSheet
@@ -802,7 +814,6 @@ async def confirm_book(
     db.commit()
 
     # 나머지(사진 업로드 + 내지 삽입 + 썸네일)는 전부 백그라운드
-    import asyncio
     _title = book.title or f"{book.child_name}의 동화책"
     _child_name = book.child_name
     _spec_uid = book.book_spec_uid
@@ -902,9 +913,23 @@ async def confirm_book(
             logger.info(f"[confirm] 백그라운드 업로드+썸네일 완료: {book_uid}")
         except Exception as e:
             logger.error(f"[confirm] 백그라운드 작업 실패: {e}")
+            # 실패 시 status를 editing으로 롤백하여 사용자가 재시도 가능하게
+            from app.database import SessionLocal as _SL
+            _s = _SL()
+            try:
+                _b = _s.query(Book).filter(Book.id == _book_id).first()
+                if _b:
+                    _b.status = "editing"
+                    _b.bookprint_book_uid = None
+                    _s.commit()
+                    logger.info(f"[confirm] 실패로 인해 status를 editing으로 롤백: book_id={_book_id}")
+            except Exception as rollback_err:
+                logger.error(f"[confirm] 롤백 실패: {rollback_err}")
+            finally:
+                _s.close()
         finally:
             await svc.close()
 
-    background_tasks.add_task(asyncio.run, _background_upload())
+    background_tasks.add_task(_background_upload)
 
     return {"message": "동화책이 확정되었습니다", "status": "confirmed"}

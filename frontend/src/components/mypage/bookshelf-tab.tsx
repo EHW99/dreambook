@@ -22,7 +22,6 @@ const STATUS_MAP: Record<string, { label: string; bg: string; text: string }> = 
   draft: { label: "작성중", bg: "bg-warning/80", text: "text-yellow-900" },
   character_confirmed: { label: "작성중", bg: "bg-warning/80", text: "text-yellow-900" },
   story_generated: { label: "편집중", bg: "bg-accent/80", text: "text-teal-900" },
-  generating: { label: "생성중", bg: "bg-accent/80", text: "text-teal-900" },
   editing: { label: "편집중", bg: "bg-accent/80", text: "text-teal-900" },
   confirmed: { label: "주문 대기", bg: "bg-primary/80", text: "text-white" },
   completed: { label: "완성", bg: "bg-success/80", text: "text-green-900" },

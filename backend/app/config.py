@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     # 이미지 품질: low / medium / high
     IMAGE_QUALITY: str = "low"
 
-    # JWT
-    SECRET_KEY: str = "dev-secret-key-change-in-production"
+    # JWT (반드시 .env에서 설정할 것)
+    SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 

@@ -218,6 +218,21 @@ async def create_order(
         book_uid = book.bookprint_book_uid
 
         if book_uid:
+            # book_uid가 있으면 Book Print API에서 실제 상태 확인
+            try:
+                bp_detail = await service.get_book_detail(book_uid)
+                bp_status = bp_detail.get("status", "")
+            except Exception:
+                bp_status = ""
+
+            if bp_status != "finalized":
+                # finalize 안 된 책 → book_uid 무효화하고 전체 워크플로우로 전환
+                logger.warning(f"book_uid={book_uid}이 finalized 아님 (status={bp_status}), 전체 워크플로우 실행")
+                book_uid = None
+                book.bookprint_book_uid = None
+                db.commit()
+
+        if book_uid:
             # 이미 업로드+finalize된 책 → 충전금 + 주문만
             await service.ensure_sufficient_credits()
             try:
