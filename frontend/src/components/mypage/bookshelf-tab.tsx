@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiClient, BookListItem } from "@/lib/api";
+import { useVoucherGate } from "@/lib/voucher-gate-context";
 import { Button } from "@/components/ui/button";
 import {
   BookOpenIcon,
@@ -48,6 +49,7 @@ interface BookshelfTabProps {
 
 export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) {
   const router = useRouter();
+  const { startCreate } = useVoucherGate();
   const [books, setBooks] = useState<BookListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -112,7 +114,7 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
         </div>
         <p className="text-lg font-medium text-text mb-2">아직 만든 동화책이 없어요</p>
         <p className="text-sm text-text-light mb-6">아이만의 특별한 동화책을 만들어보세요</p>
-        <Button onClick={() => router.push("/create")}>
+        <Button onClick={() => startCreate()}>
           <PlusIcon className="w-4 h-4 mr-2" />새 동화책 만들기
         </Button>
       </div>
@@ -233,7 +235,7 @@ export function BookshelfTab({ orderedBookIds = new Set() }: BookshelfTabProps) 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: books.length * 0.05, duration: 0.3 }}
-          onClick={() => router.push("/create")}
+          onClick={() => startCreate()}
           className="border-2 border-dashed border-secondary hover:border-primary rounded-2xl min-h-[300px] flex flex-col items-center justify-center gap-3 text-text-light hover:text-primary transition-all duration-200 group"
         >
           <div className="w-14 h-14 rounded-full bg-secondary/50 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
